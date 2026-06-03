@@ -8,7 +8,6 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-// 1. التحقق من الـ Webhook عند الربط أول مرة مع فيسبوك
 app.get('/webhook', (req, res) => {
   if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
     res.send(req.query['hub.challenge']);
@@ -17,13 +16,11 @@ app.get('/webhook', (req, res) => {
   }
 });
 
-// 2. استقبال رسائل واتساب والرد عليها
 app.post('/webhook', async (req, res) => {
   console.log('--- تنبيه: تم استقبال طلب جديد من واتساب ---');
   
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   
-  // تجاهل الطلب إذا لم يكن رسالة نصية مدعومة
   if (!message || message.type !== 'text') {
     console.log('الطلب مستلم، لكنه لا يحتوي على رسالة نصية مدعومة (قد يكون إشعار قراءة أو حالة).');
     return res.sendStatus(200);
@@ -36,9 +33,8 @@ app.post('/webhook', async (req, res) => {
   try {
     console.log('جاري إرسال الطلب إلى Anthropic (Claude)...');
     
-    // إرسال النص إلى Claude باستخدام الموديل المستقر والأحدث
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-      model: 'claude-3-5-sonnet-20241022', 
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       messages: [{ role: 'user', content: text }]
     }, {
@@ -54,7 +50,6 @@ app.post('/webhook', async (req, res) => {
 
     console.log('جاري إرسال الرد إلى واتساب عبر Meta API إصدار v25.0...');
     
-    // إرسال الرد إلى مستخدم واتساب باستخدام الإصدار v25.0 المتوافق مع حسابك
     await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
       messaging_product: 'whatsapp',
       to: from,
@@ -77,12 +72,10 @@ app.post('/webhook', async (req, res) => {
     }
   }
 
-  // الرد بـ 200 لفيسبوك ضروري جداً ليعرف أن سيرفرك استلم البيانات ولا يكرر إرسالها
   res.sendStatus(200);
 });
 
-// تشغيل السيرفر على المنفذ المحدد من Railway
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`السيرفر يعمل بنجاح على المنفذ ${PORT} 🚀`);
+  console.log(`🚀 السيرفر يعمل بنجاح على المنفذ ${PORT}`);
 });
