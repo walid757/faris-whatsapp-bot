@@ -21,7 +21,8 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 هدفك: مساعدة العميل على اختيار الحذاء، بناء الثقة، تحويل المحادثة إلى طلب مؤكد، تقليل نسبة رفض الطلبات، تقليل أخطاء المقاسات.
 
 ## IMPORTANT - IMAGES
-الصور يتم إرسالها تلقائياً من النظام. لا تذكر أبداً أنك لا تستطيع إرسال الصور. الصور موجودة وتصل للعميل تلقائياً.
+الصور تم إرسالها تلقائياً للعميل في بداية المحادثة. لا تذكر أبداً أنك لا تستطيع إرسال الصور.
+إذا طلب العميل الصور مرة أخرى بإلحاح، اكتب فقط [RESEND_IMAGES] في بداية ردك.
 
 ## BRAND IDENTITY
 اسم العلامة التجارية: GreatShoes
@@ -42,7 +43,9 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 دارجة ← رد بالدارجة. فصحى ← رد بالفصحى. فرنسية ← رد بالفرنسية.
 
 ## COMMUNICATION RULES
-تصرف كبشر حقيقي. لا تقل أبداً أنك روبوت أو ذكاء اصطناعي أو أنك لا تستطيع إرسال الصور. إيموجي واحد فقط. ردود قصيرة وواضحة.
+تصرف كبشر حقيقي. لا تقل أبداً أنك روبوت أو ذكاء اصطناعي. إيموجي واحد فقط. ردود قصيرة وواضحة.
+قسم ردك إلى جملتين أو ثلاث منفصلة بـ [PAUSE] بينها حتى تبدو كبشر حقيقي يكتب.
+مثال: "مرحباً بك في GreatShoes 👋 [PAUSE] عندنا أحذية جلد طبيعي بثلاثة ألوان [PAUSE] كيف يمكنني مساعدتك؟"
 
 ## PRODUCT DATA
 - اسم المنتج: BOTTINE CUIR GS081
@@ -52,19 +55,15 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 ## PRICE RULE
 عند سؤال عن الثمن:
-"ثمن هذا الموديل هو 320 درهم ويشمل:
-✓ التوصيل المجاني
-✓ خدمة قلب، قيس، عاد خلص
-✓ إمكانية استبدال المقاس
-✓ جلد طبيعي عالي الجودة"
+"ثمن هذا الموديل هو 320 درهم [PAUSE] ويشمل التوصيل المجاني وخدمة قلب قيس عاد خلص وإمكانية استبدال المقاس وجلد طبيعي عالي الجودة"
 
 ## FSM
 
 ### STATE_0 - بناء الثقة
-لا تطلب بيانات. مثال: "مرحباً بك في GreatShoes. جميع أحذيتنا من الجلد الطبيعي. كيف يمكنني مساعدتك؟"
+لا تطلب بيانات. مثال: "مرحباً بك في GreatShoes [PAUSE] جميع أحذيتنا من الجلد الطبيعي [PAUSE] كيف يمكنني مساعدتك؟"
 
 ### STATE_1 - اختيار اللون
-اشرح الألوان الثلاثة: أسود، بني، رمادي. الصور وصلت للعميل تلقائياً.
+اشرح الألوان الثلاثة: أسود، بني، رمادي. قل للعميل أن الصور وصلت له في البداية.
 
 ### STATE_2 - تأكيد المقاس
 اسأل عن نوع المقاس (جلدي أم رياضي). لا تنتقل قبل تأكيد المقاس واللون.
@@ -73,9 +72,9 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 1- الاسم، 2- الهاتف، 3- المدينة، 4- العنوان. واحد في كل مرة.
 
 ## OBJECTION HANDLING
-جودة: "جلد طبيعي، تفحصه قبل الدفع."
+جودة: "جلد طبيعي [PAUSE] تفحصه قبل الدفع."
 ثمن: اشرح القيمة.
-مقاس: "غنساعدك، وكيمكن نبدلوه."
+مقاس: "غنساعدك [PAUSE] وكيمكن نبدلوه."
 دفع: "الدفع بعد المعاينة."
 
 ## CONFIRMATION STATE
@@ -91,6 +90,49 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 const conversationHistory = {};
 const sentImages = new Set();
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+const markAsRead = async (messageId) => {
+  try {
+    await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+      messaging_product: 'whatsapp',
+      status: 'read',
+      message_id: messageId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('✅ تم تلوين الرسالة بالأزرق');
+  } catch (e) {
+    console.error('خطأ markAsRead:', e.message);
+  }
+};
+
+const sendText = async (to, text) => {
+  await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp',
+    to,
+    text: { body: text }
+  }, {
+    headers: {
+      'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+};
+
+const sendHumanLike = async (to, fullReply) => {
+  const parts = fullReply.split('[PAUSE]').map(p => p.trim()).filter(p => p.length > 0);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const typingTime = Math.min(Math.max(part.length * 40, 1000), 3000);
+    await sleep(typingTime);
+    await sendText(to, part);
+    if (i < parts.length - 1) await sleep(600);
+  }
+};
 
 const sendWhatsAppImage = async (to, color) => {
   const imageUrl = PRODUCT_IMAGES[color] || PRODUCT_IMAGES.noir;
@@ -101,7 +143,7 @@ const sendWhatsAppImage = async (to, color) => {
     type: 'image',
     image: {
       link: imageUrl,
-      caption: `BOTTINE CUIR GS081 - ${colorNames[color] || 'أسود'} - 320 درهم`
+      caption: `BOTTINE CUIR GS081 - ${colorNames[color]} - 320 درهم`
     }
   }, {
     headers: {
@@ -111,17 +153,20 @@ const sendWhatsAppImage = async (to, color) => {
   });
 };
 
-const detectColor = (text) => {
-  const t = text.toLowerCase();
-  if (t.includes('noir') || t.includes('أسود') || t.includes('اسود') || t.includes('كحل')) return 'noir';
-  if (t.includes('marron') || t.includes('بني') || t.includes('قهوي')) return 'marron';
-  if (t.includes('gris') || t.includes('رمادي') || t.includes('rmadi')) return 'gris';
-  return null;
+const sendAllImages = async (to) => {
+  await sendWhatsAppImage(to, 'noir');
+  await sleep(800);
+  await sendWhatsAppImage(to, 'marron');
+  await sleep(800);
+  await sendWhatsAppImage(to, 'gris');
+  console.log('✅ تم إرسال الصور الثلاث');
 };
 
-const wantsImage = (text) => {
+const isInsistingOnImages = (text) => {
   const t = text.toLowerCase();
-  return t.includes('صورة') || t.includes('صور') || t.includes('شوف') || t.includes('image') || t.includes('photo');
+  const imageWords = t.includes('صورة') || t.includes('صور') || t.includes('شوف') || t.includes('image') || t.includes('photo');
+  const insistWords = t.includes('مرة ثانية') || t.includes('أعد') || t.includes('ارسل') || t.includes('بعثها') || t.includes('مازال') || t.includes('مشافتش') || t.includes('وصلتش') || t.includes('encore') || t.includes('again');
+  return imageWords && insistWords;
 };
 
 app.get('/webhook', (req, res) => {
@@ -142,39 +187,30 @@ app.post('/webhook', async (req, res) => {
   const text = message.text.body;
   console.log(`من [${from}]: ${text}`);
 
+  res.sendStatus(200);
+
+  await markAsRead(message.id);
+
   if (!conversationHistory[from]) {
     conversationHistory[from] = [];
   }
 
+  // إرسال الصور مرة واحدة فقط عند أول رسالة
   if (!sentImages.has(from)) {
     sentImages.add(from);
     try {
-      await sendWhatsAppImage(from, 'noir');
-      console.log('تم إرسال صورة الأسود ✅');
-      await new Promise(r => setTimeout(r, 800));
-      await sendWhatsAppImage(from, 'marron');
-      console.log('تم إرسال صورة البني ✅');
-      await new Promise(r => setTimeout(r, 800));
-      await sendWhatsAppImage(from, 'gris');
-      console.log('تم إرسال صورة الرمادي ✅');
+      await sleep(500);
+      await sendAllImages(from);
     } catch (e) {
-      console.error('❌ خطأ في إرسال الصور:', e.response ? JSON.stringify(e.response.data) : e.message);
-    }
-  } else {
-    const color = detectColor(text);
-    if (color && wantsImage(text)) {
-      try {
-        await sendWhatsAppImage(from, color);
-        console.log(`تم إرسال صورة ${color} ✅`);
-      } catch (e) {
-        console.error('❌ خطأ:', e.message);
-      }
+      console.error('❌ خطأ في الصور:', e.response ? JSON.stringify(e.response.data) : e.message);
     }
   }
 
   conversationHistory[from].push({ role: 'user', content: text });
 
   try {
+    await sleep(1500);
+
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
@@ -188,26 +224,26 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    const reply = claudeRes.data.content[0].text;
+    let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
-      messaging_product: 'whatsapp',
-      to: from,
-      text: { body: reply }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-        'Content-Type': 'application/json'
+    // إعادة إرسال الصور فقط إذا ألح العميل أو أمر البوت بذلك
+    if (reply.includes('[RESEND_IMAGES]') || isInsistingOnImages(text)) {
+      reply = reply.replace('[RESEND_IMAGES]', '').trim();
+      try {
+        await sendAllImages(from);
+        await sleep(500);
+      } catch (e) {
+        console.error('❌ خطأ في إعادة الصور:', e.message);
       }
-    });
+    }
 
-    console.log('تم الإرسال ✅');
+    await sendHumanLike(from, reply);
+    console.log('✅ تم الإرسال');
+
   } catch (e) {
     console.error('❌ خطأ:', e.response ? JSON.stringify(e.response.data) : e.message);
   }
-
-  res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
