@@ -9,9 +9,9 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 const PRODUCT_IMAGES = {
-  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
-  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
-  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
+  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg',
+  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
@@ -164,8 +164,8 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 
 ## FSM
 
-### STATE_0 - PRIMING + TRUST
-"مرحباً بك في GreatShoes 👋 [PAUSE] قبل أي شيء، شنو كتفضل في الأحذية — الراحة ولا الأناقة؟"
+### STATE_0 - TRUST BUILDING
+"أهلاً بيك 😊 [PAUSE] عندنا قاعدة ذهبية: قلب، قيس، عاد خلص — تشري بدون أي مخاطرة. [PAUSE] كيف نقدر نعاونك؟"
 
 ### STATE_1 - PRODUCT + ANCHORING
 استخدم Anchoring + Contrast + Social Proof. اشرح الألوان الثلاثة.
@@ -179,13 +179,13 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 ## PRICE RULE
 "320 درهم [PAUSE] مقارنة بالسوق اللي كيبيع 600-1000، هاد السعر استثنائي — ويشمل التوصيل وقلب قيس عاد خلص واستبدال المقاس."
 
-## FOLLOW-UP MESSAGES (عند الصمت)
-عندما يُطلب منك إرسال رسالة متابعة بعد صمت العميل، أرسل واحدة من هذه الأنواع بالتناوب:
-- نوع 1 - مزحة ذكية بالدارجة متعلقة بالأحذية
-- نوع 2 - سؤال ذكي يفتح المحادثة من جديد
-- نوع 3 - عرض أو معلومة مفاجئة
-- نوع 4 - قصة قصيرة مضحكة عن زبون آخر
-- نوع 5 - رسالة تودع لطيفة إذا بلغ عدد المتابعات 5
+## FOLLOW-UP MESSAGES
+عندما يُطلب منك إرسال رسالة متابعة بعد صمت العميل:
+- نوع 1: مزحة ذكية بالدارجة متعلقة بالأحذية
+- نوع 2: سؤال ذكي يفتح المحادثة من جديد
+- نوع 3: عرض أو معلومة مفاجئة
+- نوع 4: قصة قصيرة مضحكة عن زبون آخر
+- نوع 5: رسالة وداع لطيفة مع عرض أخير
 استخدم [PAUSE] بين الجمل. إيموجي واحد فقط.
 
 ## CONFIRMATION STATE
@@ -208,8 +208,7 @@ const notInterested = new Set();
 const followUpTimers = {};
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-const SILENCE_TIMEOUT = 15 * 60 * 1000; // 15 دقيقة
+const SILENCE_TIMEOUT = 15 * 60 * 1000;
 const MAX_FOLLOWUPS = 5;
 
 const markAsRead = async (messageId) => {
@@ -286,42 +285,34 @@ const isInsistingOnImages = (text) => {
 
 const isNotInterested = (text) => {
   const t = text.toLowerCase();
-  return t.includes('مش غادي نشري') || t.includes('ما بغيتش') || t.includes('لا شكراً') || 
-         t.includes('لا شكرا') || t.includes('pas intéressé') || t.includes('no thanks') ||
-         t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
+  return t.includes('مش غادي نشري') || t.includes('ما بغيتش') || t.includes('لا شكراً') ||
+    t.includes('لا شكرا') || t.includes('pas intéressé') || t.includes('no thanks') ||
+    t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
-// دالة إرسال رسالة المتابعة عند الصمت
 const sendFollowUp = async (from) => {
   if (orderConfirmed.has(from) || notInterested.has(from)) return;
   if (!conversationHistory[from] || conversationHistory[from].length === 0) return;
 
   const count = followUpCount[from] || 0;
-
   if (count >= MAX_FOLLOWUPS) {
-    console.log(`✅ توقف المتابعة مع ${from} — تجاوز الحد الأقصى`);
     delete followUpTimers[from];
     return;
   }
 
   followUpCount[from] = count + 1;
-  console.log(`📨 إرسال متابعة رقم ${count + 1} لـ ${from}`);
+  console.log(`📨 متابعة رقم ${count + 1} لـ ${from}`);
 
   try {
     const followUpPrompt = count < MAX_FOLLOWUPS - 1
-      ? `العميل صمت منذ 15 دقيقة. أرسل رسالة متابعة إبداعية رقم ${count + 1} من ${MAX_FOLLOWUPS} لإعادته للمحادثة. استخدم أسلوباً مختلفاً عن المرات السابقة (مزحة، سؤال ذكي، معلومة مفاجئة، أو قصة قصيرة). استخدم [PAUSE] بين الجمل.`
-      : `العميل صمت كثيراً. هذه آخر رسالة متابعة. أرسل رسالة وداع لطيفة مع عرض أخير مميز، وأخبره أن الباب مفتوح دائماً. استخدم [PAUSE] بين الجمل.`;
-
-    const tempMessages = [
-      ...conversationHistory[from],
-      { role: 'user', content: followUpPrompt }
-    ];
+      ? `العميل صمت منذ 15 دقيقة. أرسل رسالة متابعة إبداعية رقم ${count + 1} من ${MAX_FOLLOWUPS} لإعادته للمحادثة. استخدم أسلوباً مختلفاً (مزحة، سؤال ذكي، معلومة مفاجئة، قصة قصيرة). استخدم [PAUSE] بين الجمل.`
+      : `العميل صمت كثيراً. هذه آخر رسالة. أرسل وداع لطيف مع عرض أخير وأخبره أن الباب مفتوح دائماً. استخدم [PAUSE] بين الجمل.`;
 
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-sonnet-4-6',
       max_tokens: 512,
       system: SYSTEM_PROMPT,
-      messages: tempMessages
+      messages: [...conversationHistory[from], { role: 'user', content: followUpPrompt }]
     }, {
       headers: {
         'x-api-key': CLAUDE_API_KEY,
@@ -330,21 +321,17 @@ const sendFollowUp = async (from) => {
       }
     });
 
-    const followUpReply = claudeRes.data.content[0].text;
-    await sendHumanLike(from, followUpReply);
-    console.log(`✅ تم إرسال المتابعة رقم ${count + 1}`);
+    await sendHumanLike(from, claudeRes.data.content[0].text);
+    console.log(`✅ تم إرسال المتابعة ${count + 1}`);
 
-    // جدولة المتابعة التالية إذا لم يصل للحد الأقصى
     if (count + 1 < MAX_FOLLOWUPS) {
       followUpTimers[from] = setTimeout(() => sendFollowUp(from), SILENCE_TIMEOUT);
     }
-
   } catch (e) {
     console.error('❌ خطأ في المتابعة:', e.message);
   }
 };
 
-// إعادة ضبط مؤقت المتابعة
 const resetFollowUpTimer = (from) => {
   if (followUpTimers[from]) {
     clearTimeout(followUpTimers[from]);
@@ -374,11 +361,9 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
   await markAsRead(message.id);
 
-  // إعادة ضبط المؤقت عند كل رسالة
   lastMessageTime[from] = Date.now();
   resetFollowUpTimer(from);
 
-  // التحقق من عدم الرغبة في الشراء
   if (isNotInterested(text)) {
     notInterested.add(from);
     if (followUpTimers[from]) {
@@ -392,7 +377,6 @@ app.post('/webhook', async (req, res) => {
     followUpCount[from] = 0;
   }
 
-  // إرسال الصور مرة واحدة عند أول رسالة
   if (!sentImages.has(from)) {
     sentImages.add(from);
     try {
@@ -424,7 +408,6 @@ app.post('/webhook', async (req, res) => {
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    // التحقق من تأكيد الطلب
     if (reply.includes('"order_status":"CONFIRMED"')) {
       orderConfirmed.add(from);
       if (followUpTimers[from]) {
@@ -434,7 +417,6 @@ app.post('/webhook', async (req, res) => {
       console.log(`🎉 طلب مؤكد من ${from}`);
     }
 
-    // إرسال صورة لون معين
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
     if (colorMatch) {
       reply = reply.replace(colorMatch[0], '').trim();
