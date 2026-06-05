@@ -8,6 +8,10 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
+// ✅ Google Sheets API
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe2IJWP6TSevGhH_F8JcSYvo4a5FBSYilIJUlzw2fADpRPU_LMWX/exec";
+const SHEET_SECRET  = "OZON_SECRET_2026";
+
 const PRODUCT_IMAGES = {
   noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
   marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg',
@@ -290,6 +294,32 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
+// ✅ تسجيل الطلب في Google Sheets
+const saveOrderToSheet = async (orderData) => {
+  try {
+    const customer = orderData.customer_data  || {};
+    const product  = orderData.product_data   || {};
+
+    await axios.post(SHEET_API_URL, {
+      secret   : SHEET_SECRET,
+      full_name: customer.full_name        || "",
+      phone    : customer.phone            || "",
+      city     : customer.city             || "",
+      address  : customer.shipping_address || "",
+      price    : product.unit_price_mad    || "320",
+      product  : product.product_name      || "BOTTINE CUIR GS081",
+      color    : product.color             || "",
+      size     : product.size              || "",
+    });
+
+    console.log(`✅ تم تسجيل الطلب في الشيت`);
+    return true;
+  } catch (err) {
+    console.error("❌ خطأ الشيت:", err.message);
+    return false;
+  }
+};
+
 const sendFollowUp = async (from) => {
   if (orderConfirmed.has(from) || notInterested.has(from)) return;
   if (!conversationHistory[from] || conversationHistory[from].length === 0) return;
@@ -408,6 +438,7 @@ app.post('/webhook', async (req, res) => {
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
+    // ✅ تسجيل الطلب في الشيت عند التأكيد
     if (reply.includes('"order_status":"CONFIRMED"')) {
       orderConfirmed.add(from);
       if (followUpTimers[from]) {
@@ -415,6 +446,16 @@ app.post('/webhook', async (req, res) => {
         delete followUpTimers[from];
       }
       console.log(`🎉 طلب مؤكد من ${from}`);
+
+      try {
+        const jsonMatch = reply.match(/\{[\s\S]*"order_status"[\s\S]*?\}/);
+        if (jsonMatch) {
+          const orderData = JSON.parse(jsonMatch[0]);
+          await saveOrderToSheet(orderData);
+        }
+      } catch (parseErr) {
+        console.error("❌ خطأ في تحليل JSON:", parseErr.message);
+      }
     }
 
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
