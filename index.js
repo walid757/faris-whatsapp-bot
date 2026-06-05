@@ -18,7 +18,10 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 ## ROLE
 أنت مستشار مبيعات وخدمة عملاء محترف لمتجر GreatShoes المتخصص في الأحذية الجلدية الرجالية الفاخرة بالمغرب.
-هدفك: مساعدة العميل على اختيار الحذاء، بناء الثقة، تحويل المحادثة إلى طلب مؤكد، تقليل نسبة رفض الطلبات، تقليل أخطاء المقاسات، تقديم تجربة تشبه التحدث مع مستشار بشري حقيقي.
+هدفك: مساعدة العميل على اختيار الحذاء، بناء الثقة، تحويل المحادثة إلى طلب مؤكد، تقليل نسبة رفض الطلبات، تقليل أخطاء المقاسات.
+
+## IMPORTANT - IMAGES
+الصور يتم إرسالها تلقائياً من النظام. لا تذكر أبداً أنك لا تستطيع إرسال الصور. الصور موجودة وتصل للعميل تلقائياً.
 
 ## BRAND IDENTITY
 اسم العلامة التجارية: GreatShoes
@@ -26,7 +29,6 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 القيم: الجودة، الثقة، الراحة، الأناقة، الاحترافية.
 
 ## STORE ADVANTAGES
-اذكر المزايا عند الحاجة فقط:
 ✓ جلد طبيعي عالي الجودة
 ✓ توصيل مجاني لجميع المدن المغربية
 ✓ الدفع عند الاستلام
@@ -34,21 +36,19 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 ✓ إمكانية استبدال المقاس
 
 ## TRUST MESSAGE
-"قلب، قيس، عاد خلص" - يمكن للعميل فتح الطرد، فحص الجودة، تجربة المقاس، ثم الدفع.
+"قلب، قيس، عاد خلص" - العميل يفتح الطرد، يفحص الجودة، يجرب المقاس، ثم يدفع.
 
 ## LANGUAGE RULES
-دارجة مغربية ← رد بالدارجة. فصحى ← رد بالفصحى. فرنسية ← رد بالفرنسية. عدة لغات ← نفس أسلوبه.
+دارجة ← رد بالدارجة. فصحى ← رد بالفصحى. فرنسية ← رد بالفرنسية.
 
 ## COMMUNICATION RULES
-تصرف كبشر حقيقي. لا تقل أنا روبوت أو ذكاء اصطناعي. إيموجي واحد فقط. ردود قصيرة وواضحة.
+تصرف كبشر حقيقي. لا تقل أبداً أنك روبوت أو ذكاء اصطناعي أو أنك لا تستطيع إرسال الصور. إيموجي واحد فقط. ردود قصيرة وواضحة.
 
 ## PRODUCT DATA
 - اسم المنتج: BOTTINE CUIR GS081
 - السعر: 320 درهم
-- الألوان المتاحة: أسود (noir)، بني (marron)، رمادي (gris)
+- الألوان: أسود، بني، رمادي
 - المقاسات: 39، 40، 41، 42، 43، 44
-- ملاحظة: عند بداية المحادثة تم إرسال صورة اللون الأسود تلقائياً.
-- عندما يختار العميل لوناً معيناً، اكتب [SEND_IMAGE:noir] أو [SEND_IMAGE:marron] أو [SEND_IMAGE:gris] في بداية ردك.
 
 ## PRICE RULE
 عند سؤال عن الثمن:
@@ -61,68 +61,47 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 ## FSM
 
 ### STATE_0 - بناء الثقة
-لا تطلب بيانات أو هاتف أو عنوان.
-مثال: "مرحباً بك في GreatShoes. جميع أحذيتنا من الجلد الطبيعي. كيف يمكنني مساعدتك؟"
-انتقل لـ STATE_1 إذا أظهر اهتماماً.
+لا تطلب بيانات. مثال: "مرحباً بك في GreatShoes. جميع أحذيتنا من الجلد الطبيعي. كيف يمكنني مساعدتك؟"
 
-### STATE_1 - اختيار المنتج واللون
-اشرح الألوان الثلاثة: أسود، بني، رمادي.
-عندما يختار العميل لوناً: اكتب [SEND_IMAGE:اللون] في بداية ردك.
-انتقل لـ STATE_2 إذا اختار.
+### STATE_1 - اختيار اللون
+اشرح الألوان الثلاثة: أسود، بني، رمادي. الصور وصلت للعميل تلقائياً.
 
 ### STATE_2 - تأكيد المقاس
-اسأل: "هل المقاس لي كتلبس خاص بالأحذية الجلدية أم الرياضية؟"
-إذا كان رياضياً اشرح الفرق. لا تنتقل قبل تأكيد المقاس واللون والمنتج.
+اسأل عن نوع المقاس (جلدي أم رياضي). لا تنتقل قبل تأكيد المقاس واللون.
 
 ### STATE_3 - جمع البيانات تدريجياً
-1- الاسم الكامل، 2- الهاتف، 3- المدينة، 4- العنوان. لا تطلب الكل دفعة واحدة.
+1- الاسم، 2- الهاتف، 3- المدينة، 4- العنوان. واحد في كل مرة.
 
 ## OBJECTION HANDLING
-جودة: "نعم جلد طبيعي، وكتقدر تفحصه قبل الدفع."
-ثمن: اشرح القيمة (جلد، راحة، توصيل مجاني، استبدال).
-مقاس: "غنساعدك تختار المقاس المناسب، وكيمكن نبدلوه إذا لزم."
-دفع: "الدفع كيكون بعد المعاينة والتجربة."
+جودة: "جلد طبيعي، تفحصه قبل الدفع."
+ثمن: اشرح القيمة.
+مقاس: "غنساعدك، وكيمكن نبدلوه."
+دفع: "الدفع بعد المعاينة."
 
 ## CONFIRMATION STATE
-الاسم: [NAME]
-الهاتف: [PHONE]
-المدينة: [CITY]
-العنوان: [ADDRESS]
-المنتج: BOTTINE CUIR GS081
-اللون: [COLOR]
-المقاس: [SIZE]
-الثمن: 320 درهم
-الدفع: عند الاستلام بعد المعاينة.
+الاسم / الهاتف / المدينة / العنوان / المنتج: BOTTINE CUIR GS081 / اللون / المقاس / الثمن: 320 درهم / الدفع: عند الاستلام.
 "هل تؤكد الطلب؟"
 
 ## ORDER CONFIRMATION
-إذا وافق (نعم، موافق، أكد، أرسله، تم، واخا):
-رسالة شكر قصيرة ثم JSON:
+إذا وافق (نعم، موافق، واخا، تم):
 {"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ## STRICT RULES
-لا تخترع منتجات أو أسعار أو مقاسات. لا تطلب البيانات دفعة واحدة. لا تنتقل لمرحلة جديدة قبل إنهاء الحالية. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. ركز على بناء الثقة قبل البيع.`;
+لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام.`;
 
 const conversationHistory = {};
+const sentImages = new Set();
 
-app.get('/webhook', (req, res) => {
-  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
-    res.send(req.query['hub.challenge']);
-  } else {
-    res.sendStatus(403);
-  }
-});
-
-const sendImage = async (to, color) => {
+const sendWhatsAppImage = async (to, color) => {
   const imageUrl = PRODUCT_IMAGES[color] || PRODUCT_IMAGES.noir;
   const colorNames = { noir: 'أسود', marron: 'بني', gris: 'رمادي' };
   await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
     messaging_product: 'whatsapp',
-    to: to,
+    to,
     type: 'image',
     image: {
       link: imageUrl,
-      caption: `BOTTINE CUIR GS081 - اللون: ${colorNames[color] || 'أسود'} - 320 درهم`
+      caption: `BOTTINE CUIR GS081 - ${colorNames[color] || 'أسود'} - 320 درهم`
     }
   }, {
     headers: {
@@ -132,29 +111,64 @@ const sendImage = async (to, color) => {
   });
 };
 
-app.post('/webhook', async (req, res) => {
-  console.log('--- تم استقبال طلب جديد من واتساب ---');
-  
-  const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  
-  if (!message || message.type !== 'text') {
-    console.log('ليست رسالة نصية.');
-    return res.sendStatus(200);
+const detectColor = (text) => {
+  const t = text.toLowerCase();
+  if (t.includes('noir') || t.includes('أسود') || t.includes('اسود') || t.includes('كحل')) return 'noir';
+  if (t.includes('marron') || t.includes('بني') || t.includes('قهوي') || t.includes('kahwi')) return 'marron';
+  if (t.includes('gris') || t.includes('رمادي') || t.includes('rmadi')) return 'gris';
+  return null;
+};
+
+const wantsImage = (text) => {
+  const t = text.toLowerCase();
+  return t.includes('صورة') || t.includes('صور') || t.includes('شوف') || t.includes('image') || t.includes('photo');
+};
+
+app.get('/webhook', (req, res) => {
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
+    res.send(req.query['hub.challenge']);
+  } else {
+    res.sendStatus(403);
   }
+});
+
+app.post('/webhook', async (req, res) => {
+  console.log('--- رسالة جديدة ---');
+
+  const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  if (!message || message.type !== 'text') return res.sendStatus(200);
 
   const from = message.from;
   const text = message.text.body;
-  console.log(`رسالة من [${from}]: ${text}`);
+  console.log(`من [${from}]: ${text}`);
 
-  const isNewConversation = !conversationHistory[from];
-
-  if (isNewConversation) {
+  if (!conversationHistory[from]) {
     conversationHistory[from] = [];
+  }
+
+  // إرسال الصور الثلاث عند أول رسالة
+  if (!sentImages.has(from)) {
+    sentImages.add(from);
     try {
-      await sendImage(from, 'noir');
-      console.log('تم إرسال صورة اللون الأسود ✅');
+      await sendWhatsAppImage(from, 'noir');
+      await new Promise(r => setTimeout(r, 500));
+      await sendWhatsAppImage(from, 'marron');
+      await new Promise(r => setTimeout(r, 500));
+      await sendWhatsAppImage(from, 'gris');
+      console.log('تم إرسال الصور الثلاث ✅');
     } catch (e) {
-      console.error('خطأ في إرسال الصورة:', e.message);
+      console.error('خطأ في إرسال الصور:', e.message);
+    }
+  } else {
+    // إرسال صورة اللون المطلوب إذا طلب العميل
+    const color = detectColor(text);
+    if (color && wantsImage(text)) {
+      try {
+        await sendWhatsAppImage(from, color);
+        console.log(`تم إرسال صورة ${color} ✅`);
+      } catch (e) {
+        console.error('خطأ:', e.message);
+      }
     }
   }
 
@@ -174,20 +188,8 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    let reply = claudeRes.data.content[0].text;
+    const reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
-
-    // إرسال صورة اللون المختار
-    const imageMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
-    if (imageMatch) {
-      reply = reply.replace(imageMatch[0], '').trim();
-      try {
-        await sendImage(from, imageMatch[1]);
-        console.log(`تم إرسال صورة اللون ${imageMatch[1]} ✅`);
-      } catch (e) {
-        console.error('خطأ في إرسال الصورة:', e.message);
-      }
-    }
 
     await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
       messaging_product: 'whatsapp',
@@ -200,21 +202,13 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    console.log('تم إرسال الرد بنجاح! ✅');
-
+    console.log('تم الإرسال ✅');
   } catch (e) {
-    console.error('❌ خطأ:');
-    if (e.response) {
-      console.error(JSON.stringify(e.response.data, null, 2));
-    } else {
-      console.error(e.message);
-    }
+    console.error('❌ خطأ:', e.response ? JSON.stringify(e.response.data) : e.message);
   }
 
   res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 السيرفر يعمل على المنفذ ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 السيرفر على المنفذ ${PORT}`));
