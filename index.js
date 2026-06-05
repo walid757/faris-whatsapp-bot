@@ -215,13 +215,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
 const MAX_FOLLOWUPS = 5;
 
-// ✅ تحويل رقم → 212XXXXXXXXX
+// ✅ تحويل رقم → 212XXXXXXXXX (يحل كل الحالات)
 const formatPhone = (p) => {
-  p = String(p).trim().replace(/\s/g, '');
-  if (p.startsWith('+212')) p = p.slice(1);
-  if (p.startsWith('0'))    p = '212' + p.slice(1);
-  if (!p.startsWith('212')) p = '212' + p;
-  return p;
+  p = String(p).trim().replace(/\s/g, '').replace(/\+/g, '');
+  if (p.startsWith('212')) return p;
+  if (p.startsWith('0'))   return '212' + p.slice(1);
+  if (p.length === 9)      return '212' + p;
+  return '212' + p;
 };
 
 const markAsRead = async (messageId) => {
@@ -522,4 +522,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v8 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v9 — السيرفر على المنفذ ${PORT}`));
