@@ -9,9 +9,9 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 const PRODUCT_IMAGES = {
-  noir: 'https://i.ibb.co/1fzByQVM/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg',
-  marron: 'https://i.ibb.co/Xrkp8N1P/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg',
-  gris: 'https://i.ibb.co/pjJFMkW4/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg'
+  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
+  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
@@ -114,7 +114,7 @@ const sendWhatsAppImage = async (to, color) => {
 const detectColor = (text) => {
   const t = text.toLowerCase();
   if (t.includes('noir') || t.includes('أسود') || t.includes('اسود') || t.includes('كحل')) return 'noir';
-  if (t.includes('marron') || t.includes('بني') || t.includes('قهوي') || t.includes('kahwi')) return 'marron';
+  if (t.includes('marron') || t.includes('بني') || t.includes('قهوي')) return 'marron';
   if (t.includes('gris') || t.includes('رمادي') || t.includes('rmadi')) return 'gris';
   return null;
 };
@@ -146,28 +146,28 @@ app.post('/webhook', async (req, res) => {
     conversationHistory[from] = [];
   }
 
-  // إرسال الصور الثلاث عند أول رسالة
   if (!sentImages.has(from)) {
     sentImages.add(from);
     try {
       await sendWhatsAppImage(from, 'noir');
-      await new Promise(r => setTimeout(r, 500));
+      console.log('تم إرسال صورة الأسود ✅');
+      await new Promise(r => setTimeout(r, 800));
       await sendWhatsAppImage(from, 'marron');
-      await new Promise(r => setTimeout(r, 500));
+      console.log('تم إرسال صورة البني ✅');
+      await new Promise(r => setTimeout(r, 800));
       await sendWhatsAppImage(from, 'gris');
-      console.log('تم إرسال الصور الثلاث ✅');
+      console.log('تم إرسال صورة الرمادي ✅');
     } catch (e) {
-      console.error('خطأ في إرسال الصور:', e.message);
+      console.error('❌ خطأ في إرسال الصور:', e.response ? JSON.stringify(e.response.data) : e.message);
     }
   } else {
-    // إرسال صورة اللون المطلوب إذا طلب العميل
     const color = detectColor(text);
     if (color && wantsImage(text)) {
       try {
         await sendWhatsAppImage(from, color);
         console.log(`تم إرسال صورة ${color} ✅`);
       } catch (e) {
-        console.error('خطأ:', e.message);
+        console.error('❌ خطأ:', e.message);
       }
     }
   }
