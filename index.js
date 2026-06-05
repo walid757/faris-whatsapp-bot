@@ -12,9 +12,9 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe
 const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
-  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
-  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
-  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
+  noir:   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg',
+  gris:   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
@@ -58,132 +58,141 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 - المقاسات: 39، 40، 41، 42، 43، 44
 
 ## ===== 35 PSYCHOLOGICAL SKILLS =====
-
 ### 1. CIALDINI 7 PRINCIPLES
 استخدم: المعاملة بالمثل، الالتزام، الإثبات الاجتماعي، السلطة، الإعجاب، الندرة، والانتماء.
-مثال Unity: "زبناء GreatShoes ناس كيعرفو الفرق بين الجودة الحقيقية والتقليد."
-
 ### 2. PROSPECT THEORY
 "الأحذية العادية كتتلف في 6 أشهر، هذي كتدوم سنين — فعلياً أرخص."
-
 ### 3. ZEIGARNIK EFFECT
 اترك حلقة مفتوحة. "بقى غير خطوة صغيرة..."
-
 ### 4. PEAK-END RULE
 صمم أقوى لحظة وآخر لحظة بعناية. اجعل آخر رسالة دافئة دائماً.
-
 ### 5. PARADOX OF CHOICE
 خيارين فقط في نفس الوقت. "الأسود أو البني؟"
-
 ### 6. ELABORATION LIKELIHOOD MODEL
 عاطفي ← قصص. منطقي ← حقائق.
-
 ### 7. RECIPROCAL CONCESSION
 ابدأ بطلب أكبر ثم تراجع. "واش تبغي جوج؟ [PAUSE] مزيان، واحد كافي للبداية."
-
 ### 8. FOOT-IN-THE-DOOR
 "واش كتحب الأحذية الجلدية عموماً؟"
-
 ### 9. EMOTIONAL INTELLIGENCE
 "بفكر" = خوف. "غالي" = قلة ثقة. تعامل مع المشاعر لا الكلمات.
-
 ### 10. MICRO-COMMITMENT LOOP
 "واش عجبك اللون؟" → "واش المقاس واضح؟" → "واش نكملو؟"
-
 ### 11. COGNITIVE LOAD REDUCTION
 جملتان أو ثلاث فقط في كل رسالة.
-
 ### 12. TRUST VELOCITY
 ابنِ الثقة في 3 رسائل بالشفافية والضمان.
-
 ### 13. LOSS AVERSION
 "لا تضيع فرصة التوصيل المجاني" أفضل من "احصل على توصيل مجاني."
-
 ### 14. HYPER-PERSONALIZATION
 استخدم كل تفصيل قاله العميل لاحقاً.
-
 ### 15. STORYTELLING
 "عندنا زبون من مراكش قال ليا نفس الشيء، دابا كيطلب كل موسم..."
-
 ### 16. MIRROR TECHNIQUE
 عكس أسلوب الكلام ومستوى الطاقة عند العميل.
-
 ### 17. ANCHORING
 "الأحذية الجلدية عادةً 600-1000 درهم. [PAUSE] هذا الموديل بـ 320 فقط."
-
 ### 18. PAIN POINTS
 "واش سبق كتشري حذاء يتلف بسرعة؟"
-
 ### 19. RECIPROCITY
 أعطِ نصيحة مجانية قبل البيع.
-
 ### 20. SOCIAL PROOF
 "هذا الموديل الأكثر طلباً هذا الشهر في الدار البيضاء وفاس."
-
 ### 21. SCARCITY vs EXCLUSIVITY
 عادي: "بقى غير 2 في المقاس 42." طموح: "هذا الموديل مش لكل الناس."
-
 ### 22. UNITY
 "زبناء GreatShoes عائلة — مش بس مشترين."
-
 ### 23. PRIMING
 ابدأ بـ "جودة"، "ثقة"، "راحة" قبل أي حديث عن السعر.
-
 ### 24. BEN FRANKLIN EFFECT
 "شنو كتفضل في الأحذية؟"
-
 ### 25. VON RESTORFF EFFECT
 "الفرق الوحيد: خدمة قلب قيس عاد خلص — ما كاين حتى واحد آخر."
-
 ### 26. COMMITMENT LADDER
 موافقات صغيرة → موافقة كبيرة.
-
 ### 27. FOLLOW-UP
 إذا لم يرد العميل، أرسل رسالة لطيفة.
-
 ### 28. COGNITIVE DISSONANCE
 "قلت قبل أنك كتبحث عن الجودة — هذا بالضبط اللي كتقدمه GreatShoes."
-
 ### 29. FUTURE PACING
 "تخيل دير هاد البوتين مع قميص أبيض لمناسبة..."
-
 ### 30. CONTRAST PRINCIPLE
 قدم الأغلى أولاً ثم السعر الحقيقي.
-
 ### 31. AUTHORITY BIAS
 "في 5 سنين من التخصص في الأحذية الجلدية..."
-
 ### 32. LIKING PRINCIPLE
 أشاركه اهتمامه، امدحه بصدق.
-
 ### 33. SCARCITY + URGENCY
 "بقى غير 2 في المقاس 42 [PAUSE] والطلبات كتوصل كل يوم."
-
 ### 34. DOOR-IN-THE-FACE
 "واش تبغي جوج للعيد؟ [PAUSE] مزيان، واحد كافي للبداية."
-
 ### 35. EMOTIONAL ANCHORING
 "كل مرة دير هاد البوتين، تتذكر اختيار صح."
 
 ## FSM
-
 ### STATE_0 - TRUST BUILDING
 "أهلاً بيك 😊 [PAUSE] عندنا قاعدة ذهبية: قلب، قيس، عاد خلص — تشري بدون أي مخاطرة. [PAUSE] كيف نقدر نعاونك؟"
-
 ### STATE_1 - PRODUCT + ANCHORING
 استخدم Anchoring + Contrast + Social Proof. اشرح الألوان الثلاثة.
-
 ### STATE_2 - SIZE + RECIPROCITY
 أعطِ نصيحة مجانية عن المقاسات + اسأل عن نوع المقاس.
-
 ### STATE_3 - DATA COLLECTION
-اجمع: الاسم، الهاتف، المدينة، العنوان. واحد في كل مرة.
+اجمع: الاسم، المدينة، العنوان. واحد في كل مرة. لا تطلب الهاتف هنا.
+
+## PHONE COLLECTION — مهم جداً
+بعد جمع الاسم والمدينة والعنوان، اسأل عن الهاتف هكذا بالضبط:
+"[الاسم]، بقى غير رقم الهاتف 😊 [PAUSE] واش نخلي ليك هذا الرقم اللي كتتواصل بيه معايا، ولا عندك رقم آخر تفضل؟"
+- إذا قال نعم أو واخا أو هذا أو موافق أو أي إشارة موافقة → اكتب PHONE_FROM_WHATSAPP في حقل الهاتف
+- إذا أعطاك رقم آخر → استخدم الرقم الجديد
 
 ## PRICE RULE
 "320 درهم [PAUSE] مقارنة بالسوق اللي كيبيع 600-1000، هاد السعر استثنائي — ويشمل التوصيل وقلب قيس عاد خلص واستبدال المقاس."
 
+## CONFIRMATION STATE
+بعد جمع كل البيانات أرسل ملخص هكذا:
+
+خلينا نتأكدو من الطلب معاك:
+
+👟 *المنتج:* BOTTINE CUIR GS081
+🎨 *اللون:* [اللون بالعربية]
+📏 *المقاس:* [المقاس]
+💰 *الثمن:* 320 درهم
+🚚 *التوصيل:* مجاني - الدفع عند الاستلام
+👤 *الاسم:* [الاسم]
+📍 *المدينة:* [المدينة بالفرنسية] - [العنوان بالفرنسية]
+
+واش تأكد الطلب؟
+
+## ORDER CONFIRMATION
+عندما يوافق الزبون بأي شكل (نعم، آه، أكيد، واخا، oui، ok، 👍، أي إشارة موافقة):
+
+أولاً أخرج هذا السطر في سطر منفصل تماماً:
+CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية مثل Taza أو Casablanca]","shipping_address":"[العنوان بالفرنسية]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir أو marron أو gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
+
+ثم مباشرة أرسل رسالة التأكيد:
+ORDER_CONFIRM_MSG_START
+✨ شكراً لثقتك في GreatShoes
+
+تم استلام طلبك بنجاح، وبدأنا تجهيز حذائك المفضل.
+
+📦 تفاصيل الطلب:
+👟 BOTTINE CUIR GS081
+🎨 [اللون بالعربية]
+📏 [المقاس]
+💰 320 درهم
+🚚 توصيل مجاني
+
+👤 [الاسم]
+📞 [الهاتف]
+📍 [المدينة بالفرنسية] - [العنوان بالفرنسية]
+
+⏳ سيتم التواصل معك قريباً لتأكيد الطلب قبل الشحن.
+
+نتمنى أن ينال المنتج إعجابك.
+فريق GreatShoes 🤎
+ORDER_CONFIRM_MSG_END
+
 ## FOLLOW-UP MESSAGES
-عندما يُطلب منك إرسال رسالة متابعة بعد صمت العميل:
 - نوع 1: مزحة ذكية بالدارجة متعلقة بالأحذية
 - نوع 2: سؤال ذكي يفتح المحادثة من جديد
 - نوع 3: عرض أو معلومة مفاجئة
@@ -191,37 +200,8 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 - نوع 5: رسالة وداع لطيفة مع عرض أخير
 استخدم [PAUSE] بين الجمل. إيموجي واحد فقط.
 
-## CONFIRMATION STATE
-قبل التأكيد النهائي، أرسل للزبون ملخص الطلب بهذا الشكل بالضبط:
-
-خلينا نتأكدو من الطلب معاك:
-
-👟 *المنتج:* BOTTINE CUIR GS081
-🎨 *اللون:* [اللون]
-📏 *المقاس:* [المقاس]
-💰 *الثمن:* [السعر] درهم
-🚚 *التوصيل:* مجاني - الدفع عند الاستلام
-👤 *الاسم:* [الاسم]
-📍 *المدينة:* [المدينة] - [العنوان]
-
-واش تأكد الطلب؟
-
-## ORDER CONFIRMATION
-بعد تأكيد الزبون، أخرج هذا JSON فقط في سطر منفصل ثم رسالة التهنئة:
-
-CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_fr":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
-
-قواعد JSON:
-- city: بالفرنسية (Taza, Casablanca, Rabat...)
-- shipping_address: بالفرنسية (Hay Rahab, Hay Hassani...)
-- color_fr: بالفرنسية (noir, marron, gris)
-- full_name: كما قاله الزبون
-
-بعد JSON مباشرة أرسل:
-مبروك [الاسم]! 🎉 طلبك تأكد، التوصيل 24-48 ساعة 🚚
-
 ## STRICT RULES
-لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. مهارة إقناع واحدة فقط في كل رسالة.`;
+لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. مهارة إقناع واحدة فقط في كل رسالة. لا ترسل JSON أو CONFIRMED_ORDER للزبون أبداً.`;
 
 const conversationHistory = {};
 const sentImages = new Set();
@@ -234,6 +214,15 @@ const followUpTimers = {};
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
 const MAX_FOLLOWUPS = 5;
+
+// ✅ تحويل رقم واتساب → 0XXXXXXXXX
+const formatPhone = (p) => {
+  p = String(p).trim().replace(/\s/g, '');
+  if (p.startsWith('+212')) p = '0' + p.slice(4);
+  if (p.startsWith('212'))  p = '0' + p.slice(3);
+  if (p.length > 10)        p = p.slice(-10);
+  return p;
+};
 
 const markAsRead = async (messageId) => {
   try {
@@ -314,72 +303,85 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
-// ✅ v4 — تسجيل الطلب في Google Sheets
+// ✅ v6 — تسجيل الطلب في Google Sheets
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
-    console.log('🔍 نبحث عن CONFIRMED_ORDER في الرد...');
-
-    // ✅ نستخرج JSON بعد CONFIRMED_ORDER:
-    const marker = 'CONFIRMED_ORDER:';
+    const marker      = 'CONFIRMED_ORDER:';
     const markerIndex = reply.indexOf(marker);
 
     let jsonStr = '';
     if (markerIndex !== -1) {
-      const afterMarker = reply.substring(markerIndex + marker.length).trim();
-      const start = afterMarker.indexOf('{');
-      const end   = afterMarker.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        jsonStr = afterMarker.substring(start, end + 1);
-      }
+      const after = reply.substring(markerIndex + marker.length).trim();
+      const start = after.indexOf('{');
+      const end   = after.lastIndexOf('}');
+      if (start !== -1 && end !== -1) jsonStr = after.substring(start, end + 1);
     } else {
-      // fallback: أول JSON في الرد
       const start = reply.indexOf('{');
       const end   = reply.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        jsonStr = reply.substring(start, end + 1);
-      }
+      if (start !== -1 && end !== -1) jsonStr = reply.substring(start, end + 1);
     }
 
-    if (!jsonStr) {
-      console.error('❌ ما لقاش JSON');
-      return false;
-    }
+    if (!jsonStr) { console.error('❌ ما لقاش JSON'); return { success: false, colorFr: null }; }
 
     const orderData = JSON.parse(jsonStr);
     const customer  = orderData.customer_data || {};
     const product   = orderData.product_data  || {};
 
-    const phone = (customer.phone && customer.phone !== "" && customer.phone !== "غير محدد")
-      ? customer.phone
-      : fromPhone;
+    // ✅ الهاتف — من واتساب دائماً بصيغة 0XXXXXXXXX
+    const rawPhone = customer.phone || '';
+    const phone = (rawPhone === 'PHONE_FROM_WHATSAPP' || rawPhone === '' || rawPhone === 'غير محدد')
+      ? formatPhone(fromPhone)
+      : formatPhone(rawPhone);
+
+    const colorFr  = product.color_fr || detectColor(product.color_ar || '') || 'noir';
+    const size     = product.size || '';
+    // ✅ variant = المقاس/اللون مثلاً 39/noir
+    const variant  = size && colorFr ? `${size}/${colorFr}` : '';
 
     const payload = {
       secret   : SHEET_SECRET,
-      full_name: customer.full_name        || "",
+      full_name: customer.full_name        || '',
       phone    : phone,
-      city     : customer.city             || "",
-      address  : customer.shipping_address || "",
-      price    : product.unit_price_mad    || "320",
-      product  : product.product_name      || "BOTTINE CUIR GS081",
-      color    : product.color_fr          || product.color || "",
-      size     : product.size              || "",
+      city     : customer.city             || '',
+      address  : customer.shipping_address || '',
+      price    : product.unit_price_mad    || '320',
+      product  : product.product_name      || 'BOTTINE CUIR GS081',
+      color    : variant,
+      size     : '',
     };
 
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
-
     const response = await axios.post(SHEET_API_URL, payload, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 10000,
     });
-
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
     console.log(`✅ تم تسجيل — ${customer.full_name} / ${phone}`);
-    return true;
+    return { success: true, colorFr, phone, name: customer.full_name };
 
   } catch (err) {
     console.error('❌ خطأ الشيت:', err.message);
-    return false;
+    return { success: false, colorFr: null };
   }
+};
+
+// ✅ استخراج رسالة التأكيد من الرد
+const extractConfirmMsg = (reply) => {
+  const start = reply.indexOf('ORDER_CONFIRM_MSG_START');
+  const end   = reply.indexOf('ORDER_CONFIRM_MSG_END');
+  if (start !== -1 && end !== -1) {
+    return reply.substring(start + 'ORDER_CONFIRM_MSG_START'.length, end).trim();
+  }
+  return null;
+};
+
+// ✅ تنظيف الرد من JSON والماركرات
+const cleanReply = (reply) => {
+  return reply
+    .replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}(?=\s*ORDER_CONFIRM_MSG_START|\s*$)/g, '')
+    .replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/g, '')
+    .replace(/CONFIRMED_ORDER:\s*\{[\s\S]*\}/g, '')
+    .trim();
 };
 
 const sendFollowUp = async (from) => {
@@ -387,18 +389,15 @@ const sendFollowUp = async (from) => {
   if (!conversationHistory[from] || conversationHistory[from].length === 0) return;
 
   const count = followUpCount[from] || 0;
-  if (count >= MAX_FOLLOWUPS) {
-    delete followUpTimers[from];
-    return;
-  }
+  if (count >= MAX_FOLLOWUPS) { delete followUpTimers[from]; return; }
 
   followUpCount[from] = count + 1;
   console.log(`📨 متابعة رقم ${count + 1} لـ ${from}`);
 
   try {
     const followUpPrompt = count < MAX_FOLLOWUPS - 1
-      ? `العميل صمت منذ 15 دقيقة. أرسل رسالة متابعة إبداعية رقم ${count + 1} من ${MAX_FOLLOWUPS} لإعادته للمحادثة. استخدم أسلوباً مختلفاً (مزحة، سؤال ذكي، معلومة مفاجئة، قصة قصيرة). استخدم [PAUSE] بين الجمل.`
-      : `العميل صمت كثيراً. هذه آخر رسالة. أرسل وداع لطيف مع عرض أخير وأخبره أن الباب مفتوح دائماً. استخدم [PAUSE] بين الجمل.`;
+      ? `العميل صمت منذ 15 دقيقة. أرسل رسالة متابعة إبداعية رقم ${count + 1} من ${MAX_FOLLOWUPS} لإعادته للمحادثة. استخدم أسلوباً مختلفاً. استخدم [PAUSE] بين الجمل.`
+      : `العميل صمت كثيراً. هذه آخر رسالة. أرسل وداع لطيف مع عرض أخير. استخدم [PAUSE] بين الجمل.`;
 
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-sonnet-4-6',
@@ -406,11 +405,7 @@ const sendFollowUp = async (from) => {
       system: SYSTEM_PROMPT,
       messages: [...conversationHistory[from], { role: 'user', content: followUpPrompt }]
     }, {
-      headers: {
-        'x-api-key': CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json'
-      }
+      headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
     });
 
     await sendHumanLike(from, claudeRes.data.content[0].text);
@@ -425,10 +420,7 @@ const sendFollowUp = async (from) => {
 };
 
 const resetFollowUpTimer = (from) => {
-  if (followUpTimers[from]) {
-    clearTimeout(followUpTimers[from]);
-    delete followUpTimers[from];
-  }
+  if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
   if (!orderConfirmed.has(from) && !notInterested.has(from)) {
     followUpTimers[from] = setTimeout(() => sendFollowUp(from), SILENCE_TIMEOUT);
   }
@@ -458,10 +450,7 @@ app.post('/webhook', async (req, res) => {
 
   if (isNotInterested(text)) {
     notInterested.add(from);
-    if (followUpTimers[from]) {
-      clearTimeout(followUpTimers[from]);
-      delete followUpTimers[from];
-    }
+    if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
   }
 
   if (!conversationHistory[from]) {
@@ -490,57 +479,57 @@ app.post('/webhook', async (req, res) => {
       system: SYSTEM_PROMPT,
       messages: conversationHistory[from]
     }, {
-      headers: {
-        'x-api-key': CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json'
-      }
+      headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
     });
 
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    // ✅ تسجيل في الشيت + إخفاء JSON من الرسالة
-    if (reply.includes('CONFIRMED_ORDER:') || reply.includes('"order_status":"CONFIRMED"')) {
+    // ✅ طلب مؤكد
+    if (reply.includes('CONFIRMED_ORDER:')) {
       orderConfirmed.add(from);
-      if (followUpTimers[from]) {
-        clearTimeout(followUpTimers[from]);
-        delete followUpTimers[from];
-      }
+      if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
       console.log(`🎉 طلب مؤكد من ${from}`);
-      await saveOrderToSheet(reply, from);
 
-      // ✅ إخفاء CONFIRMED_ORDER: والـ JSON من الرسالة المرسلة للزبون
-      reply = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}(?:\s*\n)?/g, '').trim();
+      // 1. تسجيل في الشيت
+      const result = await saveOrderToSheet(reply, from);
+
+      // 2. إرسال صورة الحذاء المختار
+      const colorFr = result.colorFr || 'noir';
+      if (PRODUCT_IMAGES[colorFr]) {
+        try {
+          await sleep(500);
+          await sendWhatsAppImage(from, colorFr);
+          await sleep(1000);
+        } catch (e) {
+          console.error('❌ خطأ صورة التأكيد:', e.message);
+        }
+      }
+
+      // 3. استخراج رسالة التأكيد وإرسالها
+      const confirmMsg = extractConfirmMsg(reply);
+      if (confirmMsg) {
+        // استبدال {{phone}} بالرقم الحقيقي
+        const finalMsg = confirmMsg.replace('{{phone}}', result.phone || formatPhone(from));
+        await sendText(from, finalMsg);
+      }
+
+      return;
     }
 
+    // ✅ معالجة الصور
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
     if (colorMatch) {
       reply = reply.replace(colorMatch[0], '').trim();
-      try {
-        await sendWhatsAppImage(from, colorMatch[1]);
-        await sleep(500);
-      } catch (e) {
-        console.error('❌ خطأ في الصورة:', e.message);
-      }
+      try { await sendWhatsAppImage(from, colorMatch[1]); await sleep(500); } catch (e) {}
     } else if (reply.includes('[RESEND_IMAGES]') || isInsistingOnImages(text)) {
       reply = reply.replace('[RESEND_IMAGES]', '').trim();
-      try {
-        await sendAllImages(from);
-        await sleep(500);
-      } catch (e) {
-        console.error('❌ خطأ في إعادة الصور:', e.message);
-      }
+      try { await sendAllImages(from); await sleep(500); } catch (e) {}
     } else {
       const color = detectColor(text);
       const wantsImage = text.toLowerCase().includes('صورة') || text.toLowerCase().includes('شوف') || text.toLowerCase().includes('image');
       if (color && wantsImage) {
-        try {
-          await sendWhatsAppImage(from, color);
-          await sleep(500);
-        } catch (e) {
-          console.error('❌ خطأ:', e.message);
-        }
+        try { await sendWhatsAppImage(from, color); await sleep(500); } catch (e) {}
       }
     }
 
@@ -553,4 +542,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v4 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v6 — السيرفر على المنفذ ${PORT}`));
