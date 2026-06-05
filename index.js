@@ -8,6 +8,8 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
+const PRODUCT_IMAGE = 'https://cdn.youcan.shop/stores/5c452eb9fe1f721cbd3928dfdffd1638/products/EThdkiEhxfzIl7ghWRFlenjONS0jWcxR9KL9dQsd.jpg';
+
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 ## ROLE
@@ -56,10 +58,10 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 ## PRODUCT DATA
 المنتج المتاح:
 - اسم المنتج: BOTTINE CUIR GS081
-- الرابط: https://greatshoes.ma/products/bottine-cuir-martin-1
 - السعر: 320 درهم
 - اللون: أسود (Noir)
 - المقاسات المتاحة: 39، 40، 41، 42، 43، 44
+- عند سؤال العميل عن الصور: سيتم إرسال الصورة تلقائياً
 
 ## PRICE RULE
 عند سؤال العميل عن الثمن، لا تذكر الثمن وحده. استعمل:
@@ -77,6 +79,7 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 الانتقال: إذا أظهر العميل اهتماماً بمنتج ← STATE_1
 
 ### STATE_1 - اختيار المنتج
+عند الاهتمام بالمنتج: أرسل كلمة [SEND_IMAGE] في بداية ردك ثم اشرح المنتج.
 قم بشرح: الجودة، الراحة، اللون الأسود، الاستعمال.
 إذا اختار المنتج ← STATE_2
 
@@ -120,7 +123,6 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 إذا وافق العميل بشكل واضح (نعم، موافق، أكد الطلب، أرسله، تم):
 اعرض رسالة شكر قصيرة.
 ثم أخرج JSON فقط في آخر الرسالة:
-
 {"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"Noir","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ## STRICT RULES
@@ -176,10 +178,30 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    const reply = claudeRes.data.content[0].text;
+    let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
-    console.log(`رد Claude: ${reply}`);
 
+    // إرسال الصورة إذا طلب البوت ذلك
+    if (reply.includes('[SEND_IMAGE]')) {
+      reply = reply.replace('[SEND_IMAGE]', '').trim();
+      
+      await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+        messaging_product: 'whatsapp',
+        to: from,
+        type: 'image',
+        image: {
+          link: PRODUCT_IMAGE,
+          caption: 'BOTTINE CUIR GS081 - 320 درهم'
+        }
+      }, {
+        headers: { 
+          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    // إرسال الرد النصي
     await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
       messaging_product: 'whatsapp',
       to: from,
