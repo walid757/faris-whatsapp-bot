@@ -8,7 +8,11 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-const PRODUCT_IMAGE = 'https://cdn.youcan.shop/stores/5c452eb9fe1f721cbd3928dfdffd1638/products/EThdkiEhxfzIl7ghWRFlenjONS0jWcxR9KL9dQsd.jpg';
+const PRODUCT_IMAGES = {
+  noir: 'https://i.ibb.co/1fzByQVM/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg',
+  marron: 'https://i.ibb.co/Xrkp8N1P/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg',
+  gris: 'https://i.ibb.co/pjJFMkW4/Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-Copie-de-C.jpg'
+};
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
@@ -41,9 +45,10 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 ## PRODUCT DATA
 - اسم المنتج: BOTTINE CUIR GS081
 - السعر: 320 درهم
-- اللون: أسود
+- الألوان المتاحة: أسود (noir)، بني (marron)، رمادي (gris)
 - المقاسات: 39، 40، 41، 42، 43، 44
-- ملاحظة: تم إرسال صورة المنتج تلقائياً للعميل عند بداية المحادثة.
+- ملاحظة: عند بداية المحادثة تم إرسال صورة اللون الأسود تلقائياً.
+- عندما يختار العميل لوناً معيناً، اكتب [SEND_IMAGE:noir] أو [SEND_IMAGE:marron] أو [SEND_IMAGE:gris] في بداية ردك.
 
 ## PRICE RULE
 عند سؤال عن الثمن:
@@ -60,8 +65,9 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 مثال: "مرحباً بك في GreatShoes. جميع أحذيتنا من الجلد الطبيعي. كيف يمكنني مساعدتك؟"
 انتقل لـ STATE_1 إذا أظهر اهتماماً.
 
-### STATE_1 - اختيار المنتج
-اشرح: الجودة، الراحة، اللون الأسود، الاستعمال.
+### STATE_1 - اختيار المنتج واللون
+اشرح الألوان الثلاثة: أسود، بني، رمادي.
+عندما يختار العميل لوناً: اكتب [SEND_IMAGE:اللون] في بداية ردك.
 انتقل لـ STATE_2 إذا اختار.
 
 ### STATE_2 - تأكيد المقاس
@@ -83,7 +89,7 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 المدينة: [CITY]
 العنوان: [ADDRESS]
 المنتج: BOTTINE CUIR GS081
-اللون: أسود
+اللون: [COLOR]
 المقاس: [SIZE]
 الثمن: 320 درهم
 الدفع: عند الاستلام بعد المعاينة.
@@ -91,8 +97,8 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 ## ORDER CONFIRMATION
 إذا وافق (نعم، موافق، أكد، أرسله، تم، واخا):
-رسالة شكر قصيرة ثم JSON في آخر الرسالة:
-{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"Noir","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
+رسالة شكر قصيرة ثم JSON:
+{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ## STRICT RULES
 لا تخترع منتجات أو أسعار أو مقاسات. لا تطلب البيانات دفعة واحدة. لا تنتقل لمرحلة جديدة قبل إنهاء الحالية. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. ركز على بناء الثقة قبل البيع.`;
@@ -107,40 +113,46 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+const sendImage = async (to, color) => {
+  const imageUrl = PRODUCT_IMAGES[color] || PRODUCT_IMAGES.noir;
+  const colorNames = { noir: 'أسود', marron: 'بني', gris: 'رمادي' };
+  await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'image',
+    image: {
+      link: imageUrl,
+      caption: `BOTTINE CUIR GS081 - اللون: ${colorNames[color] || 'أسود'} - 320 درهم`
+    }
+  }, {
+    headers: {
+      'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+};
+
 app.post('/webhook', async (req, res) => {
-  console.log('--- تنبيه: تم استقبال طلب جديد من واتساب ---');
+  console.log('--- تم استقبال طلب جديد من واتساب ---');
   
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   
   if (!message || message.type !== 'text') {
-    console.log('الطلب مستلم، لكنه لا يحتوي على رسالة نصية مدعومة.');
+    console.log('ليست رسالة نصية.');
     return res.sendStatus(200);
   }
 
   const from = message.from;
   const text = message.text.body;
-  console.log(`الرسالة المستلمة من [${from}]: ${text}`);
+  console.log(`رسالة من [${from}]: ${text}`);
 
   const isNewConversation = !conversationHistory[from];
 
   if (isNewConversation) {
     conversationHistory[from] = [];
     try {
-      await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
-        messaging_product: 'whatsapp',
-        to: from,
-        type: 'image',
-        image: {
-          link: PRODUCT_IMAGE,
-          caption: 'BOTTINE CUIR GS081 👟\n320 درهم | جلد طبيعي | توصيل مجاني | الدفع عند الاستلام'
-        }
-      }, {
-        headers: {
-          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      console.log('تم إرسال صورة المنتج ✅');
+      await sendImage(from, 'noir');
+      console.log('تم إرسال صورة اللون الأسود ✅');
     } catch (e) {
       console.error('خطأ في إرسال الصورة:', e.message);
     }
@@ -162,9 +174,20 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    const reply = claudeRes.data.content[0].text;
+    let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
-    console.log(`رد Claude: ${reply}`);
+
+    // إرسال صورة اللون المختار
+    const imageMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
+    if (imageMatch) {
+      reply = reply.replace(imageMatch[0], '').trim();
+      try {
+        await sendImage(from, imageMatch[1]);
+        console.log(`تم إرسال صورة اللون ${imageMatch[1]} ✅`);
+      } catch (e) {
+        console.error('خطأ في إرسال الصورة:', e.message);
+      }
+    }
 
     await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
       messaging_product: 'whatsapp',
@@ -180,11 +203,11 @@ app.post('/webhook', async (req, res) => {
     console.log('تم إرسال الرد بنجاح! ✅');
 
   } catch (e) {
-    console.error('❌ حدث خطأ أثناء معالجة البيانات:');
+    console.error('❌ خطأ:');
     if (e.response) {
-      console.error('تفاصيل الخطأ:', JSON.stringify(e.response.data, null, 2));
+      console.error(JSON.stringify(e.response.data, null, 2));
     } else {
-      console.error('رسالة الخطأ:', e.message);
+      console.error(e.message);
     }
   }
 
@@ -193,5 +216,5 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 السيرفر يعمل بنجاح على المنفذ ${PORT}`);
+  console.log(`🚀 السيرفر يعمل على المنفذ ${PORT}`);
 });
