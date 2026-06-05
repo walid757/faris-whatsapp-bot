@@ -13,9 +13,9 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe
 const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
-  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
-  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
-  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
+  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg',
+  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
@@ -197,7 +197,7 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 "هل تؤكد الطلب؟"
 
 ## ORDER CONFIRMATION
-إذا وافق:
+إذا وافق العميل على تأكيد الطلب، أخرج هذا JSON فقط بدون أي نص آخر في نفس الرسالة:
 {"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ## STRICT RULES
@@ -294,26 +294,34 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
-// ✅ تسجيل الطلب في Google Sheets
+// ✅ v3 — تسجيل الطلب في Google Sheets
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
-    // ✅ regex يلتقط JSON كامل مع nested objects
-    const jsonMatch = reply.match(/\{[\s\S]*"order_status"[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("❌ ما لقاش JSON في الرد");
+    console.log('🔍 نبحث عن JSON في الرد...');
+    console.log('📝 الرد كامل:', reply.substring(0, 200));
+
+    // ✅ نستخرج أول JSON كامل من الرد
+    const start = reply.indexOf('{');
+    const end   = reply.lastIndexOf('}');
+
+    if (start === -1 || end === -1) {
+      console.error('❌ ما لقاش JSON في الرد');
       return false;
     }
 
-    const orderData = JSON.parse(jsonMatch[0]);
-    const customer  = orderData.customer_data || {};
-    const product   = orderData.product_data  || {};
+    const jsonStr   = reply.substring(start, end + 1);
+    const orderData = JSON.parse(jsonStr);
 
-    // ✅ إذا الهاتف فارغ نستخدم رقم المرسل
-    const phone = customer.phone && customer.phone !== ""
+    console.log('✅ JSON parsed:', JSON.stringify(orderData).substring(0, 100));
+
+    const customer = orderData.customer_data || {};
+    const product  = orderData.product_data  || {};
+
+    const phone = (customer.phone && customer.phone !== "")
       ? customer.phone
       : fromPhone;
 
-    await axios.post(SHEET_API_URL, {
+    const payload = {
       secret   : SHEET_SECRET,
       full_name: customer.full_name        || "",
       phone    : phone,
@@ -323,13 +331,24 @@ const saveOrderToSheet = async (reply, fromPhone) => {
       product  : product.product_name      || "BOTTINE CUIR GS081",
       color    : product.color             || "",
       size     : product.size              || "",
+    };
+
+    console.log('📤 إرسال للشيت:', JSON.stringify(payload));
+
+    const response = await axios.post(SHEET_API_URL, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000,
     });
 
-    console.log(`✅ تم تسجيل الطلب في الشيت — ${customer.full_name} / ${phone}`);
+    console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
+    console.log(`✅ تم تسجيل الطلب — ${customer.full_name} / ${phone}`);
     return true;
 
   } catch (err) {
-    console.error("❌ خطأ الشيت:", err.message);
+    console.error('❌ خطأ الشيت:', err.message);
+    if (err.response) {
+      console.error('❌ رد الخطأ:', err.response.status, JSON.stringify(err.response.data));
+    }
     return false;
   }
 };
@@ -502,4 +521,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v3 — السيرفر على المنفذ ${PORT}`));
