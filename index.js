@@ -295,15 +295,28 @@ const isNotInterested = (text) => {
 };
 
 // ✅ تسجيل الطلب في Google Sheets
-const saveOrderToSheet = async (orderData) => {
+const saveOrderToSheet = async (reply, fromPhone) => {
   try {
-    const customer = orderData.customer_data  || {};
-    const product  = orderData.product_data   || {};
+    // ✅ regex يلتقط JSON كامل مع nested objects
+    const jsonMatch = reply.match(/\{[\s\S]*"order_status"[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("❌ ما لقاش JSON في الرد");
+      return false;
+    }
+
+    const orderData = JSON.parse(jsonMatch[0]);
+    const customer  = orderData.customer_data || {};
+    const product   = orderData.product_data  || {};
+
+    // ✅ إذا الهاتف فارغ نستخدم رقم المرسل
+    const phone = customer.phone && customer.phone !== ""
+      ? customer.phone
+      : fromPhone;
 
     await axios.post(SHEET_API_URL, {
       secret   : SHEET_SECRET,
       full_name: customer.full_name        || "",
-      phone    : customer.phone            || "",
+      phone    : phone,
       city     : customer.city             || "",
       address  : customer.shipping_address || "",
       price    : product.unit_price_mad    || "320",
@@ -312,8 +325,9 @@ const saveOrderToSheet = async (orderData) => {
       size     : product.size              || "",
     });
 
-    console.log(`✅ تم تسجيل الطلب في الشيت`);
+    console.log(`✅ تم تسجيل الطلب في الشيت — ${customer.full_name} / ${phone}`);
     return true;
+
   } catch (err) {
     console.error("❌ خطأ الشيت:", err.message);
     return false;
@@ -438,7 +452,7 @@ app.post('/webhook', async (req, res) => {
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    // ✅ تسجيل الطلب في الشيت عند التأكيد
+    // ✅ تسجيل في الشيت عند التأكيد
     if (reply.includes('"order_status":"CONFIRMED"')) {
       orderConfirmed.add(from);
       if (followUpTimers[from]) {
@@ -446,16 +460,7 @@ app.post('/webhook', async (req, res) => {
         delete followUpTimers[from];
       }
       console.log(`🎉 طلب مؤكد من ${from}`);
-
-      try {
-        const jsonMatch = reply.match(/\{[\s\S]*"order_status"[\s\S]*?\}/);
-        if (jsonMatch) {
-          const orderData = JSON.parse(jsonMatch[0]);
-          await saveOrderToSheet(orderData);
-        }
-      } catch (parseErr) {
-        console.error("❌ خطأ في تحليل JSON:", parseErr.message);
-      }
+      await saveOrderToSheet(reply, from);
     }
 
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
