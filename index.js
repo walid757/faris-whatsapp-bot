@@ -13,9 +13,9 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe
 const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
-  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noirjpg.jpg',
-  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marronjpg.jpg',
-  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/grisjpg.jpg'
+  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
+  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
