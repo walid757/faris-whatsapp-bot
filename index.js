@@ -215,12 +215,12 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
 const MAX_FOLLOWUPS = 5;
 
-// ✅ تحويل رقم واتساب → 0XXXXXXXXX
+// ✅ تحويل رقم → 212XXXXXXXXX
 const formatPhone = (p) => {
   p = String(p).trim().replace(/\s/g, '');
-  if (p.startsWith('+212')) p = '0' + p.slice(4);
-  if (p.startsWith('212'))  p = '0' + p.slice(3);
-  if (p.length > 10)        p = p.slice(-10);
+  if (p.startsWith('+212')) p = p.slice(1);
+  if (p.startsWith('0'))    p = '212' + p.slice(1);
+  if (!p.startsWith('212')) p = '212' + p;
   return p;
 };
 
@@ -303,7 +303,6 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
-// ✅ v6 — تسجيل الطلب في Google Sheets
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
     const marker      = 'CONFIRMED_ORDER:';
@@ -327,16 +326,14 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const customer  = orderData.customer_data || {};
     const product   = orderData.product_data  || {};
 
-    // ✅ الهاتف — من واتساب دائماً بصيغة 0XXXXXXXXX
     const rawPhone = customer.phone || '';
     const phone = (rawPhone === 'PHONE_FROM_WHATSAPP' || rawPhone === '' || rawPhone === 'غير محدد')
       ? formatPhone(fromPhone)
       : formatPhone(rawPhone);
 
-    const colorFr  = product.color_fr || detectColor(product.color_ar || '') || 'noir';
-    const size     = product.size || '';
-    // ✅ variant = المقاس/اللون مثلاً 39/noir
-    const variant  = size && colorFr ? `${size}/${colorFr}` : '';
+    const colorFr = product.color_fr || detectColor(product.color_ar || '') || 'noir';
+    const size    = product.size || '';
+    const variant = size && colorFr ? `${size}/${colorFr}` : '';
 
     const payload = {
       secret   : SHEET_SECRET,
@@ -361,11 +358,10 @@ const saveOrderToSheet = async (reply, fromPhone) => {
 
   } catch (err) {
     console.error('❌ خطأ الشيت:', err.message);
-    return { success: false, colorFr: null };
+    return { success: false, colorFr: null, phone: formatPhone(fromPhone) };
   }
 };
 
-// ✅ استخراج رسالة التأكيد من الرد
 const extractConfirmMsg = (reply) => {
   const start = reply.indexOf('ORDER_CONFIRM_MSG_START');
   const end   = reply.indexOf('ORDER_CONFIRM_MSG_END');
@@ -373,15 +369,6 @@ const extractConfirmMsg = (reply) => {
     return reply.substring(start + 'ORDER_CONFIRM_MSG_START'.length, end).trim();
   }
   return null;
-};
-
-// ✅ تنظيف الرد من JSON والماركرات
-const cleanReply = (reply) => {
-  return reply
-    .replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}(?=\s*ORDER_CONFIRM_MSG_START|\s*$)/g, '')
-    .replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/g, '')
-    .replace(/CONFIRMED_ORDER:\s*\{[\s\S]*\}/g, '')
-    .trim();
 };
 
 const sendFollowUp = async (from) => {
@@ -409,8 +396,6 @@ const sendFollowUp = async (from) => {
     });
 
     await sendHumanLike(from, claudeRes.data.content[0].text);
-    console.log(`✅ تم إرسال المتابعة ${count + 1}`);
-
     if (count + 1 < MAX_FOLLOWUPS) {
       followUpTimers[from] = setTimeout(() => sendFollowUp(from), SILENCE_TIMEOUT);
     }
@@ -485,17 +470,14 @@ app.post('/webhook', async (req, res) => {
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    // ✅ طلب مؤكد
     if (reply.includes('CONFIRMED_ORDER:')) {
       orderConfirmed.add(from);
       if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
       console.log(`🎉 طلب مؤكد من ${from}`);
 
-      // 1. تسجيل في الشيت
       const result = await saveOrderToSheet(reply, from);
 
-      // 2. إرسال صورة الحذاء المختار
-      const colorFr = result.colorFr || 'noir';
+      const colorFr = (result && result.colorFr) ? result.colorFr : 'noir';
       if (PRODUCT_IMAGES[colorFr]) {
         try {
           await sleep(500);
@@ -506,18 +488,16 @@ app.post('/webhook', async (req, res) => {
         }
       }
 
-      // 3. استخراج رسالة التأكيد وإرسالها
       const confirmMsg = extractConfirmMsg(reply);
       if (confirmMsg) {
-        // استبدال {{phone}} بالرقم الحقيقي
-        const finalMsg = confirmMsg.replace('{{phone}}', result.phone || formatPhone(from));
+        const phoneDisplay = (result && result.phone) ? result.phone : formatPhone(from);
+        const finalMsg = confirmMsg.replace('{{phone}}', phoneDisplay);
         await sendText(from, finalMsg);
       }
 
       return;
     }
 
-    // ✅ معالجة الصور
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
     if (colorMatch) {
       reply = reply.replace(colorMatch[0], '').trim();
@@ -542,4 +522,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v6 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v8 — السيرفر على المنفذ ${PORT}`));
