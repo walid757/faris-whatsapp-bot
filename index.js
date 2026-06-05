@@ -8,7 +8,8 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe2IJWP6TSevGhH_F8JcSYvo4a5FBSYilIJUlzw2fADpRPU_LMWX/exec";
+// ✅ URL الجديد
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyaMpplLlF9e8M_45BJBnqqaTxHcRjS51sDxvcPBbcvp4dpPO-J2BNwXYlhyLrbTNCA/exec";
 const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
@@ -215,7 +216,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
 const MAX_FOLLOWUPS = 5;
 
-// ✅ تحويل رقم → 212XXXXXXXXX (يحل كل الحالات)
+// ✅ تحويل رقم → 212XXXXXXXXX
 const formatPhone = (p) => {
   p = String(p).trim().replace(/\s/g, '').replace(/\+/g, '');
   if (p.startsWith('212')) return p;
@@ -522,4 +523,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v9 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v10 — السيرفر على المنفذ ${PORT}`));
