@@ -8,14 +8,13 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-// ✅ Google Sheets API
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzL8OALvB34of-Zfe2IJWP6TSevGhH_F8JcSYvo4a5FBSYilIJUlzw2fADpRPU_LMWX/exec";
 const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
-  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
-  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg',
-  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
+  noir: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg.jpg',
+  marron: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/marron.jpg.jpg',
+  gris: 'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg.jpg'
 };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
@@ -55,7 +54,7 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 ## PRODUCT DATA
 - اسم المنتج: BOTTINE CUIR GS081
 - السعر: 320 درهم
-- الألوان: أسود، بني، رمادي
+- الألوان: أسود (noir)، بني (marron)، رمادي (gris)
 - المقاسات: 39، 40، 41، 42، 43، 44
 
 ## ===== 35 PSYCHOLOGICAL SKILLS =====
@@ -193,12 +192,33 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSU
 استخدم [PAUSE] بين الجمل. إيموجي واحد فقط.
 
 ## CONFIRMATION STATE
-الاسم / الهاتف / المدينة / العنوان / BOTTINE CUIR GS081 / اللون / المقاس / 320 درهم / الدفع عند الاستلام.
-"هل تؤكد الطلب؟"
+قبل التأكيد النهائي، أرسل للزبون ملخص الطلب بهذا الشكل بالضبط:
+
+خلينا نتأكدو من الطلب معاك:
+
+👟 *المنتج:* BOTTINE CUIR GS081
+🎨 *اللون:* [اللون]
+📏 *المقاس:* [المقاس]
+💰 *الثمن:* [السعر] درهم
+🚚 *التوصيل:* مجاني - الدفع عند الاستلام
+👤 *الاسم:* [الاسم]
+📍 *المدينة:* [المدينة] - [العنوان]
+
+واش تأكد الطلب؟
 
 ## ORDER CONFIRMATION
-إذا وافق العميل على تأكيد الطلب، أخرج هذا JSON فقط بدون أي نص آخر في نفس الرسالة:
-{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
+بعد تأكيد الزبون، أخرج هذا JSON فقط في سطر منفصل ثم رسالة التهنئة:
+
+CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"","phone":"","city":"","shipping_address":""},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_fr":"","size":"","unit_price_mad":"320"},"payment":{"method":"COD"}}
+
+قواعد JSON:
+- city: بالفرنسية (Taza, Casablanca, Rabat...)
+- shipping_address: بالفرنسية (Hay Rahab, Hay Hassani...)
+- color_fr: بالفرنسية (noir, marron, gris)
+- full_name: كما قاله الزبون
+
+بعد JSON مباشرة أرسل:
+مبروك [الاسم]! 🎉 طلبك تأكد، التوصيل 24-48 ساعة 🚚
 
 ## STRICT RULES
 لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. مهارة إقناع واحدة فقط في كل رسالة.`;
@@ -294,30 +314,42 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
-// ✅ v3 — تسجيل الطلب في Google Sheets
+// ✅ v4 — تسجيل الطلب في Google Sheets
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
-    console.log('🔍 نبحث عن JSON في الرد...');
-    console.log('📝 الرد كامل:', reply.substring(0, 200));
+    console.log('🔍 نبحث عن CONFIRMED_ORDER في الرد...');
 
-    // ✅ نستخرج أول JSON كامل من الرد
-    const start = reply.indexOf('{');
-    const end   = reply.lastIndexOf('}');
+    // ✅ نستخرج JSON بعد CONFIRMED_ORDER:
+    const marker = 'CONFIRMED_ORDER:';
+    const markerIndex = reply.indexOf(marker);
 
-    if (start === -1 || end === -1) {
-      console.error('❌ ما لقاش JSON في الرد');
+    let jsonStr = '';
+    if (markerIndex !== -1) {
+      const afterMarker = reply.substring(markerIndex + marker.length).trim();
+      const start = afterMarker.indexOf('{');
+      const end   = afterMarker.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        jsonStr = afterMarker.substring(start, end + 1);
+      }
+    } else {
+      // fallback: أول JSON في الرد
+      const start = reply.indexOf('{');
+      const end   = reply.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        jsonStr = reply.substring(start, end + 1);
+      }
+    }
+
+    if (!jsonStr) {
+      console.error('❌ ما لقاش JSON');
       return false;
     }
 
-    const jsonStr   = reply.substring(start, end + 1);
     const orderData = JSON.parse(jsonStr);
+    const customer  = orderData.customer_data || {};
+    const product   = orderData.product_data  || {};
 
-    console.log('✅ JSON parsed:', JSON.stringify(orderData).substring(0, 100));
-
-    const customer = orderData.customer_data || {};
-    const product  = orderData.product_data  || {};
-
-    const phone = (customer.phone && customer.phone !== "")
+    const phone = (customer.phone && customer.phone !== "" && customer.phone !== "غير محدد")
       ? customer.phone
       : fromPhone;
 
@@ -329,7 +361,7 @@ const saveOrderToSheet = async (reply, fromPhone) => {
       address  : customer.shipping_address || "",
       price    : product.unit_price_mad    || "320",
       product  : product.product_name      || "BOTTINE CUIR GS081",
-      color    : product.color             || "",
+      color    : product.color_fr          || product.color || "",
       size     : product.size              || "",
     };
 
@@ -341,14 +373,11 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     });
 
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
-    console.log(`✅ تم تسجيل الطلب — ${customer.full_name} / ${phone}`);
+    console.log(`✅ تم تسجيل — ${customer.full_name} / ${phone}`);
     return true;
 
   } catch (err) {
     console.error('❌ خطأ الشيت:', err.message);
-    if (err.response) {
-      console.error('❌ رد الخطأ:', err.response.status, JSON.stringify(err.response.data));
-    }
     return false;
   }
 };
@@ -471,8 +500,8 @@ app.post('/webhook', async (req, res) => {
     let reply = claudeRes.data.content[0].text;
     conversationHistory[from].push({ role: 'assistant', content: reply });
 
-    // ✅ تسجيل في الشيت عند التأكيد
-    if (reply.includes('"order_status":"CONFIRMED"')) {
+    // ✅ تسجيل في الشيت + إخفاء JSON من الرسالة
+    if (reply.includes('CONFIRMED_ORDER:') || reply.includes('"order_status":"CONFIRMED"')) {
       orderConfirmed.add(from);
       if (followUpTimers[from]) {
         clearTimeout(followUpTimers[from]);
@@ -480,6 +509,9 @@ app.post('/webhook', async (req, res) => {
       }
       console.log(`🎉 طلب مؤكد من ${from}`);
       await saveOrderToSheet(reply, from);
+
+      // ✅ إخفاء CONFIRMED_ORDER: والـ JSON من الرسالة المرسلة للزبون
+      reply = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}(?:\s*\n)?/g, '').trim();
     }
 
     const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
@@ -521,4 +553,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v3 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v4 — السيرفر على المنفذ ${PORT}`));
