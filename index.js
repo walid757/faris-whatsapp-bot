@@ -214,7 +214,7 @@ const sendFollowUp = async (from) => {
     const followUpPrompt = count<MAX_FOLLOWUPS-1
       ? `العميل صمت 15 دقيقة. متابعة إبداعية رقم ${count+1} من ${MAX_FOLLOWUPS}. أسلوب مختلف. [PAUSE] بين الجمل.`
       : `آخر رسالة. وداع لطيف مع عرض أخير. [PAUSE] بين الجمل.`;
-    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:400, system:SYSTEM_PROMPT, messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','content-type':'application/json'} });
+    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
     await sendHumanLike(from, claudeRes.data.content[0].text);
     if (count+1<MAX_FOLLOWUPS) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT);
   } catch(e) { console.error('❌ خطأ المتابعة:', e.message); }
@@ -248,7 +248,7 @@ app.post('/webhook', async (req,res) => {
     trimHistory(from);
     try {
       await sleep(1500);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:600, system:SYSTEM_PROMPT, messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','content-type':'application/json'} });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
       conversationHistory[from].push({role:'assistant',content:reply});
       trimHistory(from); persistState();
@@ -275,6 +275,6 @@ app.post('/webhook', async (req,res) => {
   });
 });
 
-app.get('/', (req,res) => res.json({status:'ok',version:'v16-optimized'}));
+app.get('/', (req,res) => res.json({status:'ok',version:'v17-cached'}));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v16 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v17 — السيرفر على المنفذ ${PORT}`));
