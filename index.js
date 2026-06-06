@@ -523,4 +523,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v10 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v12 — السيرفر على المنفذ ${PORT}`));
