@@ -94,7 +94,7 @@ const processQueue = async (from) => {
 // ============================================================
 // ✅ FIX #8 — حد أقصى لحجم التاريخ (آخر 20 رسالة)
 // ============================================================
-const MAX_HISTORY = 20;
+const MAX_HISTORY = 10;
 
 const trimHistory = (from) => {
   if (conversationHistory[from] && conversationHistory[from].length > MAX_HISTORY) {
@@ -311,7 +311,7 @@ ORDER_CONFIRM_MSG_END
 // ============================================================
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
-const MAX_FOLLOWUPS   = 5;
+const MAX_FOLLOWUPS   = 3;
 const followUpTimers  = {};
 const lastMessageTime = {};
 
@@ -477,7 +477,7 @@ const sendFollowUp = async (from) => {
       : `العميل صمت كثيراً. هذه آخر رسالة. أرسل وداع لطيف مع عرض أخير. استخدم [PAUSE] بين الجمل.`;
 
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-      model: 'claude-sonnet-4-6', max_tokens: 512, system: SYSTEM_PROMPT,
+      model: 'claude-sonnet-4-6', max_tokens: 400, system: SYSTEM_PROMPT,
       messages: [...conversationHistory[from], { role: 'user', content: followUpPrompt }]
     }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
 
@@ -585,7 +585,7 @@ app.post('/webhook', async (req, res) => {
       await sleep(1500);
 
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-        model: 'claude-sonnet-4-6', max_tokens: 1024, system: SYSTEM_PROMPT,
+        model: 'claude-sonnet-4-6', max_tokens: 600, system: SYSTEM_PROMPT,
         messages: conversationHistory[from]
       }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
 
