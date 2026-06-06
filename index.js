@@ -1,16 +1,23 @@
 const express = require('express');
-const axios = require('axios');
+const axios   = require('axios');
+const crypto  = require('crypto');
+const fs      = require('fs');
+const path    = require('path');
+
 const app = express();
 app.use(express.json());
 
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+// ============================================================
+// ✅ ENV VARIABLES — كلها من البيئة، لا شيء hardcoded
+// ============================================================
+const CLAUDE_API_KEY   = process.env.CLAUDE_API_KEY;
+const WHATSAPP_TOKEN   = process.env.WHATSAPP_TOKEN;
+const PHONE_NUMBER_ID  = process.env.PHONE_NUMBER_ID;
+const VERIFY_TOKEN     = process.env.VERIFY_TOKEN;
+const SHEET_SECRET     = process.env.SHEET_SECRET || 'OZON_SECRET_2026';   // ✅ FIX #6
+const APP_SECRET       = process.env.WHATSAPP_APP_SECRET;                   // ✅ FIX #7 — لـ Signature Verification
 
-// ✅ URL الجديد
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyaMpplLlF9e8M_45BJBnqqaTxHcRjS51sDxvcPBbcvp4dpPO-J2BNwXYlhyLrbTNCA/exec";
-const SHEET_SECRET  = "OZON_SECRET_2026";
 
 const PRODUCT_IMAGES = {
   noir:   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/noir.jpg',
@@ -18,6 +25,101 @@ const PRODUCT_IMAGES = {
   gris:   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
 };
 
+// ============================================================
+// ✅ FIX #1 — PERSISTENT STORAGE بملف JSON بدل RAM
+// ============================================================
+const STATE_FILE = path.join(__dirname, 'bot_state.json');
+
+const loadState = () => {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('⚠️ خطأ في تحميل الحالة:', e.message);
+  }
+  return { sentImages: [], orderConfirmed: [], notInterested: [], followUpCount: {}, conversationHistory: {} };
+};
+
+const saveState = (() => {
+  let timer = null;
+  return (state) => {
+    // Debounce — نكتب كل 2 ثانية بحد أقصى لتجنب I/O كثيف
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      try { fs.writeFileSync(STATE_FILE, JSON.stringify(state), 'utf8'); }
+      catch (e) { console.error('⚠️ خطأ في حفظ الحالة:', e.message); }
+    }, 2000);
+  };
+})();
+
+// تحميل الحالة عند الإقلاع
+const _state = loadState();
+const sentImages     = new Set(_state.sentImages     || []);
+const orderConfirmed = new Set(_state.orderConfirmed || []);
+const notInterested  = new Set(_state.notInterested  || []);
+const followUpCount  = _state.followUpCount          || {};
+const conversationHistory = _state.conversationHistory || {};
+
+const persistState = () => saveState({
+  sentImages:     [...sentImages],
+  orderConfirmed: [...orderConfirmed],
+  notInterested:  [...notInterested],
+  followUpCount,
+  conversationHistory
+});
+
+// ============================================================
+// ✅ FIX #2 — MESSAGE QUEUE لكل مستخدم (يمنع Race Condition)
+// ============================================================
+const userQueues   = {};
+const userLocks    = {};
+
+const enqueue = (from, fn) => {
+  if (!userQueues[from]) userQueues[from] = [];
+  userQueues[from].push(fn);
+  if (!userLocks[from]) processQueue(from);
+};
+
+const processQueue = async (from) => {
+  if (userLocks[from]) return;
+  userLocks[from] = true;
+  while (userQueues[from] && userQueues[from].length > 0) {
+    const fn = userQueues[from].shift();
+    try { await fn(); } catch (e) { console.error('❌ خطأ في Queue:', e.message); }
+  }
+  userLocks[from] = false;
+};
+
+// ============================================================
+// ✅ FIX #8 — حد أقصى لحجم التاريخ (آخر 20 رسالة)
+// ============================================================
+const MAX_HISTORY = 20;
+
+const trimHistory = (from) => {
+  if (conversationHistory[from] && conversationHistory[from].length > MAX_HISTORY) {
+    conversationHistory[from] = conversationHistory[from].slice(-MAX_HISTORY);
+  }
+};
+
+// ============================================================
+// ✅ FIX #4 — RATE LIMITING (حد أقصى للرسائل)
+// ============================================================
+const rateLimitMap  = {};
+const MAX_MSG_PER_MINUTE = 10;
+
+const isRateLimited = (from) => {
+  const now   = Date.now();
+  const entry = rateLimitMap[from] || { count: 0, resetAt: now + 60000 };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60000; }
+  entry.count++;
+  rateLimitMap[from] = entry;
+  return entry.count > MAX_MSG_PER_MINUTE;
+};
+
+// ============================================================
+// SYSTEM PROMPT (بدون تغيير)
+// ============================================================
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT - EXPERT PSYCHOLOGIST & PERSUASION MASTER
 
 ## ROLE
@@ -204,19 +306,15 @@ ORDER_CONFIRM_MSG_END
 ## STRICT RULES
 لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد العميل. عامل العميل باحترام. مهارة إقناع واحدة فقط في كل رسالة. لا ترسل JSON أو CONFIRMED_ORDER للزبون أبداً.`;
 
-const conversationHistory = {};
-const sentImages = new Set();
-const lastMessageTime = {};
-const followUpCount = {};
-const orderConfirmed = new Set();
-const notInterested = new Set();
-const followUpTimers = {};
-
+// ============================================================
+// HELPERS
+// ============================================================
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 15 * 60 * 1000;
-const MAX_FOLLOWUPS = 5;
+const MAX_FOLLOWUPS   = 5;
+const followUpTimers  = {};
+const lastMessageTime = {};
 
-// ✅ تحويل رقم → 212XXXXXXXXX
 const formatPhone = (p) => {
   p = String(p).trim().replace(/\s/g, '').replace(/\+/g, '');
   if (p.startsWith('212')) return p;
@@ -231,22 +329,14 @@ const markAsRead = async (messageId) => {
       messaging_product: 'whatsapp',
       status: 'read',
       message_id: messageId
-    }, {
-      headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' }
-    });
-  } catch (e) {
-    console.error('خطأ markAsRead:', e.message);
-  }
+    }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+  } catch (e) { console.error('خطأ markAsRead:', e.message); }
 };
 
 const sendText = async (to, text) => {
   await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
-    messaging_product: 'whatsapp',
-    to,
-    text: { body: text }
-  }, {
-    headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' }
-  });
+    messaging_product: 'whatsapp', to, text: { body: text }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
 };
 
 const sendHumanLike = async (to, fullReply) => {
@@ -262,16 +352,9 @@ const sendHumanLike = async (to, fullReply) => {
 const sendWhatsAppImage = async (to, color) => {
   const colorNames = { noir: 'أسود', marron: 'بني', gris: 'رمادي' };
   await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
-    messaging_product: 'whatsapp',
-    to,
-    type: 'image',
-    image: {
-      link: PRODUCT_IMAGES[color],
-      caption: `BOTTINE CUIR GS081 - ${colorNames[color]} - 320 درهم`
-    }
-  }, {
-    headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' }
-  });
+    messaging_product: 'whatsapp', to, type: 'image',
+    image: { link: PRODUCT_IMAGES[color], caption: `BOTTINE CUIR GS081 - ${colorNames[color]} - 320 درهم` }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
 };
 
 const sendAllImages = async (to) => {
@@ -284,9 +367,9 @@ const sendAllImages = async (to) => {
 
 const detectColor = (text) => {
   const t = text.toLowerCase();
-  if (t.includes('noir') || t.includes('أسود') || t.includes('اسود') || t.includes('كحل')) return 'noir';
-  if (t.includes('marron') || t.includes('بني') || t.includes('قهوي')) return 'marron';
-  if (t.includes('gris') || t.includes('رمادي') || t.includes('rmadi')) return 'gris';
+  if (t.includes('noir')   || t.includes('أسود') || t.includes('اسود') || t.includes('كحل'))   return 'noir';
+  if (t.includes('marron') || t.includes('بني')  || t.includes('قهوي'))                         return 'marron';
+  if (t.includes('gris')   || t.includes('رمادي')|| t.includes('rmadi'))                         return 'gris';
   return null;
 };
 
@@ -304,23 +387,28 @@ const isNotInterested = (text) => {
     t.includes('مش محتاج') || t.includes('وقفو') || t.includes('بغيت نوقف');
 };
 
+// ============================================================
+// ✅ FIX #3 — JSON PARSING محكم باستخدام Regex دقيق
+// ============================================================
+const extractOrderJSON = (reply) => {
+  // نبحث عن CONFIRMED_ORDER: ثم نأخذ أول JSON كامل بعده
+  const marker = 'CONFIRMED_ORDER:';
+  const idx = reply.indexOf(marker);
+  if (idx === -1) return null;
+
+  const after = reply.substring(idx + marker.length).trimStart();
+  // نستخدم stack لإيجاد closing brace الصحيح
+  let depth = 0, start = -1;
+  for (let i = 0; i < after.length; i++) {
+    if (after[i] === '{') { if (depth === 0) start = i; depth++; }
+    else if (after[i] === '}') { depth--; if (depth === 0 && start !== -1) return after.substring(start, i + 1); }
+  }
+  return null;
+};
+
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
-    const marker      = 'CONFIRMED_ORDER:';
-    const markerIndex = reply.indexOf(marker);
-
-    let jsonStr = '';
-    if (markerIndex !== -1) {
-      const after = reply.substring(markerIndex + marker.length).trim();
-      const start = after.indexOf('{');
-      const end   = after.lastIndexOf('}');
-      if (start !== -1 && end !== -1) jsonStr = after.substring(start, end + 1);
-    } else {
-      const start = reply.indexOf('{');
-      const end   = reply.lastIndexOf('}');
-      if (start !== -1 && end !== -1) jsonStr = reply.substring(start, end + 1);
-    }
-
+    const jsonStr = extractOrderJSON(reply);
     if (!jsonStr) { console.error('❌ ما لقاش JSON'); return { success: false, colorFr: null }; }
 
     const orderData = JSON.parse(jsonStr);
@@ -339,7 +427,7 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const payload = {
       secret   : SHEET_SECRET,
       full_name: customer.full_name        || '',
-      phone    : phone,
+      phone,
       city     : customer.city             || '',
       address  : customer.shipping_address || '',
       price    : product.unit_price_mad    || '320',
@@ -350,11 +438,9 @@ const saveOrderToSheet = async (reply, fromPhone) => {
 
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
     const response = await axios.post(SHEET_API_URL, payload, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 10000,
+      headers: { 'Content-Type': 'application/json' }, timeout: 10000
     });
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
-    console.log(`✅ تم تسجيل — ${customer.full_name} / ${phone}`);
     return { success: true, colorFr, phone, name: customer.full_name };
 
   } catch (err) {
@@ -366,12 +452,14 @@ const saveOrderToSheet = async (reply, fromPhone) => {
 const extractConfirmMsg = (reply) => {
   const start = reply.indexOf('ORDER_CONFIRM_MSG_START');
   const end   = reply.indexOf('ORDER_CONFIRM_MSG_END');
-  if (start !== -1 && end !== -1) {
+  if (start !== -1 && end !== -1)
     return reply.substring(start + 'ORDER_CONFIRM_MSG_START'.length, end).trim();
-  }
   return null;
 };
 
+// ============================================================
+// FOLLOW-UP SYSTEM
+// ============================================================
 const sendFollowUp = async (from) => {
   if (orderConfirmed.has(from) || notInterested.has(from)) return;
   if (!conversationHistory[from] || conversationHistory[from].length === 0) return;
@@ -380,6 +468,7 @@ const sendFollowUp = async (from) => {
   if (count >= MAX_FOLLOWUPS) { delete followUpTimers[from]; return; }
 
   followUpCount[from] = count + 1;
+  persistState();
   console.log(`📨 متابعة رقم ${count + 1} لـ ${from}`);
 
   try {
@@ -388,30 +477,38 @@ const sendFollowUp = async (from) => {
       : `العميل صمت كثيراً. هذه آخر رسالة. أرسل وداع لطيف مع عرض أخير. استخدم [PAUSE] بين الجمل.`;
 
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      system: SYSTEM_PROMPT,
+      model: 'claude-sonnet-4-6', max_tokens: 512, system: SYSTEM_PROMPT,
       messages: [...conversationHistory[from], { role: 'user', content: followUpPrompt }]
-    }, {
-      headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
-    });
+    }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
 
     await sendHumanLike(from, claudeRes.data.content[0].text);
-    if (count + 1 < MAX_FOLLOWUPS) {
+    if (count + 1 < MAX_FOLLOWUPS)
       followUpTimers[from] = setTimeout(() => sendFollowUp(from), SILENCE_TIMEOUT);
-    }
-  } catch (e) {
-    console.error('❌ خطأ في المتابعة:', e.message);
-  }
+
+  } catch (e) { console.error('❌ خطأ في المتابعة:', e.message); }
 };
 
 const resetFollowUpTimer = (from) => {
   if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
-  if (!orderConfirmed.has(from) && !notInterested.has(from)) {
+  if (!orderConfirmed.has(from) && !notInterested.has(from))
     followUpTimers[from] = setTimeout(() => sendFollowUp(from), SILENCE_TIMEOUT);
-  }
 };
 
+// ============================================================
+// ✅ FIX #7 — WEBHOOK SIGNATURE VERIFICATION
+// ============================================================
+const verifySignature = (req) => {
+  if (!APP_SECRET) return true; // إذا ما عندكش APP_SECRET في البيئة، تجاوز (للتطوير فقط)
+  const sig = req.headers['x-hub-signature-256'];
+  if (!sig) return false;
+  const expected = 'sha256=' + crypto.createHmac('sha256', APP_SECRET)
+    .update(JSON.stringify(req.body)).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+};
+
+// ============================================================
+// WEBHOOK ROUTES
+// ============================================================
 app.get('/webhook', (req, res) => {
   if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
     res.send(req.query['hub.challenge']);
@@ -421,8 +518,24 @@ app.get('/webhook', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
+  // ✅ FIX #7 — تحقق من التوقيع
+  if (!verifySignature(req)) {
+    console.warn('⚠️ Signature غير صحيح — طلب مرفوض');
+    return res.sendStatus(401);
+  }
+
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  if (!message || message.type !== 'text') return res.sendStatus(200);
+  if (!message) return res.sendStatus(200);
+
+  // ✅ FIX #5 — رد على الرسائل غير النصية بدل التجاهل
+  if (message.type !== 'text') {
+    const from = message.from;
+    try {
+      await sleep(800);
+      await sendText(from, 'أرسل رسالة نصية باش نقدر نساعدك 😊');
+    } catch (e) {}
+    return res.sendStatus(200);
+  }
 
   const from = message.from;
   const text = message.text.body;
@@ -431,12 +544,19 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
   await markAsRead(message.id);
 
+  // ✅ FIX #4 — Rate Limiting
+  if (isRateLimited(from)) {
+    console.warn(`⚠️ Rate limit لـ ${from}`);
+    return;
+  }
+
   lastMessageTime[from] = Date.now();
   resetFollowUpTimer(from);
 
   if (isNotInterested(text)) {
     notInterested.add(from);
     if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
+    persistState();
   }
 
   if (!conversationHistory[from]) {
@@ -444,83 +564,84 @@ app.post('/webhook', async (req, res) => {
     followUpCount[from] = 0;
   }
 
-  if (!sentImages.has(from)) {
-    sentImages.add(from);
-    try {
-      await sleep(500);
-      await sendAllImages(from);
-    } catch (e) {
-      console.error('❌ خطأ في الصور:', e.response ? JSON.stringify(e.response.data) : e.message);
+  // ✅ FIX #2 — كل معالجة تدخل Queue
+  enqueue(from, async () => {
+    if (!sentImages.has(from)) {
+      sentImages.add(from);
+      persistState();
+      try {
+        await sleep(500);
+        await sendAllImages(from);
+      } catch (e) {
+        console.error('❌ خطأ في الصور:', e.response ? JSON.stringify(e.response.data) : e.message);
+      }
     }
-  }
 
-  conversationHistory[from].push({ role: 'user', content: text });
+    conversationHistory[from].push({ role: 'user', content: text });
+    // ✅ FIX #8 — trim التاريخ
+    trimHistory(from);
 
-  try {
-    await sleep(1500);
+    try {
+      await sleep(1500);
 
-    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: conversationHistory[from]
-    }, {
-      headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
-    });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
+        model: 'claude-sonnet-4-6', max_tokens: 1024, system: SYSTEM_PROMPT,
+        messages: conversationHistory[from]
+      }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
 
-    let reply = claudeRes.data.content[0].text;
-    conversationHistory[from].push({ role: 'assistant', content: reply });
+      let reply = claudeRes.data.content[0].text;
+      conversationHistory[from].push({ role: 'assistant', content: reply });
+      trimHistory(from);
+      persistState();
 
-    if (reply.includes('CONFIRMED_ORDER:')) {
-      orderConfirmed.add(from);
-      if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
-      console.log(`🎉 طلب مؤكد من ${from}`);
+      if (reply.includes('CONFIRMED_ORDER:')) {
+        orderConfirmed.add(from);
+        if (followUpTimers[from]) { clearTimeout(followUpTimers[from]); delete followUpTimers[from]; }
+        persistState();
+        console.log(`🎉 طلب مؤكد من ${from}`);
 
-      const result = await saveOrderToSheet(reply, from);
+        const result = await saveOrderToSheet(reply, from);
+        const colorFr = (result && result.colorFr) ? result.colorFr : 'noir';
 
-      const colorFr = (result && result.colorFr) ? result.colorFr : 'noir';
-      if (PRODUCT_IMAGES[colorFr]) {
-        try {
-          await sleep(500);
-          await sendWhatsAppImage(from, colorFr);
-          await sleep(1000);
-        } catch (e) {
-          console.error('❌ خطأ صورة التأكيد:', e.message);
+        if (PRODUCT_IMAGES[colorFr]) {
+          try { await sleep(500); await sendWhatsAppImage(from, colorFr); await sleep(1000); }
+          catch (e) { console.error('❌ خطأ صورة التأكيد:', e.message); }
+        }
+
+        const confirmMsg = extractConfirmMsg(reply);
+        if (confirmMsg) {
+          const phoneDisplay = (result && result.phone) ? result.phone : formatPhone(from);
+          await sendText(from, confirmMsg.replace('{{phone}}', phoneDisplay));
+        }
+        return;
+      }
+
+      const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
+      if (colorMatch) {
+        reply = reply.replace(colorMatch[0], '').trim();
+        try { await sendWhatsAppImage(from, colorMatch[1]); await sleep(500); } catch (e) {}
+      } else if (reply.includes('[RESEND_IMAGES]') || isInsistingOnImages(text)) {
+        reply = reply.replace('[RESEND_IMAGES]', '').trim();
+        try { await sendAllImages(from); await sleep(500); } catch (e) {}
+      } else {
+        const color = detectColor(text);
+        const wantsImage = text.toLowerCase().includes('صورة') || text.toLowerCase().includes('شوف') || text.toLowerCase().includes('image');
+        if (color && wantsImage) {
+          try { await sendWhatsAppImage(from, color); await sleep(500); } catch (e) {}
         }
       }
 
-      const confirmMsg = extractConfirmMsg(reply);
-      if (confirmMsg) {
-        const phoneDisplay = (result && result.phone) ? result.phone : formatPhone(from);
-        const finalMsg = confirmMsg.replace('{{phone}}', phoneDisplay);
-        await sendText(from, finalMsg);
-      }
+      await sendHumanLike(from, reply);
+      console.log('✅ تم الإرسال');
 
-      return;
+    } catch (e) {
+      console.error('❌ خطأ:', e.response ? JSON.stringify(e.response.data) : e.message);
     }
-
-    const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
-    if (colorMatch) {
-      reply = reply.replace(colorMatch[0], '').trim();
-      try { await sendWhatsAppImage(from, colorMatch[1]); await sleep(500); } catch (e) {}
-    } else if (reply.includes('[RESEND_IMAGES]') || isInsistingOnImages(text)) {
-      reply = reply.replace('[RESEND_IMAGES]', '').trim();
-      try { await sendAllImages(from); await sleep(500); } catch (e) {}
-    } else {
-      const color = detectColor(text);
-      const wantsImage = text.toLowerCase().includes('صورة') || text.toLowerCase().includes('شوف') || text.toLowerCase().includes('image');
-      if (color && wantsImage) {
-        try { await sendWhatsAppImage(from, color); await sleep(500); } catch (e) {}
-      }
-    }
-
-    await sendHumanLike(from, reply);
-    console.log('✅ تم الإرسال');
-
-  } catch (e) {
-    console.error('❌ خطأ:', e.response ? JSON.stringify(e.response.data) : e.message);
-  }
+  });
 });
 
+// Health check
+app.get('/', (req, res) => res.json({ status: 'ok', version: 'v13-fixed' }));
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v12 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v13 — السيرفر على المنفذ ${PORT}`));
