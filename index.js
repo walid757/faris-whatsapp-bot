@@ -14,6 +14,11 @@ const VERIFY_TOKEN     = process.env.VERIFY_TOKEN;
 const SHEET_SECRET     = process.env.SHEET_SECRET || 'OZON_SECRET_2026';
 const APP_SECRET       = process.env.WHATSAPP_APP_SECRET;
 
+// ✅ Ozon API
+const OZON_BASE        = "https://api.ozonexpress.ma/customers";
+const OZON_CUSTOMER_ID = "80238";
+const OZON_API_KEY     = "75c42e-b5f35e-22f865-80ac38-a8a2fd";
+
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyaMpplLlF9e8M_45BJBnqqaTxHcRjS51sDxvcPBbcvp4dpPO-J2BNwXYlhyLrbTNCA/exec";
 
 const PRODUCT_IMAGES = {
@@ -26,7 +31,7 @@ const STATE_FILE = path.join(__dirname, 'bot_state.json');
 const loadState = () => {
   try { if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
   catch (e) { console.error('⚠️ خطأ في تحميل الحالة:', e.message); }
-  return { sentImages: [], orderConfirmed: [], notInterested: [], followUpCount: {}, conversationHistory: {} };
+  return { sentImages:[], orderConfirmed:[], notInterested:[], followUpCount:{}, conversationHistory:{}, pasDeReponse:{} };
 };
 const saveState = (() => {
   let timer = null;
@@ -39,22 +44,34 @@ const saveState = (() => {
   };
 })();
 const _state = loadState();
-const sentImages     = new Set(_state.sentImages     || []);
-const orderConfirmed = new Set(_state.orderConfirmed || []);
-const notInterested  = new Set(_state.notInterested  || []);
-const followUpCount  = _state.followUpCount          || {};
-const conversationHistory = _state.conversationHistory || {};
-const persistState = () => saveState({ sentImages:[...sentImages], orderConfirmed:[...orderConfirmed], notInterested:[...notInterested], followUpCount, conversationHistory });
+const sentImages          = new Set(_state.sentImages     || []);
+const orderConfirmed      = new Set(_state.orderConfirmed || []);
+const notInterested       = new Set(_state.notInterested  || []);
+const followUpCount       = _state.followUpCount          || {};
+const conversationHistory = _state.conversationHistory    || {};
+
+// ✅ تتبع الزبائن الذين عندهم pas de réponse نشطة
+// { "212XXXXXXXXX": { trackingNum: "OZE...", name: "...", product: "...", address: "..." } }
+const pasDeReponseActive  = _state.pasDeReponse           || {};
+
+const persistState = () => saveState({
+  sentImages:[...sentImages],
+  orderConfirmed:[...orderConfirmed],
+  notInterested:[...notInterested],
+  followUpCount,
+  conversationHistory,
+  pasDeReponse: pasDeReponseActive,
+});
 
 const userQueues = {}, userLocks = {};
-const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from] = []; userQueues[from].push(fn); if (!userLocks[from]) processQueue(from); };
-const processQueue = async (from) => { if (userLocks[from]) return; userLocks[from] = true; while (userQueues[from]?.length > 0) { const fn = userQueues[from].shift(); try { await fn(); } catch (e) { console.error('❌ Queue:', e.message); } } userLocks[from] = false; };
+const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from]=[]; userQueues[from].push(fn); if(!userLocks[from]) processQueue(from); };
+const processQueue = async (from) => { if(userLocks[from]) return; userLocks[from]=true; while(userQueues[from]?.length>0){const fn=userQueues[from].shift();try{await fn();}catch(e){console.error('❌ Queue:',e.message);}} userLocks[from]=false; };
 
 const MAX_HISTORY = 10;
-const trimHistory = (from) => { if (conversationHistory[from]?.length > MAX_HISTORY) conversationHistory[from] = conversationHistory[from].slice(-MAX_HISTORY); };
+const trimHistory = (from) => { if(conversationHistory[from]?.length>MAX_HISTORY) conversationHistory[from]=conversationHistory[from].slice(-MAX_HISTORY); };
 
 const rateLimitMap = {};
-const isRateLimited = (from) => { const now = Date.now(); const e = rateLimitMap[from] || { count:0, resetAt:now+60000 }; if (now > e.resetAt) { e.count=0; e.resetAt=now+60000; } e.count++; rateLimitMap[from]=e; return e.count > 10; };
+const isRateLimited = (from) => { const now=Date.now(); const e=rateLimitMap[from]||{count:0,resetAt:now+60000}; if(now>e.resetAt){e.count=0;e.resetAt=now+60000;} e.count++; rateLimitMap[from]=e; return e.count>10; };
 
 const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
@@ -152,8 +169,8 @@ ORDER_CONFIRM_MSG_END
 نوع1: مزحة دارجة عن الأحذية | نوع2: سؤال يفتح المحادثة | نوع3: معلومة مفاجئة | نوع4: قصة زبون آخر | نوع5: وداع لطيف+عرض أخير
 [PAUSE] بين الجمل. إيموجي واحد.
 
-## مجموعة 12: مهارات متقدمة من الدراسة الأكاديمية
-76.ANTHROPOMORPHIC البوت شخصية إنسانية حقيقية="أنا كنعمل في الجلد من 5 سنين" | 77.MASSIFICATION_PREV خاطب الزبون كأنه الوحيد — لا "كل زبنائنا" | 78.SIZING_ANXIETY "مقاسك 42 عادةً — هاد الموديل كيجي صغير، نصحك بـ 43" | 79.RESERVATION_24H "واش نحجز ليك 24 ساعة باش تفكر براحتك؟" | 80.EMOTIONAL_ABSORPTION عند شكوى — تعاطف عاطفي أولاً قبل أي حل="فهمت إحساسك — نصلح هاد الأمر فوراً" | 81.DORMANT_REACTIVATION إعادة تنشيط زبون صامت بأسلوب شخصي="مدة ما شفناك — واش كلشي مزيان؟" | 82.TACTILE_LANGUAGE لغة حسية="خياطة يدوية دقيقة — كل غرزة مضمونة لسنين، جلد ناعم كالحرير" | 83.BRAND_VOICE حافظ على نفس النبرة الراقية من أول لآخر رسالة — لا تنقل لأسلوب بارد | 84.ABANDONED_CART إنقاذ المتردد في آخر خطوة="شفت أنك وصلت لخطوة أخيرة — واش كاين شي حير عليك؟"
+## مجموعة 12: مهارات متقدمة
+76.ANTHROPOMORPHIC | 77.MASSIFICATION_PREV | 78.SIZING_ANXIETY | 79.RESERVATION_24H | 80.EMOTIONAL_ABSORPTION | 81.DORMANT_REACTIVATION | 82.TACTILE_LANGUAGE | 83.BRAND_VOICE | 84.ABANDONED_CART
 
 ## RULES
 مهارة واحدة فقط في كل رسالة. لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد الزبون. لا ترسل CONFIRMED_ORDER للزبون أبداً.`;
@@ -164,17 +181,17 @@ const MAX_FOLLOWUPS   = 2;
 const followUpTimers  = {};
 const lastMessageTime = {};
 
-const formatPhone = (p) => { p = String(p).trim().replace(/\s/g,'').replace(/\+/g,''); if (p.startsWith('212')) return p; if (p.startsWith('0')) return '212'+p.slice(1); if (p.length===9) return '212'+p; return '212'+p; };
+const formatPhone = (p) => { p=String(p).trim().replace(/\s/g,'').replace(/\+/g,''); if(p.startsWith('212')) return p; if(p.startsWith('0')) return '212'+p.slice(1); if(p.length===9) return '212'+p; return '212'+p; };
 
-const markAsRead = async (messageId) => { try { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', status:'read', message_id:messageId }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); } catch(e) { console.error('markAsRead:',e.message); } };
+const markAsRead = async (messageId) => { try { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,{messaging_product:'whatsapp',status:'read',message_id:messageId},{headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'}}); } catch(e){console.error('markAsRead:',e.message);} };
 
-const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,{messaging_product:'whatsapp',to,text:{body:text}},{headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'}}); };
 
-const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*40,1000),3000); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(600); } };
+const sendHumanLike = async (to, fullReply) => { const parts=fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for(let i=0;i<parts.length;i++){const t=Math.min(Math.max(parts[i].length*40,1000),3000);await sleep(t);await sendText(to,parts[i]);if(i<parts.length-1)await sleep(600);} };
 
-const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`BOTTINE CUIR GS081 - ${n[color]} - 320 درهم`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,{messaging_product:'whatsapp',to,type:'image',image:{link:PRODUCT_IMAGES[color],caption:`BOTTINE CUIR GS081 - ${n[color]} - 320 درهم`}},{headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'}}); };
 
-const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
+const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir');await sleep(800);await sendWhatsAppImage(to,'marron');await sleep(800);await sendWhatsAppImage(to,'gris'); };
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
@@ -184,12 +201,44 @@ const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includ
 
 const isNotInterested = (text) => { const t=text.toLowerCase(); return t.includes('مش غادي نشري')||t.includes('ما بغيتش')||t.includes('لا شكراً')||t.includes('لا شكرا')||t.includes('pas intéressé')||t.includes('no thanks')||t.includes('مش محتاج')||t.includes('وقفو')||t.includes('بغيت نوقف'); };
 
-const extractOrderJSON = (reply) => { const marker='CONFIRMED_ORDER:'; const idx=reply.indexOf(marker); if(idx===-1) return null; const after=reply.substring(idx+marker.length).trimStart(); let depth=0,start=-1; for(let i=0;i<after.length;i++) { if(after[i]==='{'){if(depth===0)start=i;depth++;} else if(after[i]==='}'){depth--;if(depth===0&&start!==-1)return after.substring(start,i+1);} } return null; };
+// ✅ جيب رقم الليفرور من أوزون
+const getLivreurFromOzon = async (trackingNum) => {
+  try {
+    const url = `${OZON_BASE}/${OZON_CUSTOMER_ID}/${OZON_API_KEY}/tracking`;
+    const formData = new URLSearchParams();
+    formData.append('tracking-number', trackingNum);
+    const res = await axios.post(url, formData.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 8000
+    });
+    const history = res.data?.TRACKING?.HISTORY;
+    if (!history) return { name: '', phone: '' };
+    for (const key of Object.keys(history)) {
+      const entry   = history[key];
+      const statut  = String(entry.STATUT || '').toLowerCase();
+      const comment = String(entry.COMMENT || '');
+      if (statut.includes('mise en distribution') && comment.includes('Livreur:')) {
+        const nameMatch  = comment.match(/Livreur:\s*([^|<]+)/);
+        const phoneMatch = comment.match(/Téléphone:\s*([\d]+)/);
+        return {
+          name : nameMatch  ? nameMatch[1].trim()  : '',
+          phone: phoneMatch ? phoneMatch[1].trim()  : '',
+        };
+      }
+    }
+    return { name: '', phone: '' };
+  } catch(e) {
+    console.error('❌ getLivreurFromOzon:', e.message);
+    return { name: '', phone: '' };
+  }
+};
+
+const extractOrderJSON = (reply) => { const marker='CONFIRMED_ORDER:'; const idx=reply.indexOf(marker); if(idx===-1) return null; const after=reply.substring(idx+marker.length).trimStart(); let depth=0,start=-1; for(let i=0;i<after.length;i++){if(after[i]==='{'){if(depth===0)start=i;depth++;}else if(after[i]==='}'){depth--;if(depth===0&&start!==-1)return after.substring(start,i+1);}} return null; };
 
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
     const jsonStr = extractOrderJSON(reply);
-    if (!jsonStr) { console.error('❌ ما لقاش JSON'); return { success:false, colorFr:null }; }
+    if (!jsonStr) { console.error('❌ ما لقاش JSON'); return {success:false,colorFr:null}; }
     const orderData = JSON.parse(jsonStr);
     const customer  = orderData.customer_data || {};
     const product   = orderData.product_data  || {};
@@ -198,12 +247,12 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const colorFr = product.color_fr || detectColor(product.color_ar||'') || 'noir';
     const size    = product.size || '';
     const variant = size&&colorFr ? `${size}/${colorFr}` : '';
-    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city:customer.city||'', address:customer.shipping_address||'', price:product.unit_price_mad||'320', product:product.product_name||'BOTTINE CUIR GS081', color:variant, size:'' };
+    const payload = {secret:SHEET_SECRET,full_name:customer.full_name||'',phone,city:customer.city||'',address:customer.shipping_address||'',price:product.unit_price_mad||'320',product:product.product_name||'BOTTINE CUIR GS081',color:variant,size:''};
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
-    const response = await axios.post(SHEET_API_URL, payload, { headers:{'Content-Type':'application/json'}, timeout:10000 });
+    const response = await axios.post(SHEET_API_URL, payload, {headers:{'Content-Type':'application/json'},timeout:10000});
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
-    return { success:true, colorFr, phone, name:customer.full_name };
-  } catch(err) { console.error('❌ خطأ الشيت:', err.message); return { success:false, colorFr:null, phone:formatPhone(fromPhone) }; }
+    return {success:true,colorFr,phone,name:customer.full_name};
+  } catch(err) { console.error('❌ خطأ الشيت:', err.message); return {success:false,colorFr:null,phone:formatPhone(fromPhone)}; }
 };
 
 const extractConfirmMsg = (reply) => { const start=reply.indexOf('ORDER_CONFIRM_MSG_START'); const end=reply.indexOf('ORDER_CONFIRM_MSG_END'); if(start!==-1&&end!==-1) return reply.substring(start+'ORDER_CONFIRM_MSG_START'.length,end).trim(); return null; };
@@ -211,18 +260,18 @@ const extractConfirmMsg = (reply) => { const start=reply.indexOf('ORDER_CONFIRM_
 const sendFollowUp = async (from) => {
   if (orderConfirmed.has(from)||notInterested.has(from)) return;
   if (!conversationHistory[from]||conversationHistory[from].length===0) return;
-  const count = followUpCount[from]||0;
-  if (count>=MAX_FOLLOWUPS) { delete followUpTimers[from]; return; }
+  const count=followUpCount[from]||0;
+  if (count>=MAX_FOLLOWUPS){delete followUpTimers[from];return;}
   followUpCount[from]=count+1; persistState();
   console.log(`📨 متابعة رقم ${count+1} لـ ${from}`);
   try {
     const followUpPrompt = count<MAX_FOLLOWUPS-1
       ? `العميل صمت 15 دقيقة. متابعة إبداعية رقم ${count+1} من ${MAX_FOLLOWUPS}. أسلوب مختلف. [PAUSE] بين الجمل.`
       : `آخر رسالة. وداع لطيف مع عرض أخير. [PAUSE] بين الجمل.`;
-    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages',{model:'claude-sonnet-4-6',max_tokens:400,system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}],messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}]},{headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}});
     await sendHumanLike(from, claudeRes.data.content[0].text);
     if (count+1<MAX_FOLLOWUPS) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT);
-  } catch(e) { console.error('❌ خطأ المتابعة:', e.message); }
+  } catch(e){console.error('❌ خطأ المتابعة:',e.message);}
 };
 
 const resetFollowUpTimer = (from) => { if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} if(!orderConfirmed.has(from)&&!notInterested.has(from)) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT); };
@@ -232,63 +281,137 @@ const verifySignature = (req) => { if(!APP_SECRET) return true; const sig=req.he
 app.get('/webhook', (req,res) => { if(req.query['hub.verify_token']===VERIFY_TOKEN) res.send(req.query['hub.challenge']); else res.sendStatus(403); });
 
 app.post('/webhook', async (req,res) => {
-  if (!verifySignature(req)) { console.warn('⚠️ Signature غير صحيح'); return res.sendStatus(401); }
+  if (!verifySignature(req)){console.warn('⚠️ Signature غير صحيح');return res.sendStatus(401);}
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   if (!message) return res.sendStatus(200);
-  if (message.type!=='text') { const from=message.from; try { await sleep(800); await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊'); } catch(e){} return res.sendStatus(200); }
+  if (message.type!=='text'){const from=message.from;try{await sleep(800);await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊');}catch(e){}return res.sendStatus(200);}
   const from = message.from;
   const text = message.text.body;
   console.log(`--- رسالة من [${from}]: ${text}`);
   res.sendStatus(200);
   await markAsRead(message.id);
-  // ✅ FIX EMOTIONAL — تعاطف قبل البيع
-  if (isEmotionalState(text)) {
-    try {
-      await sleep(1200);
-      await sendText(from, "الله يصبرك 😊 اللحظات الصعبة كتمر — أنا هنا إذا بغيتي تحكي أو نكملو وقت آخر.");
-    } catch(e) {}
-    return;
-  }
 
-  if (isRateLimited(from)) { console.warn(`⚠️ Rate limit لـ ${from}`); return; }
+  if (isEmotionalState(text)){try{await sleep(1200);await sendText(from,'الله يصبرك 😊 اللحظات الصعبة كتمر — أنا هنا إذا بغيتي تحكي أو نكملو وقت آخر.');}catch(e){}return;}
+  if (isRateLimited(from)){console.warn(`⚠️ Rate limit لـ ${from}`);return;}
+
   lastMessageTime[from]=Date.now();
   resetFollowUpTimer(from);
-  if (isNotInterested(text)) { notInterested.add(from); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState(); }
-  if (!conversationHistory[from]) { conversationHistory[from]=[]; followUpCount[from]=0; }
+  if (isNotInterested(text)){notInterested.add(from);if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];}persistState();}
+  if (!conversationHistory[from]){conversationHistory[from]=[];followUpCount[from]=0;}
+
+  // ✅ هل الزبون عنده pas de réponse نشطة؟
+  if (pasDeReponseActive[from]) {
+    const info       = pasDeReponseActive[from];
+    const trackingNum = info.trackingNum;
+    const customerName = info.name;
+    const customerPhone = formatPhone(from);
+
+    console.log(`🔍 الزبون ${from} رد بعد pas de réponse — نجيبو رقم الليفرور`);
+
+    try {
+      // جيب رقم الليفرور
+      const livreur = await getLivreurFromOzon(trackingNum);
+
+      if (livreur.phone) {
+        // أرسل للزبون تأكيد
+        await sendText(from,
+          "شكراً " + customerName + " 😊\n\n" +
+          "✅ تم تسجيل وقتك المناسب!\n" +
+          "🚚 الليفرور غادي يتصل بيك في الوقت اللي حددتي.\n" +
+          "📞 رقم الليفرور: " + livreur.phone + "\n\n" +
+          "إذا بغيتي تتصل بيه مباشرة 🙏"
+        );
+
+        // أرسل للليفرور
+        const livreurWa = formatPhone(livreur.phone);
+        await sendText(livreurWa,
+          "📦 معلومة من GreatShoes\n\n" +
+          "🔔 الزبون حدد وقت مناسب للتوصيل:\n\n" +
+          "👤 الاسم: " + customerName + "\n" +
+          "📞 الرقم: " + customerPhone + "\n" +
+          "📦 رقم التتبع: " + trackingNum + "\n" +
+          "🕐 رد الزبون: " + text + "\n\n" +
+          "يرجى التواصل معه في الوقت المناسب 🙏"
+        );
+
+        console.log(`✅ تم إشعار الليفرور ${livreur.phone} بوقت الزبون ${from}`);
+
+        // امسح pas de réponse من الزبون
+        delete pasDeReponseActive[from];
+        persistState();
+        return;
+
+      } else {
+        // ما لقيناش رقم الليفرور — أرسل للأدمين
+        const adminPhone = formatPhone('0641902149');
+        await sendText(adminPhone,
+          "⚠️ ما لقيناش رقم الليفرور\n\n" +
+          "👤 الزبون: " + customerName + "\n" +
+          "📞 رقم الزبون: " + customerPhone + "\n" +
+          "📦 التتبع: " + trackingNum + "\n" +
+          "🕐 رد الزبون: " + text
+        );
+        await sendText(from,
+          "شكراً " + customerName + " 😊\n" +
+          "✅ تم تسجيل وقتك — سيتواصل معك الليفرور قريباً 🙏"
+        );
+        delete pasDeReponseActive[from];
+        persistState();
+        return;
+      }
+    } catch(e) {
+      console.error('❌ خطأ pas de réponse handler:', e.message);
+    }
+  }
 
   enqueue(from, async () => {
-    if (!sentImages.has(from)) { sentImages.add(from); persistState(); try { await sleep(500); await sendAllImages(from); } catch(e){ console.error('❌ خطأ الصور:', e.response?JSON.stringify(e.response.data):e.message); } }
+    if (!sentImages.has(from)){sentImages.add(from);persistState();try{await sleep(500);await sendAllImages(from);}catch(e){console.error('❌ خطأ الصور:',e.response?JSON.stringify(e.response.data):e.message);}}
     conversationHistory[from].push({role:'user',content:text});
     trimHistory(from);
     try {
       await sleep(1500);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages',{model:'claude-sonnet-4-6',max_tokens:600,system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}],messages:conversationHistory[from]},{headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}});
       let reply = claudeRes.data.content[0].text;
       conversationHistory[from].push({role:'assistant',content:reply});
       trimHistory(from); persistState();
 
-      if (reply.includes('CONFIRMED_ORDER:')) {
-        orderConfirmed.add(from); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
+      if (reply.includes('CONFIRMED_ORDER:')){
+        orderConfirmed.add(from);if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];}persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
-        const result = await saveOrderToSheet(reply, from);
-        const colorFr = (result&&result.colorFr)?result.colorFr:'noir';
-        if (PRODUCT_IMAGES[colorFr]) { try { await sleep(500); await sendWhatsAppImage(from,colorFr); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
-        const confirmMsg = extractConfirmMsg(reply);
-        if (confirmMsg) { const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from); await sendText(from,confirmMsg.replace('{{phone}}',phoneDisplay)); }
+        const result=await saveOrderToSheet(reply,from);
+        const colorFr=(result&&result.colorFr)?result.colorFr:'noir';
+        if(PRODUCT_IMAGES[colorFr]){try{await sleep(500);await sendWhatsAppImage(from,colorFr);await sleep(1000);}catch(e){console.error('❌ صورة التأكيد:',e.message);}}
+        const confirmMsg=extractConfirmMsg(reply);
+        if(confirmMsg){const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from);await sendText(from,confirmMsg.replace('{{phone}}',phoneDisplay));}
         return;
       }
 
-      const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
-      if (colorMatch) { reply=reply.replace(colorMatch[0],'').trim(); try{await sendWhatsAppImage(from,colorMatch[1]);await sleep(500);}catch(e){} }
-      else if (reply.includes('[RESEND_IMAGES]')||isInsistingOnImages(text)) { reply=reply.replace('[RESEND_IMAGES]','').trim(); try{await sendAllImages(from);await sleep(500);}catch(e){} }
-      else { const color=detectColor(text); const wantsImage=text.toLowerCase().includes('صورة')||text.toLowerCase().includes('شوف')||text.toLowerCase().includes('image'); if(color&&wantsImage){try{await sendWhatsAppImage(from,color);await sleep(500);}catch(e){}} }
+      const colorMatch=reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
+      if(colorMatch){reply=reply.replace(colorMatch[0],'').trim();try{await sendWhatsAppImage(from,colorMatch[1]);await sleep(500);}catch(e){}}
+      else if(reply.includes('[RESEND_IMAGES]')||isInsistingOnImages(text)){reply=reply.replace('[RESEND_IMAGES]','').trim();try{await sendAllImages(from);await sleep(500);}catch(e){}}
+      else{const color=detectColor(text);const wantsImage=text.toLowerCase().includes('صورة')||text.toLowerCase().includes('شوف')||text.toLowerCase().includes('image');if(color&&wantsImage){try{await sendWhatsAppImage(from,color);await sleep(500);}catch(e){}}}
 
-      await sendHumanLike(from, reply);
+      await sendHumanLike(from,reply);
       console.log('✅ تم الإرسال');
-    } catch(e) { console.error('❌ خطأ:', e.response?JSON.stringify(e.response.data):e.message); }
+    } catch(e){console.error('❌ خطأ:',e.response?JSON.stringify(e.response.data):e.message);}
   });
 });
 
-app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
+// ✅ Endpoint لكود الشيت — يسجل pas de réponse نشطة
+app.post('/set-pas-de-reponse', async (req, res) => {
+  try {
+    const { secret, phone, trackingNum, name, product } = req.body;
+    if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+    const waPhone = formatPhone(phone);
+    pasDeReponseActive[waPhone] = { trackingNum, name, product };
+    persistState();
+    console.log(`📝 pas de réponse مسجل للزبون ${waPhone} — تتبع: ${trackingNum}`);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/', (req,res) => res.json({status:'ok',version:'v19-livreur'}));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v18 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v19 — السيرفر على المنفذ ${PORT}`));
