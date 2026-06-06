@@ -152,12 +152,15 @@ ORDER_CONFIRM_MSG_END
 نوع1: مزحة دارجة عن الأحذية | نوع2: سؤال يفتح المحادثة | نوع3: معلومة مفاجئة | نوع4: قصة زبون آخر | نوع5: وداع لطيف+عرض أخير
 [PAUSE] بين الجمل. إيموجي واحد.
 
+## مجموعة 12: مهارات متقدمة من الدراسة الأكاديمية
+76.ANTHROPOMORPHIC البوت شخصية إنسانية حقيقية="أنا كنعمل في الجلد من 5 سنين" | 77.MASSIFICATION_PREV خاطب الزبون كأنه الوحيد — لا "كل زبنائنا" | 78.SIZING_ANXIETY "مقاسك 42 عادةً — هاد الموديل كيجي صغير، نصحك بـ 43" | 79.RESERVATION_24H "واش نحجز ليك 24 ساعة باش تفكر براحتك؟" | 80.EMOTIONAL_ABSORPTION عند شكوى — تعاطف عاطفي أولاً قبل أي حل="فهمت إحساسك — نصلح هاد الأمر فوراً" | 81.DORMANT_REACTIVATION إعادة تنشيط زبون صامت بأسلوب شخصي="مدة ما شفناك — واش كلشي مزيان؟" | 82.TACTILE_LANGUAGE لغة حسية="خياطة يدوية دقيقة — كل غرزة مضمونة لسنين، جلد ناعم كالحرير" | 83.BRAND_VOICE حافظ على نفس النبرة الراقية من أول لآخر رسالة — لا تنقل لأسلوب بارد | 84.ABANDONED_CART إنقاذ المتردد في آخر خطوة="شفت أنك وصلت لخطوة أخيرة — واش كاين شي حير عليك؟"
+
 ## RULES
 مهارة واحدة فقط في كل رسالة. لا تخترع منتجات أو أسعار. لا تطلب البيانات دفعة واحدة. لا تخرج JSON قبل تأكيد الزبون. لا ترسل CONFIRMED_ORDER للزبون أبداً.`;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const SILENCE_TIMEOUT = 15 * 60 * 1000;
-const MAX_FOLLOWUPS   = 3;
+const SILENCE_TIMEOUT = 30 * 60 * 1000;
+const MAX_FOLLOWUPS   = 2;
 const followUpTimers  = {};
 const lastMessageTime = {};
 
@@ -176,6 +179,8 @@ const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
+
+const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includes("حزين")||t.includes("تعبان")||t.includes("مشكلة")||t.includes("خصام")||t.includes("زوجة")||t.includes("مريض")||t.includes("توفي")||t.includes("ضغط")||t.includes("بكيت")||t.includes("صعيب")||t.includes("تخاصمت")||t.includes("مابغيتش نحكي"); };
 
 const isNotInterested = (text) => { const t=text.toLowerCase(); return t.includes('مش غادي نشري')||t.includes('ما بغيتش')||t.includes('لا شكراً')||t.includes('لا شكرا')||t.includes('pas intéressé')||t.includes('no thanks')||t.includes('مش محتاج')||t.includes('وقفو')||t.includes('بغيت نوقف'); };
 
@@ -236,6 +241,15 @@ app.post('/webhook', async (req,res) => {
   console.log(`--- رسالة من [${from}]: ${text}`);
   res.sendStatus(200);
   await markAsRead(message.id);
+  // ✅ FIX EMOTIONAL — تعاطف قبل البيع
+  if (isEmotionalState(text)) {
+    try {
+      await sleep(1200);
+      await sendText(from, "الله يصبرك 😊 اللحظات الصعبة كتمر — أنا هنا إذا بغيتي تحكي أو نكملو وقت آخر.");
+    } catch(e) {}
+    return;
+  }
+
   if (isRateLimited(from)) { console.warn(`⚠️ Rate limit لـ ${from}`); return; }
   lastMessageTime[from]=Date.now();
   resetFollowUpTimer(from);
@@ -275,6 +289,6 @@ app.post('/webhook', async (req,res) => {
   });
 });
 
-app.get('/', (req,res) => res.json({status:'ok',version:'v17-cached'}));
+app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 v17 — السيرفر على المنفذ ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 v18 — السيرفر على المنفذ ${PORT}`));
