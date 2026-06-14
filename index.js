@@ -57,6 +57,8 @@ const refuseActive       = _state.refuseActive  || {};
 // ✅ إضافة جديدة
 const pdrTimers    = {};
 const refuseTimers = {};
+// ✅ إضافة جديدة — منع تكرار webhook
+const processedMessages = new Set();
 
 const persistState = () => saveState({
   sentImages:[...sentImages],
@@ -72,7 +74,7 @@ const userQueues = {}, userLocks = {};
 const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from] = []; userQueues[from].push(fn); if (!userLocks[from]) processQueue(from); };
 const processQueue = async (from) => { if (userLocks[from]) return; userLocks[from] = true; while (userQueues[from]?.length > 0) { const fn = userQueues[from].shift(); try { await fn(); } catch (e) { console.error('❌ Queue:', e.message); } } userLocks[from] = false; };
 
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 6;
 const trimHistory = (from) => { if (conversationHistory[from]?.length > MAX_HISTORY) conversationHistory[from] = conversationHistory[from].slice(-MAX_HISTORY); };
 
 const rateLimitMap = {};
@@ -291,6 +293,97 @@ CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك ط
 CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
 CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE`;
 
+// ✅ إضافة جديدة — Static system prompts للكاشينج (توفير التكلفة)
+const PDR_SYSTEM_STATIC = `أنت مساعد واتساب بشري لمتجر GreatShoes للأحذية الجلدية بالمغرب.
+الزبون عنده طلبية والليفرور حاول يوصلها ولكن ما لقاهش.
+أرسلنا له رسالة نسأله عن وقت مناسب وهو رد الآن.
+
+حلل رد الزبون بعمق وحدد الحالة الأقرب:
+CASE_1: حدد وقت أو يوم محدد للتوصيل
+CASE_2: مسافر أو غائب مؤقتاً ويريد وقتاً لاحقاً
+CASE_3: يريد تغيير العنوان أو المكان
+CASE_4: يقول أن الليفرور ما اتصل به أصلاً أو لم يأتِ
+CASE_5: يريد إلغاء الطلبية
+CASE_6: يسأل عن حالة طلبيته
+CASE_7: هاتفه كان مطفأ أو خارج التغطية
+CASE_8: العنوان ناقص أو غير واضح
+CASE_9: يريد تأجيل التسليم لتاريخ لاحق
+CASE_10: اشترى المنتج من مكان آخر
+CASE_11: لم يعد يحتاج المنتج
+CASE_12: مشكل مع الليفرور — سوء أدب أو تأخر
+CASE_13: يريد تغيير المقاس
+CASE_14: يريد تغيير المنتج كلياً
+CASE_15: رد غير واضح لا يمكن تصنيفه
+
+أولاً في سطر منفصل:
+DETECTED_CASE: [رقم الحالة]
+
+ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — طبيعي ودافئ — 4 إلى 6 أسطر — ابدأ بتحية ودية — إيموجي باعتدال — لا مختصر جداً ولا طويل.
+
+قواعد الرد:
+CASE_1: شكره بدفء + أخبره أنك ستبلغ الليفرور بالوقت المحدد + أعطه رقم الليفرور للتواصل المباشر
+CASE_2: تعاطف معه + اسأله بلطف متى يرجع أو يكون متاح + طمئنه أن طلبيته محجوزة
+CASE_3: اطلب العنوان الجديد بالتفصيل (زنقة، رقم، معلمة قريبة) + أخبره أنك ستبلغ الليفرور
+CASE_4: اعتذر بصدق + طمئنه أن الليفرور سيعاود الاتصال + أعطه رقم الليفرور
+CASE_5: تعاطف + اسأله بلطف عن السبب + اقترح تأجيل بدل إلغاء + "القرار ليك دائماً"
+CASE_6: أخبره بحالة طلبيته + طمئنه أن الليفرور سيتصل به قريباً
+CASE_7: شكره على الرد + أخبره أنك ستبلغ الليفرور ليعاود الاتصال + أعطه رقم الليفرور
+CASE_8: اطلب التفاصيل الناقصة بلطف (زنقة، رقم منزل، معلمة قريبة)
+CASE_9: اسأله عن التاريخ المناسب + طمئنه أن طلبيته محجوزة
+CASE_10: شكره بلطف + تمنى له التوفيق
+CASE_11: اقترح بلطف تأجيل الطلبية بدل إلغائها + "نحجزها ليك لوقت آخر"
+CASE_12: اعتذر بشدة + طمئنه أن الأمر سيُصلح + أخبره أن الليفرور سيعاود بأدب
+CASE_13: اطلب المقاس الجديد + أخبره أنك ستجهز طلبية جديدة بنفس كل المعلومات
+CASE_14: اطلب تفاصيل المنتج الجديد + أخبره أنك ستجهز طلبية جديدة
+CASE_15: اسأله بلطف ودفء عن الوقت المناسب للتوصيل
+
+ملاحظة: لا تذكر رقم الليفرور في الرد — سيُضاف تلقائياً من الكود.`;
+
+const REFUSE_SYSTEM_STATIC = `أنت مستشار مبيعات خبير في علم النفس لمتجر GreatShoes للأحذية الجلدية بالمغرب.
+الزبون رفض استلام طلبيته عند التوصيل.
+مهمتك: تفهم السبب الحقيقي، تتعاطف معه بعمق، وتحاول إنقاذ الطلبية.
+
+حلل رد الزبون بعمق وحدد السبب الحقيقي:
+CASE_1: ما عجبوش الشكل أو الصورة مخالفة للواقع
+CASE_2: مشكل في الجودة أو الحذاء معيب
+CASE_3: المقاس غلط أو ما جاش قده
+CASE_4: مشكل مع الليفرور — سوء أدب أو تأخر أو ما جاش في الوقت المحدد
+CASE_5: السعر — قال غالي أو ما عندوش فلوس دابا
+CASE_6: ظرف شخصي طارئ — مسافر أو مشغول
+CASE_7: هاتف كان مطفأ أو خارج التغطية
+CASE_8: العنوان ناقص أو غير معروف
+CASE_9: طلب تأجيل التسليم لوقت آخر
+CASE_10: اشترى من مكان آخر
+CASE_11: لم يعد يحتاج المنتج
+CASE_12: تأخر التوصيل كثيراً
+CASE_13: يريد تغيير المقاس
+CASE_14: يريد تبديل المنتج كلياً
+CASE_15: يريد إلغاء الطلبية صراحةً
+CASE_16: رد غير واضح
+
+أولاً في سطر منفصل:
+DETECTED_CASE: [رقم الحالة]
+
+ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — ابدأ بتعاطف حقيقي وعميق — استخدم مهارات الإقناع المناسبة — 5 إلى 7 أسطر — إيموجي باعتدال — لا مختصر جداً ولا ممل.
+
+قواعد الرد:
+CASE_1: "والله فاهمك..." + ضمان قلب قيس عاد خلص + "الجلد الطبيعي كيبان أحلى في الواقع" + اقترح صور إضافية
+CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
+CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
+CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
+CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "320 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
+CASE_6: "لا باس — الظروف كتعرض..." + تعاطف بصدق + اعرض إعادة الإرسال في وقت مناسب
+CASE_7: "لا باس..." + اعرض إعادة التوصيل + أعطه رقم الليفرور
+CASE_8: اطلب تفاصيل العنوان بلطف (زنقة، رقم منزل، معلمة قريبة)
+CASE_9: "مفهوم..." + اسأله عن الوقت المناسب + طمئنه أن طلبيته محجوزة
+CASE_10: شكره بلطف + تمنى له التوفيق
+CASE_11: اقترح بلطف تأجيل بدل إلغاء + "نحجزها ليك لوقت آخر"
+CASE_12: "معك حق وسمح لنا..." + اعتذر + اشرح + اعرض إنقاذ الطلب
+CASE_13: "لا باس — المقاسات كتختلف..." + اطلب المقاس الجديد + "نبعثوه ليك بنفس كل المعلومات"
+CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك طلبية جديدة فوراً"
+CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
+CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE`;
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 30 * 60 * 1000;
 const MAX_FOLLOWUPS   = 2;
@@ -443,10 +536,13 @@ const handlePasDeReponse = async (from, text) => {
     .replace('{TRACKING}', trackingNum)
     .replace('{ADDRESS}',  address)
     .replace('{REPLY}',    text);
+  // ✅ إضافة جديدة — Haiku + Caching لتوفير التكلفة
+  const pdrUserMsg = `معلومات الطلبية:\n- الاسم: ${customerName}\n- المنتج: ${info.product}\n- رقم التتبع: ${trackingNum}\n- العنوان المسجل: ${address}\n\nرد الزبون: "${text}"`;
   const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-    model: 'claude-sonnet-4-6', max_tokens: 700,
-    messages: [{ role: 'user', content: prompt }]
-  }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+    model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+    system: [{ type: 'text', text: PDR_SYSTEM_STATIC, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: pdrUserMsg }]
+  }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' } });
   const claudeReply  = claudeRes.data.content[0].text;
   const caseMatch    = claudeReply.match(/DETECTED_CASE:\s*(\d+)/);
   const detectedCase = caseMatch ? parseInt(caseMatch[1]) : 15;
@@ -513,10 +609,13 @@ const handleRefuse = async (from, text) => {
     .replace('{ADDRESS}',  info.address || '')
     .replace('{SIZE}',     info.size    || '')
     .replace('{REPLY}',    text);
+  // ✅ إضافة جديدة — Haiku + Caching لتوفير التكلفة
+  const refuseUserMsg = `معلومات الطلبية:\n- الاسم: ${customerName}\n- المنتج: ${info.product}\n- رقم التتبع: ${trackingNum}\n- العنوان: ${info.address || ''}\n- المقاس: ${info.size || ''}\n\nرد الزبون: "${text}"`;
   const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
-    model: 'claude-sonnet-4-6', max_tokens: 700,
-    messages: [{ role: 'user', content: prompt }]
-  }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+    model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+    system: [{ type: 'text', text: REFUSE_SYSTEM_STATIC, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: refuseUserMsg }]
+  }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' } });
   const claudeReply  = claudeRes.data.content[0].text;
   const caseMatch    = claudeReply.match(/DETECTED_CASE:\s*(\d+)/);
   const detectedCase = caseMatch ? parseInt(caseMatch[1]) : 16;
@@ -597,7 +696,7 @@ const sendFollowUp = async (from) => {
     const followUpPrompt = count<MAX_FOLLOWUPS-1
       ? `العميل صمت 15 دقيقة. متابعة إبداعية رقم ${count+1} من ${MAX_FOLLOWUPS}. أسلوب مختلف. [PAUSE] بين الجمل.`
       : `آخر رسالة. وداع لطيف مع عرض أخير. [PAUSE] بين الجمل.`;
-    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
     await sendHumanLike(from, claudeRes.data.content[0].text);
     if (count+1<MAX_FOLLOWUPS) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT);
   } catch(e) { console.error('❌ خطأ المتابعة:', e.message); }
@@ -617,6 +716,10 @@ app.post('/webhook', async (req,res) => {
   const from = message.from;
   const text = message.text.body;
   console.log(`--- رسالة من [${from}]: ${text}`);
+  // ✅ إضافة جديدة — منع معالجة نفس الرسالة مرتين (webhook retry)
+  if (processedMessages.has(message.id)) { console.warn('⚠️ رسالة مكررة تجاهلها:', message.id); return res.sendStatus(200); }
+  processedMessages.add(message.id);
+  setTimeout(() => processedMessages.delete(message.id), 5 * 60 * 1000);
   res.sendStatus(200);
   await markAsRead(message.id);
   // ✅ FIX EMOTIONAL — تعاطف قبل البيع
@@ -689,14 +792,18 @@ app.post('/webhook', async (req,res) => {
   }
 
   enqueue(from, async () => {
+    // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
+    if (orderConfirmed.has(from)) { console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — تجاهل`); return; }
     if (!sentImages.has(from)) { sentImages.add(from); persistState(); try { await sleep(500); await sendAllImages(from); } catch(e){ console.error('❌ خطأ الصور:', e.response?JSON.stringify(e.response.data):e.message); } }
     conversationHistory[from].push({role:'user',content:text});
     trimHistory(from);
     try {
       await sleep(1500);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-sonnet-4-6', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
-      conversationHistory[from].push({role:'assistant',content:reply});
+      // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
+      const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
+      conversationHistory[from].push({role:'assistant',content:replyForHistory});
       trimHistory(from); persistState();
 
       if (reply.includes('CONFIRMED_ORDER:')) {
