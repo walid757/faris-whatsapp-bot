@@ -57,6 +57,8 @@ const refuseActive       = _state.refuseActive  || {};
 // ✅ إضافة جديدة
 const pdrTimers    = {};
 const refuseTimers = {};
+// ✅ إضافة جديدة — وقت التأكيد لمنع الحجب الدائم
+const orderConfirmTimes = {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -793,7 +795,12 @@ app.post('/webhook', async (req,res) => {
 
   enqueue(from, async () => {
     // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
-    if (orderConfirmed.has(from)) { console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — تجاهل`); return; }
+    if (orderConfirmed.has(from)) {
+      const timeSinceConfirm = Date.now() - (orderConfirmTimes[from] || 0);
+      if (timeSinceConfirm < 10 * 60 * 1000) { console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — تجاهل`); return; }
+      orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); persistState();
+      console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
+    }
     if (!sentImages.has(from)) { sentImages.add(from); persistState(); try { await sleep(500); await sendAllImages(from); } catch(e){ console.error('❌ خطأ الصور:', e.response?JSON.stringify(e.response.data):e.message); } }
     conversationHistory[from].push({role:'user',content:text});
     trimHistory(from);
@@ -807,14 +814,16 @@ app.post('/webhook', async (req,res) => {
       trimHistory(from); persistState();
 
       if (reply.includes('CONFIRMED_ORDER:')) {
-        orderConfirmed.add(from); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
+        orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
         const result = await saveOrderToSheet(reply, from);
         const colorFr = (result&&result.colorFr)?result.colorFr:'noir';
         if (PRODUCT_IMAGES[colorFr]) { try { await sleep(500); await sendWhatsAppImage(from,colorFr); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         const confirmMsg = extractConfirmMsg(reply);
         // ✅ تعديل — استبدال [الهاتف] بالرقم الحقيقي
-        if (confirmMsg) { const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from); await sendText(from, confirmMsg.replace('[الهاتف]', phoneDisplay)); }
+        const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from);
+        if (confirmMsg) { await sendText(from, confirmMsg.replace('[الهاتف]', phoneDisplay)); }
+        else { await sendText(from, `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك، بدأنا تجهيز حذائك.\n📦 BOTTINE CUIR GS081 | 💰 320 درهم | 🚚 مجاني\n📞 ${phoneDisplay}\n⏳ سنتواصل معك قريباً لتأكيد الطلب.\nفريق GreatShoes 🤎`); }
         return;
       }
 
