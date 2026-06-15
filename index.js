@@ -419,13 +419,14 @@ const isNotInterested = (text) => { const t=text.toLowerCase(); return t.include
 // ✅ إضافة جديدة — كشف لغة الزبون تلقائياً
 const detectLanguage = (text) => {
   const t = text.toLowerCase();
-  if (!/[؀-ۿ]/.test(t) && /[a-zA-Z]/.test(t)) return 'french';
   if (/[؀-ۿ]/.test(t)) {
     const darijaWords = ['واش','كيف','بغيت','غادي','ماشي','دابا','مزيان','آش','شنو','فين','علاش','بزاف','كاين','هاد','ديال','نتا','نتي','كنشري','كنبغي'];
     if (darijaWords.some(w => t.includes(w))) return 'darija';
     return 'fusha';
   }
-  return 'darija';
+  const darijaLatin = ['salam','slm','kayn','machi','walo','khoya','khouya','bghit','bezzaf','dyal','mazal','daba','wach','chhal','wakha','waxa','banda','taman','kifach','kifash','rani','fach','aji','sir','ndir','golha','sayfat','mokin','nichan','kidayr','lakan','mendkom','mahal'];
+  if (darijaLatin.some(w => t.includes(w))) return 'darija';
+  return 'french';
 };
 
 // ✅ إضافة جديدة — getLivreurFromOzon
