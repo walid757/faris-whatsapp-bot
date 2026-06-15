@@ -416,6 +416,18 @@ const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includ
 
 const isNotInterested = (text) => { const t=text.toLowerCase(); return t.includes('مش غادي نشري')||t.includes('ما بغيتش')||t.includes('لا شكراً')||t.includes('لا شكرا')||t.includes('pas intéressé')||t.includes('no thanks')||t.includes('مش محتاج')||t.includes('وقفو')||t.includes('بغيت نوقف'); };
 
+// ✅ إضافة جديدة — كشف لغة الزبون تلقائياً
+const detectLanguage = (text) => {
+  const t = text.toLowerCase();
+  if (!/[؀-ۿ]/.test(t) && /[a-zA-Z]/.test(t)) return 'french';
+  if (/[؀-ۿ]/.test(t)) {
+    const darijaWords = ['واش','كيف','بغيت','غادي','ماشي','دابا','مزيان','آش','شنو','فين','علاش','بزاف','كاين','هاد','ديال','نتا','نتي','كنشري','كنبغي'];
+    if (darijaWords.some(w => t.includes(w))) return 'darija';
+    return 'fusha';
+  }
+  return 'darija';
+};
+
 // ✅ إضافة جديدة — getLivreurFromOzon
 const getLivreurFromOzon = async (trackingNum) => {
   try {
@@ -806,7 +818,10 @@ app.post('/webhook', async (req,res) => {
     trimHistory(from);
     try {
       await sleep(1500);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:conversationHistory[from] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      const lang = detectLanguage(text);
+      const langNote = lang === 'french' ? '\n\n[Réponds en français uniquement]' : lang === 'fusha' ? '\n\n[رد بالعربية الفصحى فقط]' : '\n\n[رد بالدارجة المغربية فقط]';
+      const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
