@@ -424,7 +424,7 @@ const detectLanguage = (text) => {
     if (darijaWords.some(w => t.includes(w))) return 'darija';
     return 'fusha';
   }
-  const darijaLatin = ['salam','slm','kayn','machi','walo','khoya','khouya','bghit','bezzaf','dyal','mazal','daba','wach','chhal','wakha','waxa','banda','taman','kifach','kifash','rani','fach','aji','sir','ndir','golha','sayfat','mokin','nichan','kidayr','lakan','mendkom','mahal'];
+  const darijaLatin = ['salam','slm','labas','la bas','bikhir','bkhir','kayn','machi','walo','khoya','khouya','bghit','bezzaf','dyal','mazal','daba','wach','chhal','wakha','waxa','banda','taman','kifach','kifash','rani','fach','aji','sir','ndir','golha','sayfat','mokin','nichan','kidayr','lakan','mendkom','mahal','bslama','nta','nti','ana','had','fin ','fes','casa'];
   if (darijaLatin.some(w => t.includes(w))) return 'darija';
   return 'french';
 };
@@ -820,7 +820,9 @@ app.post('/webhook', async (req,res) => {
     try {
       await sleep(1500);
       const lang = detectLanguage(text);
-      const langNote = lang === 'french' ? '\n\n[Réponds en français uniquement]' : lang === 'fusha' ? '\n\n[رد بالعربية الفصحى فقط]' : '\n\n[رد بالدارجة المغربية فقط]';
+      const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
+      const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
+      const langNote = lang === 'french' ? '\n\n[Réponds en français uniquement]' + greetingHint : lang === 'fusha' ? '\n\n[رد بالعربية الفصحى فقط]' + greetingHint : '\n\n[رد بالدارجة المغربية فقط]' + greetingHint;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
