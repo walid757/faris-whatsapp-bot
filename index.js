@@ -822,9 +822,9 @@ app.post('/webhook', async (req,res) => {
       const lang = detectLanguage(text);
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
-      const langNote = lang === 'french' ? '\n\n[Réponds en français uniquement]' + greetingHint : lang === 'fusha' ? '\n\n[رد بالعربية الفصحى فقط]' + greetingHint : '\n\n[رد بالدارجة المغربية فقط]' + greetingHint;
+      const langNote = lang === 'french' ? '\n\n[Réponds en français uniquement — max 2 phrases — 1 seul [PAUSE]]' + greetingHint : lang === 'fusha' ? '\n\n[رد بالعربية الفصحى فقط — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint : '\n\n[رد بالدارجة فقط — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:600, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:350, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
