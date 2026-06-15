@@ -825,14 +825,11 @@ app.post('/webhook', async (req,res) => {
       const lang = detectLanguage(text);
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
-      const isLatinDarija = lang === 'darija' && !/[؀-ۿ]/.test(text);
       const langNote = lang === 'french'
         ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
         : lang === 'fusha'
-        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
-        : isLatinDarija
-        ? '\n\n[الزبون يكتب الدارجة بحروف لاتينية — رد بنفس الأسلوب مثل: "labas hamdulah wnta" أو "ah livraison gratuite" — لا تستخدم الفرنسية الخالصة — جملتان فقط]' + greetingHint
-        : '\n\n[رد بالدارجة المغربية — لا تستخدم الفرنسية الخالصة أبداً — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
+        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
+        : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:350, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
