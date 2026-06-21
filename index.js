@@ -118,7 +118,7 @@ const normalizeCityFr = (city) => {
   // fuzzy match — max distance proportional to city name length
   let bestMatch = null, bestDist = Infinity;
   for (const k in CITY_FR) {
-    const maxDist = Math.min(3, Math.max(1, Math.floor(k.length / 4)));
+    const maxDist = Math.min(3, Math.max(1, Math.round(k.length * 0.3)));
     const dist = levenshtein(key, k);
     if (dist <= maxDist && dist < bestDist) { bestDist = dist; bestMatch = CITY_FR[k]; }
   }
