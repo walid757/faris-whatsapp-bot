@@ -954,17 +954,7 @@ app.post('/new-order', async (req, res) => {
       phone: waPhone
     };
     persistState();
-    const colorLine = color ? ` | 🎨 ${color}` : '';
-    const sizeLine  = size  ? ` | 📏 ${size}`  : '';
-    const msg =
-      `سلام ${name} 😊\n\n` +
-      `وصلنا طلبيتك من موقعنا:\n` +
-      `📦 ${product || 'BOTTINE CUIR GS081'}${colorLine}${sizeLine}\n` +
-      `💰 320 درهم | 🚚 توصيل مجاني — دفع عند الاستلام\n` +
-      `📍 ${city} — ${address}\n\n` +
-      `"واش المعلومات صحيحية تأكد الطلب عفاك؟" 😊`;
-    await sendText(waPhone, msg);
-    console.log(`📨 رسالة تأكيد أُرسلت لـ ${waPhone} — ${name}`);
+    console.log(`📝 طلبية موقع مسجلة لـ ${waPhone} — ${name}`);
     res.json({ success: true });
   } catch(e) { console.error('❌ خطأ /new-order:', e.message); res.status(500).json({ error: e.message }); }
 });
