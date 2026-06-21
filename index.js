@@ -270,8 +270,10 @@ STATE_0: "أهلاً بيك 😊 [PAUSE] عندنا قاعدة: قلب، قيس�
 STATE_1: Anchoring+Contrast+SocialProof — اشرح الألوان الثلاثة
 STATE_2: نصيحة مجانية عن المقاسات + اسأل المقاس
 STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واحد في كل مرة
-إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون حي — اسأله بالدارجة: "واش تقدر تحدد الحي ديالك؟ 😊 عندنا: Sbata, Maarif, Hay Hassani, Sidi Maarouf, Ain Sebaa, Bernoussi, Californie, Sidi Moumen, Hay Mohammadi, Ain Borja, Roches Noires, Lissasfa, Moulay Rachid, Sidi Othmane, Beauséjour, Ouasis, Bourgogne, Ain Diab, Centre Ville, Derb Omar, Derb Sultan, Oulfa, 2 Mars, Ain Chock, Anfa, Anassi"
-إذا ذكر الزبون الحي مباشرة مع المدينة (مثال: "casa sbata" أو "الدار البيضاء سباتة") — سجّله مباشرة بدون سؤال إضافي
+إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون مقاطعة — اسأله بالدارجة: "واش تقدر تحدد المقاطعة ديالك؟ 😊
+1.Sbata 2.Maarif 3.Hay Hassani 4.Sidi Maarouf 5.Ain Sebaa 6.Bernoussi 7.Californie 8.Sidi Moumen 9.Hay Mohammadi 10.Ain Borja 11.Roches Noires 12.Lissasfa 13.Moulay Rachid 14.Sidi Othmane 15.Beauséjour 16.Ouasis 17.Bourgogne 18.Ain Diab 19.Centre Ville 20.Derb Omar 21.Derb Sultan 22.Oulfa 23.2 Mars 24.Ain Chock 25.Anfa"
+بعد ما يختار المقاطعة — اسأله عن العنوان بالتفصيل (الحي + الشارع + رقم المنزل)
+إذا ذكر المقاطعة مباشرة مع المدينة (مثال: "casa sbata" أو "الدار البيضاء سباتة") — سجّلها مباشرة بدون سؤال إضافي
 
 ## PHONE
 بعد الاسم+المدينة+العنوان: "[الاسم]، بقى غير رقم الهاتف 😊 [PAUSE] واش نخلي هذا الرقم، ولا عندك رقم آخر؟"
