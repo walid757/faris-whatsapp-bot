@@ -28,6 +28,85 @@ const PRODUCT_IMAGES = {
   gris:   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gris.jpg'
 };
 
+const CITY_FR = {
+  "casablanca":"Casablanca","casa":"Casablanca","الدار البيضاء":"Casablanca",
+  "rabat":"Rabat","الرباط":"Rabat",
+  "sale":"Salé","salé":"Salé","سلا":"Salé","sla":"Salé",
+  "fes":"Fès","fès":"Fès","فاس":"Fès",
+  "marrakech":"Marrakech","marrakesh":"Marrakech","مراكش":"Marrakech",
+  "tanger":"Tanger","tangier":"Tanger","طنجة":"Tanger",
+  "meknes":"Meknès","meknès":"Meknès","مكناس":"Meknès",
+  "agadir":"Agadir","أكادير":"Agadir",
+  "beni mellal":"Béni Mellal","béni mellal":"Béni Mellal","بني ملال":"Béni Mellal",
+  "temara":"Témara","تمارة":"Témara",
+  "larache":"Larache","العرائش":"Larache",
+  "safi":"Safi","آسفي":"Safi",
+  "khouribga":"Khouribga","خريبكة":"Khouribga",
+  "mohammedia":"Mohammedia","المحمدية":"Mohammedia",
+  "tetouan":"Tétouan","tétouan":"Tétouan","تطوان":"Tétouan",
+  "kenitra":"Kénitra","القنيطرة":"Kénitra",
+  "oujda":"Oujda","وجدة":"Oujda",
+  "nador":"Nador","الناظور":"Nador",
+  "tinghir":"Tinghir","تنغير":"Tinghir",
+  "essaouira":"Essaouira","الصويرة":"Essaouira",
+  "taroudant":"Taroudant","تارودانت":"Taroudant",
+  "tiznit":"Tiznit","تزنيت":"Tiznit",
+  "ouarzazate":"Ouarzazate","ورزازات":"Ouarzazate",
+  "el jadida":"El Jadida","الجديدة":"El Jadida",
+  "settat":"Settat","سطات":"Settat",
+  "berrechid":"Berrechid","برشيد":"Berrechid",
+  "benslimane":"Benslimane","بنسليمان":"Benslimane",
+  "ksar el kebir":"Ksar El Kébir","القصر الكبير":"Ksar El Kébir",
+  "taza":"Taza","تازة":"Taza",
+  "al hoceima":"Al Hoceïma","الحسيمة":"Al Hoceïma",
+  "guelmim":"Guelmim","كلميم":"Guelmim",
+  "dakhla":"Dakhla","الداخلة":"Dakhla",
+  "laayoune":"Laâyoune","العيون":"Laâyoune",
+  "errachidia":"Errachidia","الراشيدية":"Errachidia",
+  "zagora":"Zagora","زاكورة":"Zagora",
+  "midelt":"Midelt","ميدلت":"Midelt",
+  "ouazzane":"Ouazzane","وزان":"Ouazzane",
+  "chefchaouen":"Chefchaouen","شفشاون":"Chefchaouen",
+  "fnideq":"Fnideq","الفنيدق":"Fnideq",
+  "berkane":"Berkane","بركان":"Berkane",
+  "taourirt":"Taourirt","تاوريرت":"Taourirt",
+  "oued zem":"Oued Zem","واد زم":"Oued Zem",
+  "khenifra":"Khénifra","خنيفرة":"Khénifra",
+  "azrou":"Azrou","أزرو":"Azrou",
+  "ifrane":"Ifrane","إفران":"Ifrane",
+  "khemisset":"Khémisset","الخميسات":"Khémisset",
+  "tiflet":"Tiflet","تيفلت":"Tiflet",
+  "sidi kacem":"Sidi Kacem","سيدي قاسم":"Sidi Kacem",
+  "sidi slimane":"Sidi Slimane","سيدي سليمان":"Sidi Slimane",
+  "bouznika":"Bouznika","بوزنيقة":"Bouznika",
+  "harhoura":"Harhoura","هرهورة":"Harhoura",
+  "skhirat":"Skhirat","الصخيرات":"Skhirat",
+  "ain harrouda":"Aïn Harrouda","عين الحروضة":"Aïn Harrouda",
+  "mediouna":"Médiouna","مديونة":"Médiouna",
+  "nouaceur":"Nouaceur","النواصر":"Nouaceur",
+  "bouskoura":"Bouskoura","بوسكورة":"Bouskoura",
+  "dar bouazza":"Dar Bouazza","دار بوعزة":"Dar Bouazza",
+  "tit mellil":"Tit Mellil","تيط مليل":"Tit Mellil",
+  "had soualem":"Had Soualem","الحد السوالم":"Had Soualem",
+  "ben guerir":"Ben Guerir","بن جرير":"Ben Guerir",
+  "youssoufia":"Youssoufia","اليوسفية":"Youssoufia",
+  "sidi bennour":"Sidi Bennour","سيدي بنور":"Sidi Bennour",
+  "oulad teima":"Oulad Teima","أولاد تيمة":"Oulad Teima",
+  "inzegane":"Inzegane","إنزكان":"Inzegane",
+  "ait melloul":"Aït Melloul","أيت ملول":"Aït Melloul",
+  "tahanoute":"Tahanoute","تحناوت":"Tahanoute",
+};
+
+const normalizeCityFr = (city) => {
+  if (!city) return city;
+  const key = city.toLowerCase().trim();
+  if (CITY_FR[key]) return CITY_FR[key];
+  for (const k in CITY_FR) {
+    if (key.includes(k) || k.includes(key)) return CITY_FR[k];
+  }
+  return city;
+};
+
 const STATE_FILE = path.join(__dirname, 'bot_state.json');
 const loadState = () => {
   try { if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
@@ -693,11 +772,13 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const colorFr = product.color_fr || detectColor(product.color_ar||'') || 'noir';
     const size    = product.size || '';
     const variant = size&&colorFr ? `${size}/${colorFr}` : '';
-    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city:customer.city||'', address:customer.shipping_address||'', price:product.unit_price_mad||'320', product:product.product_name||'BOTTINE CUIR GS081', color:variant, size:'' };
+    const rawCity = customer.city || '';
+    const city    = normalizeCityFr(rawCity);
+    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city, address:customer.shipping_address||'', price:product.unit_price_mad||'320', product:product.product_name||'BOTTINE CUIR GS081', color:variant, size:'' };
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
     const response = await axios.post(SHEET_API_URL, payload, { headers:{'Content-Type':'application/json'}, timeout:10000 });
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
-    return { success:true, colorFr, phone, name:customer.full_name };
+    return { success:true, colorFr, phone, name:customer.full_name, city, rawCity };
   } catch(err) { console.error('❌ خطأ الشيت:', err.message); return { success:false, colorFr:null, phone:formatPhone(fromPhone) }; }
 };
 
@@ -845,9 +926,14 @@ app.post('/webhook', async (req,res) => {
         const colorFr = (result&&result.colorFr)?result.colorFr:'noir';
         if (PRODUCT_IMAGES[colorFr]) { try { await sleep(500); await sendWhatsAppImage(from,colorFr); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         const confirmMsg = extractConfirmMsg(reply);
-        // ✅ تعديل — استبدال [الهاتف] بالرقم الحقيقي
         const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from);
-        if (confirmMsg) { await sendText(from, confirmMsg.replace('[الهاتف]', phoneDisplay)); }
+        const cityFr  = result?.city    || '';
+        const cityRaw = result?.rawCity || '';
+        if (confirmMsg) {
+          let msg = confirmMsg.replace('[الهاتف]', phoneDisplay);
+          if (cityRaw && cityFr && cityRaw !== cityFr) msg = msg.split(cityRaw).join(cityFr);
+          await sendText(from, msg);
+        }
         else { await sendText(from, `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك، بدأنا تجهيز حذائك.\n📦 BOTTINE CUIR GS081 | 💰 320 درهم | 🚚 مجاني\n📞 ${phoneDisplay}\n⏳ سنتواصل معك قريباً لتأكيد الطلب.\nفريق GreatShoes 🤎`); }
         return;
       }
