@@ -29,7 +29,34 @@ const PRODUCT_IMAGES = {
 };
 
 const CITY_FR = {
-  "casablanca":"Casablanca","casa":"Casablanca","الدار البيضاء":"Casablanca",
+  // Casablanca neighborhoods
+  "casablanca – sidi maarouf":"Casablanca – Sidi Maarouf","sidi maarouf":"Casablanca – Sidi Maarouf",
+  "casablanca – lissasfa":"Casablanca – Lissasfa","lissasfa":"Casablanca – Lissasfa",
+  "casablanca – moulay rachid":"Casablanca – Moulay Rachid","moulay rachid":"Casablanca – Moulay Rachid",
+  "casablanca – sidi othmane":"Casablanca – Sidi Othmane","sidi othmane":"Casablanca – Sidi Othmane",
+  "casablanca – sbata":"Casablanca – Sbata","sbata":"Casablanca – Sbata",
+  "casablanca – beauséjour":"Casablanca – Beauséjour","beauséjour":"Casablanca – Beauséjour","beausejour":"Casablanca – Beauséjour",
+  "casablanca – ouasis":"Casablanca – Ouasis","ouasis":"Casablanca – Ouasis",
+  "casablanca – bourgogne":"Casablanca – Bourgogne","bourgogne":"Casablanca – Bourgogne",
+  "casablanca – ain diab":"Casablanca – Ain Diab","ain diab":"Casablanca – Ain Diab",
+  "casablanca – centre ville":"Casablanca – Centre Ville","centre ville":"Casablanca – Centre Ville","centre-ville":"Casablanca – Centre Ville",
+  "casablanca – derb omar":"Casablanca – Derb Omar","derb omar":"Casablanca – Derb Omar",
+  "casablanca – derb sultan":"Casablanca – Derb Sultan","derb sultan":"Casablanca – Derb Sultan",
+  "casablanca – oulfa":"Casablanca – Oulfa","oulfa":"Casablanca – Oulfa",
+  "casablanca – 2 mars":"Casablanca – 2 Mars","2 mars":"Casablanca – 2 Mars",
+  "casablanca – maarif":"Casablanca – Maarif","maarif":"Casablanca – Maarif","المعاريف":"Casablanca – Maarif",
+  "casablanca – ain chock":"Casablanca – Ain Chock","ain chock":"Casablanca – Ain Chock",
+  "casablanca – californie":"Casablanca – Californie","californie":"Casablanca – Californie",
+  "casablanca – hay hassani":"Casablanca – Hay Hassani","hay hassani":"Casablanca – Hay Hassani","حي الحسني":"Casablanca – Hay Hassani",
+  "casablanca – bernoussi":"Casablanca – Bernoussi","bernoussi":"Casablanca – Bernoussi","برنوصي":"Casablanca – Bernoussi",
+  "casablanca – ain sebaa":"Casablanca – Ain Sebaa","ain sebaa":"Casablanca – Ain Sebaa","عين السبع":"Casablanca – Ain Sebaa",
+  "casablanca – anassi":"Casablanca – Anassi","anassi":"Casablanca – Anassi",
+  "casablanca – sidi moumen":"Casablanca – Sidi Moumen","sidi moumen":"Casablanca – Sidi Moumen","سيدي مومن":"Casablanca – Sidi Moumen",
+  "casablanca – hay mohammadi":"Casablanca – Hay Mohammadi","hay mohammadi":"Casablanca – Hay Mohammadi","الحي المحمدي":"Casablanca – Hay Mohammadi",
+  "casablanca – ain borja":"Casablanca – Ain Borja","ain borja":"Casablanca – Ain Borja",
+  "casablanca – roches noires":"Casablanca – Roches Noires","roches noires":"Casablanca – Roches Noires",
+  "casablanca – anfa":"Casablanca – Anfa","anfa":"Casablanca – Anfa",
+  "casablanca":"Casablanca","casa":"Casablanca","الدار البيضاء":"Casablanca","dar beida":"Casablanca",
   "rabat":"Rabat","raba":"Rabat","rbat":"Rabat","الرباط":"Rabat",
   "sale":"Salé","salé":"Salé","سلا":"Salé","sla":"Salé",
   "fes":"Fès","fès":"Fès","فاس":"Fès",
@@ -243,6 +270,8 @@ STATE_0: "أهلاً بيك 😊 [PAUSE] عندنا قاعدة: قلب، قيس�
 STATE_1: Anchoring+Contrast+SocialProof — اشرح الألوان الثلاثة
 STATE_2: نصيحة مجانية عن المقاسات + اسأل المقاس
 STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واحد في كل مرة
+إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون حي — اسأله بالدارجة: "واش تقدر تحدد الحي ديالك؟ 😊 عندنا: Sbata, Maarif, Hay Hassani, Sidi Maarouf, Ain Sebaa, Bernoussi, Californie, Sidi Moumen, Hay Mohammadi, Ain Borja, Roches Noires, Lissasfa, Moulay Rachid, Sidi Othmane, Beauséjour, Ouasis, Bourgogne, Ain Diab, Centre Ville, Derb Omar, Derb Sultan, Oulfa, 2 Mars, Ain Chock, Anfa, Anassi"
+إذا ذكر الزبون الحي مباشرة مع المدينة (مثال: "casa sbata" أو "الدار البيضاء سباتة") — سجّله مباشرة بدون سؤال إضافي
 
 ## PHONE
 بعد الاسم+المدينة+العنوان: "[الاسم]، بقى غير رقم الهاتف 😊 [PAUSE] واش نخلي هذا الرقم، ولا عندك رقم آخر؟"
@@ -259,7 +288,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ## ORDER CONFIRMATION
 عند أي موافقة (نعم/آه/أكيد/واخا/oui/ok/👍):
 أخرج في سطر منفصل:
-CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية]","shipping_address":"[العنوان بالفرنسية]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
+CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — إذا الدار البيضاء اكتب مثلاً: Casablanca – Sbata]","shipping_address":"[العنوان بالفرنسية]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ثم:
 ORDER_CONFIRM_MSG_START
