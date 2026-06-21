@@ -32,7 +32,7 @@ const STATE_FILE = path.join(__dirname, 'bot_state.json');
 const loadState = () => {
   try { if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
   catch (e) { console.error('⚠️ خطأ في تحميل الحالة:', e.message); }
-  return { sentImages: [], orderConfirmed: [], notInterested: [], followUpCount: {}, conversationHistory: {}, pasDeReponse: {}, refuseActive: {}, pendingConfirmWaiting: {} };
+  return { sentImages: [], orderConfirmed: [], notInterested: [], followUpCount: {}, conversationHistory: {}, pasDeReponse: {}, refuseActive: {} };
 };
 const saveState = (() => {
   let timer = null;
@@ -61,7 +61,6 @@ const refuseTimers = {};
 const orderConfirmTimes = {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
-const pendingConfirmWaiting = _state.pendingConfirmWaiting || {};
 
 const persistState = () => saveState({
   sentImages:[...sentImages],
@@ -71,7 +70,6 @@ const persistState = () => saveState({
   conversationHistory,
   pasDeReponse: pasDeReponseActive,
   refuseActive,
-  pendingConfirmWaiting,
 });
 
 const userQueues = {}, userLocks = {};
@@ -457,16 +455,6 @@ const getLivreurFromOzon = async (trackingNum) => {
   } catch(e) { console.error('❌ getLivreurFromOzon:', e.message); return { name: '', phone: '' }; }
 };
 
-// تأكيد الطلبية في الشيت بكتابة conf
-const confirmOrderInSheet = async (phone) => {
-  try {
-    const payload = { secret: SHEET_SECRET, action: 'confirm', phone };
-    const response = await axios.post(SHEET_API_URL, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
-    console.log('✅ تأكيد conf في الشيت:', response.status);
-    return true;
-  } catch(e) { console.error('❌ خطأ تأكيد الشيت:', e.message); return false; }
-};
-
 // ✅ إضافة جديدة — sendNewOrderToSheet
 const sendNewOrderToSheet = async (info, newSize, newProduct, newColor) => {
   try {
@@ -767,41 +755,6 @@ app.post('/webhook', async (req,res) => {
   if (isNotInterested(text)) { notInterested.add(from); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState(); }
   if (!conversationHistory[from]) { conversationHistory[from]=[]; followUpCount[from]=0; }
 
-  // معالجة تأكيد طلبية الموقع
-  if (pendingConfirmWaiting[from]) {
-    const info = pendingConfirmWaiting[from];
-    const isConfirm = /نعم|واخا|آه|إيه|ايه|أكيد|اكيد|oui|ok\b|yes\b|waxxa|waxa|يه|تأكيد|تاكيد/i.test(text);
-    const isCancel  = /^(لا|non|no|إلغاء|الغاء|ما بغيت|walo)[\s!.،]*$/i.test(text.trim());
-    try {
-      if (isConfirm) {
-        await confirmOrderInSheet(info.phone);
-        await sendText(from,
-          `✅ تم تأكيد طلبيتك ${info.name} 🎉\n` +
-          `سيتصل بك ليفرور قبل توصيل طلبك وحدد معه المكان والزمان المناسب لك 🚚\n` +
-          `GreatShoes — قلب قيس وحتى يعجبك عاد خلص 🤎`
-        );
-        await sendText(ADMIN_PHONE,
-          `✅ تأكيد طلبية موقع\n👤 ${info.name} | 📞 ${from}\n` +
-          `📦 ${info.product}${info.size ? ' | 📏 ' + info.size : ''}${info.color ? ' | 🎨 ' + info.color : ''}\n` +
-          `📍 ${info.city} — ${info.address}`
-        );
-        delete pendingConfirmWaiting[from];
-        persistState();
-      } else if (isCancel) {
-        await sendText(from, `مفهوم ${info.name} 😊\nإذا غيرت رأيك في أي وقت — GreatShoes دائماً هنا ليك 🤎`);
-        await sendText(ADMIN_PHONE,
-          `❌ إلغاء طلبية موقع\n👤 ${info.name} | 📞 ${from}\n` +
-          `📦 ${info.product}\n💬 رد الزبون: ${text}`
-        );
-        delete pendingConfirmWaiting[from];
-        persistState();
-      } else {
-        await sendText(from, `عفاك ${info.name} 😊\nواش تأكد الطلب؟ جاوبني بـ "نعم" أو "لا" 🙏`);
-      }
-    } catch(e) { console.error('❌ خطأ تأكيد الموقع:', e.message); }
-    return;
-  }
-
   // ✅ إضافة جديدة — معالجة pas de réponse
   if (pasDeReponseActive[from]) {
     try {
@@ -936,27 +889,6 @@ app.post('/set-refuse', async (req, res) => {
     console.log(`📝 Refuse مسجل للزبون ${waPhone}`);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// endpoint طلبية جديدة من الموقع غير مؤكدة
-app.post('/new-order', async (req, res) => {
-  try {
-    const { secret, phone, name, product, color, size, city, address } = req.body;
-    if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
-    const waPhone = formatPhone(phone);
-    pendingConfirmWaiting[waPhone] = {
-      name: name || '',
-      product: product || 'BOTTINE CUIR GS081',
-      color: color || '',
-      size: size || '',
-      city: city || '',
-      address: address || '',
-      phone: waPhone
-    };
-    persistState();
-    console.log(`📝 طلبية موقع مسجلة لـ ${waPhone} — ${name}`);
-    res.json({ success: true });
-  } catch(e) { console.error('❌ خطأ /new-order:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
