@@ -97,6 +97,17 @@ const CITY_FR = {
   "tahanoute":"Tahanoute","تحناوت":"Tahanoute",
 };
 
+const levenshtein = (a, b) => {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) =>
+    Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+};
+
 const normalizeCityFr = (city) => {
   if (!city) return city;
   const key = city.toLowerCase().trim();
@@ -104,7 +115,14 @@ const normalizeCityFr = (city) => {
   for (const k in CITY_FR) {
     if (key.includes(k) || k.includes(key)) return CITY_FR[k];
   }
-  return city;
+  // fuzzy match — max distance proportional to city name length
+  let bestMatch = null, bestDist = Infinity;
+  for (const k in CITY_FR) {
+    const maxDist = Math.min(3, Math.max(1, Math.floor(k.length / 4)));
+    const dist = levenshtein(key, k);
+    if (dist <= maxDist && dist < bestDist) { bestDist = dist; bestMatch = CITY_FR[k]; }
+  }
+  return bestMatch || city;
 };
 
 const STATE_FILE = path.join(__dirname, 'bot_state.json');
