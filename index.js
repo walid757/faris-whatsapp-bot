@@ -124,6 +124,31 @@ const CITY_FR = {
   "tahanoute":"Tahanoute","تحناوت":"Tahanoute",
 };
 
+const CITY_ID_MAP = {
+  "Casablanca – Sidi Maarouf":2165,"Casablanca – Lissasfa":2166,"Casablanca – Moulay Rachid":2167,
+  "Casablanca – Sidi Othmane":2168,"Casablanca – Sbata":2169,"Casablanca – Beauséjour":2170,
+  "Casablanca – Ouasis":2171,"Casablanca – Bourgogne":2172,"Casablanca – Ain Diab":2173,
+  "Casablanca – Centre Ville":2174,"Casablanca – Derb Omar":2175,"Casablanca – Derb Sultan":2176,
+  "Casablanca – Oulfa":2177,"Casablanca – 2 Mars":2178,"Casablanca – Maarif":2179,
+  "Casablanca – Ain Chock":2180,"Casablanca – Californie":2181,"Casablanca – Hay Hassani":2182,
+  "Casablanca – Bernoussi":2183,"Casablanca – Ain Sebaa":2184,"Casablanca – Anassi":2185,
+  "Casablanca – Sidi Moumen":2186,"Casablanca – Hay Mohammadi":2187,"Casablanca – Ain Borja":2188,
+  "Casablanca – Roches Noires":2189,"Casablanca – Anfa":2190,"Casablanca":2174,
+  "Rabat":1984,"Salé":1982,"Fès":127,"Marrakech":199,"Tanger":289,"Meknès":211,
+  "Agadir":37,"Béni Mellal":73,"Témara":1993,"Larache":187,"Safi":61,"Khouribga":169,
+  "Mohammedia":345,"Tétouan":313,"Kénitra":1089,"Oujda":229,"Nador":217,"Tinghir":1475,
+  "Essaouira":1728,"Taroudant":382,"Tiznit":376,"Ouarzazate":223,"El Jadida":109,
+  "Settat":1651,"Berrechid":1558,"Benslimane":511,"Ksar El Kébir":1908,"Taza":1872,
+  "Al Hoceïma":55,"Guelmim":1824,"Dakhla":103,"Laâyoune":1830,"Errachidia":607,
+  "Zagora":1033,"Midelt":535,"Ouazzane":1040,"Chefchaouen":583,"Fnideq":133,
+  "Berkane":1710,"Taourirt":1874,"Oued Zem":766,"Khénifra":1711,"Azrou":327,
+  "Ifrane":333,"Khémisset":1271,"Tiflet":1278,"Sidi Kacem":457,"Sidi Slimane":463,
+  "Bouznika":472,"Harhoura":1996,"Skhirat":1997,"Aïn Harrouda":235,"Médiouna":571,
+  "Nouaceur":433,"Bouskoura":421,"Dar Bouazza":415,"Tit Mellil":478,"Had Soualem":724,
+  "Ben Guerir":601,"Youssoufia":2133,"Sidi Bennour":935,"Oulad Teima":956,
+  "Inzegane":151,"Aït Melloul":49,"Tahanoute":1633,
+};
+
 const levenshtein = (a, b) => {
   const m = a.length, n = b.length;
   const dp = Array.from({length: m+1}, (_, i) =>
@@ -177,6 +202,7 @@ const conversationHistory = _state.conversationHistory || {};
 // ✅ إضافة جديدة
 const pasDeReponseActive = _state.pasDeReponse  || {};
 const refuseActive       = _state.refuseActive  || {};
+const websiteOrders      = {};
 
 // ✅ إضافة جديدة
 const pdrTimers    = {};
@@ -911,6 +937,145 @@ const resetFollowUpTimer = (from) => { if(followUpTimers[from]){clearTimeout(fol
 
 const verifySignature = (req) => { if(!APP_SECRET) return true; const sig=req.headers['x-hub-signature-256']; if(!sig) return false; const expected='sha256='+crypto.createHmac('sha256',APP_SECRET).update(JSON.stringify(req.body)).digest('hex'); return crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(expected)); };
 
+// ===== WEBSITE ORDER CONFIRMATION =====
+
+const toMoroccanPhone = (phone) => {
+  phone = String(phone).trim().replace(/\s/g,'');
+  if (phone.startsWith('+212')) return '0'+phone.slice(4);
+  if (phone.startsWith('212')) return '0'+phone.slice(3);
+  if (!phone.startsWith('0')) return '0'+phone;
+  return phone;
+};
+
+const getCityId = (cityFr) => {
+  if (!cityFr) return 2174;
+  const k = cityFr.trim();
+  if (CITY_ID_MAP[k]) return CITY_ID_MAP[k];
+  for (const key in CITY_ID_MAP) {
+    if (k.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(k.toLowerCase())) return CITY_ID_MAP[key];
+  }
+  return 2174;
+};
+
+const sendOrderTemplate = async (to, name, product, price) => {
+  await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp', to, type: 'template',
+    template: {
+      name: 'order_confirmation',
+      language: { code: 'ar' },
+      components: [{ type: 'body', parameters: [
+        { type: 'text', text: String(name) },
+        { type: 'text', text: String(product) },
+        { type: 'text', text: String(price) }
+      ]}]
+    }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+};
+
+const addParcelDirect = async (order, finalAddress) => {
+  const cityId = getCityId(normalizeCityFr(order.city || ''));
+  const note = [order.product, order.size, order.color].filter(Boolean).join(' - ');
+  const moPhone = toMoroccanPhone(order.phone || order.waPhone);
+  const body = new URLSearchParams({
+    'parcel-receiver': order.name,
+    'parcel-phone': moPhone,
+    'parcel-city': String(cityId),
+    'parcel-address': finalAddress,
+    'parcel-price': String(order.price || 320),
+    'parcel-stock': '0',
+    'parcel-note': note
+  });
+  const res = await axios.post(`${OZON_BASE}/${OZON_CUSTOMER_ID}/${OZON_API_KEY}/add-parcel`, body.toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000
+  });
+  const parcel = res.data?.['ADD-PARCEL'];
+  const tracking = parcel?.['NEW-PARCEL']?.['TRACKING-NUMBER'];
+  return tracking ? { success: true, tracking } : { success: false };
+};
+
+const handleWebsiteOrder = async (from, text) => {
+  const order = websiteOrders[from];
+  if (!order) return false;
+
+  if (order.step === 'awaiting_reply') {
+    order.step = 'awaiting_confirmation';
+    await sendHumanLike(from,
+      `دعني أتأكد من طلبك 😊 [PAUSE]` +
+      `👤 *${order.name}* [PAUSE]` +
+      `📦 ${order.product}${order.color ? ' — '+order.color : ''}${order.size ? ' — '+order.size : ''} [PAUSE]` +
+      `📍 ${order.city ? order.city+' — ' : ''}${order.address} [PAUSE]` +
+      `💰 ${order.price} درهم | 🚚 توصيل مجاني | 💳 دفع عند الاستلام [PAUSE]` +
+      `واش المعلومات صحيحة؟`
+    );
+    return true;
+  }
+
+  if (order.step === 'awaiting_confirmation') {
+    const yes = /نعم|آه|واخا|اه|oui|ok|أكيد|صح|مزيان|يه|ايه|👍/.test(text);
+    const no  = /لا|لأ|خطأ|غلط|non/.test(text);
+    if (yes) {
+      order.step = 'awaiting_delivery_time';
+      await sendHumanLike(from,
+        `ممتاز 😊 [PAUSE]` +
+        `واش عندك وقت مفضل للتوصيل أو الاتصال؟ [PAUSE]` +
+        `مثلاً: الصباح، بعد 14h، أي وقت... [PAUSE]` +
+        `أو قل *أي وقت* إذا ما عندكش تفضيل`
+      );
+    } else if (no) {
+      order.step = 'awaiting_correction';
+      await sendHumanLike(from, `لا باس 😊 [PAUSE] أخبرني شنو اللي غلط باش نصلحه`);
+    } else {
+      await sendHumanLike(from, `واش المعلومات صحيحة؟ قل *نعم* أو *لا* 😊`);
+    }
+    return true;
+  }
+
+  if (order.step === 'awaiting_delivery_time') {
+    const noPreference = /أي وقت|اي وقت|n.importe|any time|مهم/.test(text.toLowerCase());
+    const finalAddress = noPreference
+      ? order.address
+      : `${order.address} — وقت: ${text.trim()}`;
+    try {
+      const result = await addParcelDirect(order, finalAddress);
+      if (result.success) {
+        await sendHumanLike(from,
+          `✅ تم تأكيد طلبك ${order.name}! [PAUSE]` +
+          `📦 رقم التتبع: *${result.tracking}* [PAUSE]` +
+          `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
+          `شكراً لثقتك في GreatShoes ❤️`
+        );
+      } else {
+        await sendHumanLike(from,
+          `✅ تم تسجيل طلبك بنجاح! [PAUSE]` +
+          `🚚 سيتواصل معك فريقنا قريباً لتأكيد التوصيل [PAUSE]` +
+          `شكراً لثقتك في GreatShoes ❤️`
+        );
+      }
+    } catch(e) {
+      console.error('❌ addParcelDirect:', e.message);
+      await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
+    }
+    delete websiteOrders[from];
+    return true;
+  }
+
+  if (order.step === 'awaiting_correction') {
+    order.address = text.trim();
+    order.step = 'awaiting_confirmation';
+    await sendHumanLike(from,
+      `تم التحديث 😊 [PAUSE]` +
+      `👤 *${order.name}* [PAUSE]` +
+      `📦 ${order.product}${order.color ? ' — '+order.color : ''}${order.size ? ' — '+order.size : ''} [PAUSE]` +
+      `📍 ${order.city ? order.city+' — ' : ''}${order.address} [PAUSE]` +
+      `💰 ${order.price} درهم | 🚚 توصيل مجاني [PAUSE]` +
+      `واش دابا المعلومات صحيحة؟`
+    );
+    return true;
+  }
+
+  return false;
+};
+
 app.get('/webhook', (req,res) => { if(req.query['hub.verify_token']===VERIFY_TOKEN) res.send(req.query['hub.challenge']); else res.sendStatus(403); });
 
 app.post('/webhook', async (req,res) => {
@@ -927,6 +1092,13 @@ app.post('/webhook', async (req,res) => {
   setTimeout(() => processedMessages.delete(message.id), 5 * 60 * 1000);
   res.sendStatus(200);
   await markAsRead(message.id);
+
+  // ===== WEBSITE ORDER FLOW =====
+  if (websiteOrders[from]) {
+    try { await handleWebsiteOrder(from, text); } catch(e) { console.error('❌ handleWebsiteOrder:', e.message); }
+    return;
+  }
+
   // ✅ FIX EMOTIONAL — تعاطف قبل البيع
   if (isEmotionalState(text)) {
     try {
@@ -1081,6 +1253,28 @@ app.post('/set-refuse', async (req, res) => {
     console.log(`📝 Refuse مسجل للزبون ${waPhone}`);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/new-website-order', async (req, res) => {
+  try {
+    const { secret, name, phone, city, address, product, price, color, size } = req.body;
+    if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+    const waPhone = formatPhone(phone);
+    websiteOrders[waPhone] = {
+      name: name || '', phone: phone || '', waPhone,
+      city: city || '', address: address || '',
+      product: product || '', price: price || '320',
+      color: color || '', size: size || '',
+      step: 'awaiting_reply', createdAt: Date.now()
+    };
+    const productDisplay = [product, size, color].filter(Boolean).join(' - ');
+    await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
+    console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('❌ /new-website-order:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
