@@ -200,8 +200,14 @@ const userQueues = {}, userLocks = {};
 const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from] = []; userQueues[from].push(fn); if (!userLocks[from]) processQueue(from); };
 const processQueue = async (from) => { if (userLocks[from]) return; userLocks[from] = true; while (userQueues[from]?.length > 0) { const fn = userQueues[from].shift(); try { await fn(); } catch (e) { console.error('❌ Queue:', e.message); } } userLocks[from] = false; };
 
-const MAX_HISTORY = 6;
-const trimHistory = (from) => { if (conversationHistory[from]?.length > MAX_HISTORY) conversationHistory[from] = conversationHistory[from].slice(-MAX_HISTORY); };
+const MAX_HISTORY = 16;
+const trimHistory = (from) => {
+  const h = conversationHistory[from];
+  if (!h || h.length <= MAX_HISTORY) return;
+  // احتفظ بأول رسالتين (اسم المدينة والمقاطعة) + آخر MAX_HISTORY-2 رسائل
+  const keep = Math.min(2, h.length);
+  conversationHistory[from] = [...h.slice(0, keep), ...h.slice(-(MAX_HISTORY - keep))];
+};
 
 const rateLimitMap = {};
 const isRateLimited = (from) => { const now = Date.now(); const e = rateLimitMap[from] || { count:0, resetAt:now+60000 }; if (now > e.resetAt) { e.count=0; e.resetAt=now+60000; } e.count++; rateLimitMap[from]=e; return e.count > 10; };
@@ -270,9 +276,11 @@ STATE_0: "أهلاً بيك 😊 [PAUSE] عندنا قاعدة: قلب، قيس�
 STATE_1: Anchoring+Contrast+SocialProof — اشرح الألوان الثلاثة
 STATE_2: نصيحة مجانية عن المقاسات + اسأل المقاس
 STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واحد في كل مرة
-إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون مقاطعة — اسأله بالدارجة: "واش تقدر تحدد المقاطعة ديالك؟ 😊
+إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون مقاطعة — اسأله: "واش تقدر تحدد المقاطعة ديالك؟ 😊
 1.Sbata 2.Maarif 3.Hay Hassani 4.Sidi Maarouf 5.Ain Sebaa 6.Bernoussi 7.Californie 8.Sidi Moumen 9.Hay Mohammadi 10.Ain Borja 11.Roches Noires 12.Lissasfa 13.Moulay Rachid 14.Sidi Othmane 15.Beauséjour 16.Ouasis 17.Bourgogne 18.Ain Diab 19.Centre Ville 20.Derb Omar 21.Derb Sultan 22.Oulfa 23.2 Mars 24.Ain Chock 25.Anfa"
-بعد ما يختار المقاطعة — اسأله عن العنوان بالتفصيل (الحي + الشارع + رقم المنزل)
+⚠️ RÈGLE CASA — بعد ما يختار الزبون المقاطعة (مثلاً قال "معاريف") — احفظها فوراً كـ city="Casablanca – Maarif" ولا تنساها أبداً حتى في JSON التأكيد — لا تغيرها تحت أي ظرف
+⚠️ كل ما يقوله الزبون بعد اختيار المقاطعة (حي/شارع/رقم) هو العنوان فقط — ليس مقاطعة جديدة — لا تستبدل المقاطعة المختارة
+⚠️ لا تسأل عن المقاطعة مرتين — إذا اختارها الزبون مرة واحدة فهذا كافٍ — واصل لطلب العنوان التفصيلي
 إذا ذكر المقاطعة مباشرة مع المدينة (مثال: "casa sbata" أو "الدار البيضاء سباتة") — سجّلها مباشرة بدون سؤال إضافي
 
 ## PHONE
@@ -284,13 +292,14 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 
 ## CONFIRMATION
 خلينا نتأكدو:
-👟 BOTTINE CUIR GS081 | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المدينة]-[العنوان]
+👟 BOTTINE CUIR GS081 | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المقاطعة إن وجدت]-[العنوان التفصيلي]
+⚠️ اكتب المقاطعة بالاسم الذي قاله الزبون بالضبط (مثال: *الدار البيضاء - معاريف* | حي البرج)
 واش تأكد الطلب؟
 
 ## ORDER CONFIRMATION
 عند أي موافقة (نعم/آه/أكيد/واخا/oui/ok/👍):
 أخرج في سطر منفصل:
-CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — إذا الدار البيضاء اكتب مثلاً: Casablanca – Sbata]","shipping_address":"[العنوان بالفرنسية]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
+CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — ⚠️ إذا الدار البيضاء: اكتب بالضبط Casablanca – [المقاطعة التي اختارها الزبون من القائمة] — مثال: Casablanca – Maarif أو Casablanca – Sbata — لا تخمن ولا تخترع — استخرجها من المحادثة]","shipping_address":"[الحي والشارع ورقم المنزل الذي ذكره الزبون بعد اختيار المقاطعة]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
 ثم:
 ORDER_CONFIRM_MSG_START
