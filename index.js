@@ -1044,6 +1044,12 @@ const handleWebsiteOrder = async (from, text) => {
           `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
           `شكراً لثقتك في GreatShoes ❤️`
         );
+        try {
+          await axios.post(SHEET_API_URL, JSON.stringify({
+            secret: SHEET_SECRET, action: 'mark_sent',
+            phone: order.phone, tracking: result.tracking
+          }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+        } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
       } else {
         await sendHumanLike(from,
           `✅ تم تسجيل طلبك بنجاح! [PAUSE]` +
