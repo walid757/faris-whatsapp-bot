@@ -1301,7 +1301,7 @@ app.post('/webhook', async (req,res) => {
         ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
         : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:350, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
@@ -1323,11 +1323,16 @@ app.post('/webhook', async (req,res) => {
       if (reply.includes('CONFIRMED_ORDER:')) {
         orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
+        // Send the summary text first (everything before CONFIRMED_ORDER:)
+        const summaryText = reply.split('CONFIRMED_ORDER:')[0]
+          .replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/g, '')
+          .trim();
+        if (summaryText) { await sendHumanLike(from, summaryText); await sleep(600); }
         // Extract color for image preview
         const previewJson = extractOrderJSON(reply);
         let colorFrPreview = 'noir';
         try { if (previewJson) { const pd = JSON.parse(previewJson); colorFrPreview = pd.product_data?.color_fr || detectColor(pd.product_data?.color_ar||'') || 'noir'; } } catch(e){}
-        if (PRODUCT_IMAGES[colorFrPreview]) { try { await sleep(500); await sendWhatsAppImage(from, colorFrPreview); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
+        if (PRODUCT_IMAGES[colorFrPreview]) { try { await sendWhatsAppImage(from, colorFrPreview); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         // Store pending and send interactive buttons
         pendingConfirmations[from] = { reply, step: 'awaiting_button' };
         await sleep(500);
