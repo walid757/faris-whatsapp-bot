@@ -202,7 +202,8 @@ const conversationHistory = _state.conversationHistory || {};
 // ✅ إضافة جديدة
 const pasDeReponseActive = _state.pasDeReponse  || {};
 const refuseActive       = _state.refuseActive  || {};
-const websiteOrders      = {};
+const websiteOrders         = {};
+const pendingConfirmations  = {};
 
 // ✅ إضافة جديدة
 const pdrTimers    = {};
@@ -957,6 +958,19 @@ const getCityId = (cityFr) => {
   return 2174;
 };
 
+const sendInteractiveButtons = async (to, bodyText, buttons) => {
+  await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp', to, type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map((title, i) => ({ type: 'reply', reply: { id: `btn_${i}`, title } }))
+      }
+    }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } });
+};
+
 const sendOrderTemplate = async (to, name, product, price) => {
   await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
     messaging_product: 'whatsapp', to, type: 'template',
@@ -1083,6 +1097,65 @@ app.post('/webhook', async (req,res) => {
     return;
   }
 
+  // ===== PENDING CONFIRMATION FLOW (regular chat) =====
+  if (pendingConfirmations[from]) {
+    const pending = pendingConfirmations[from];
+    try {
+      if (pending.step === 'awaiting_button') {
+        if (text === 'تأكيد الطلب') {
+          const result = await saveOrderToSheet(pending.reply, from);
+          const colorFr = result?.colorFr || 'noir';
+          const phoneDisplay = result?.phone || formatPhone(from);
+          const cityFr = result?.city || ''; const cityRaw = result?.rawCity || '';
+          const confirmMsg = extractConfirmMsg(pending.reply);
+          if (confirmMsg) {
+            let msg = confirmMsg.replace('[الهاتف]', phoneDisplay);
+            if (cityRaw && cityFr && cityRaw !== cityFr) msg = msg.split(cityRaw).join(cityFr);
+            await sendText(from, msg);
+          } else {
+            await sendText(from, `✅ تم تأكيد طلبك!\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
+          }
+          delete pendingConfirmations[from];
+        } else if (text === 'تحديد وقت التوصيل') {
+          pending.step = 'awaiting_delivery_time';
+          await sendText(from, 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐\nمثلاً: غداً 14h، الصباح، بعد 18h...');
+        }
+      } else if (pending.step === 'awaiting_delivery_time') {
+        pending.deliveryTime = text.trim();
+        pending.step = 'awaiting_final_confirm';
+        await sendInteractiveButtons(from,
+          `سيتم إضافة الوقت "${text.trim()}" مع عنوان التوصيل 🕐\nهل تؤكد الطلب؟`,
+          ['تأكيد الطلب', 'إلغاء']
+        );
+      } else if (pending.step === 'awaiting_final_confirm') {
+        if (text === 'تأكيد الطلب') {
+          const time = pending.deliveryTime || '';
+          const modifiedReply = pending.reply.replace(
+            /"shipping_address"\s*:\s*"([^"]*)"/,
+            (m, addr) => `"shipping_address": "${addr} — وقت: ${time}"`
+          );
+          const result = await saveOrderToSheet(modifiedReply, from);
+          const phoneDisplay = result?.phone || formatPhone(from);
+          const cityFr = result?.city || ''; const cityRaw = result?.rawCity || '';
+          const confirmMsg = extractConfirmMsg(pending.reply);
+          if (confirmMsg) {
+            let msg = confirmMsg.replace('[الهاتف]', phoneDisplay);
+            if (cityRaw && cityFr && cityRaw !== cityFr) msg = msg.split(cityRaw).join(cityFr);
+            await sendText(from, msg);
+          } else {
+            await sendText(from, `✅ تم تأكيد طلبك!\n🕐 الوقت المحدد: ${time}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
+          }
+          delete pendingConfirmations[from];
+        } else if (text === 'إلغاء') {
+          await sendText(from, 'تم إلغاء الطلب 😊 يمكنك البدء من جديد في أي وقت.');
+          delete pendingConfirmations[from];
+          orderConfirmed.delete(from);
+        }
+      }
+    } catch(e) { console.error('❌ pendingConfirmations handler:', e.message); }
+    return;
+  }
+
   // ✅ FIX EMOTIONAL — تعاطف قبل البيع
   if (isEmotionalState(text)) {
     try {
@@ -1184,19 +1257,18 @@ app.post('/webhook', async (req,res) => {
       if (reply.includes('CONFIRMED_ORDER:')) {
         orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
-        const result = await saveOrderToSheet(reply, from);
-        const colorFr = (result&&result.colorFr)?result.colorFr:'noir';
-        if (PRODUCT_IMAGES[colorFr]) { try { await sleep(500); await sendWhatsAppImage(from,colorFr); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
-        const confirmMsg = extractConfirmMsg(reply);
-        const phoneDisplay=(result&&result.phone)?result.phone:formatPhone(from);
-        const cityFr  = result?.city    || '';
-        const cityRaw = result?.rawCity || '';
-        if (confirmMsg) {
-          let msg = confirmMsg.replace('[الهاتف]', phoneDisplay);
-          if (cityRaw && cityFr && cityRaw !== cityFr) msg = msg.split(cityRaw).join(cityFr);
-          await sendText(from, msg);
-        }
-        else { await sendText(from, `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك، بدأنا تجهيز حذائك.\n📦 BOTTINE CUIR GS081 | 💰 320 درهم | 🚚 مجاني\n📞 ${phoneDisplay}\n⏳ سنتواصل معك قريباً لتأكيد الطلب.\nفريق GreatShoes 🤎`); }
+        // Extract color for image preview
+        const previewJson = extractOrderJSON(reply);
+        let colorFrPreview = 'noir';
+        try { if (previewJson) { const pd = JSON.parse(previewJson); colorFrPreview = pd.product_data?.color_fr || detectColor(pd.product_data?.color_ar||'') || 'noir'; } } catch(e){}
+        if (PRODUCT_IMAGES[colorFrPreview]) { try { await sleep(500); await sendWhatsAppImage(from, colorFrPreview); await sleep(1000); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
+        // Store pending and send interactive buttons
+        pendingConfirmations[from] = { reply, step: 'awaiting_button' };
+        await sleep(500);
+        await sendInteractiveButtons(from,
+          'شكراً على اختيارك! 😊\nهل تريد تحديد وقت للتوصيل أو الاتصال؟',
+          ['تأكيد الطلب', 'تحديد وقت التوصيل']
+        );
         return;
       }
 
