@@ -204,6 +204,8 @@ const pasDeReponseActive = _state.pasDeReponse  || {};
 const refuseActive       = _state.refuseActive  || {};
 const websiteOrders         = {};
 const pendingConfirmations  = {};
+const deliveryTimeStates    = {};
+const deliveryTimes         = {};
 
 // ✅ إضافة جديدة
 const pdrTimers    = {};
@@ -262,6 +264,7 @@ GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاس�
 
 ## PRODUCT
 BOTTINE CUIR GS081 | 320 درهم | أسود/بني/رمادي | مقاسات 39-44
+⚠️ إذا قال الزبون رقماً بين 39-44 في أي وقت من المحادثة، سجله فوراً كمقاس — لا تعرض قائمة ولا تسأل مرة أخرى
 
 ## 75 SKILLS — استخدم مهارة واحدة فقط في كل رسالة
 
@@ -350,6 +353,10 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ### قواعد العنوان
 ⚠️ اقبل أي عنوان يعطيه الزبون مهما كان قصيراً (حي فقط، أو شارع فقط، أو أي وصف) — لا تطلب تفاصيل إضافية — سجّله كما هو وواصل
 
+### وقت التوصيل (بعد العنوان)
+بعد تسجيل العنوان مباشرة، اكتب في رسالتك هذا الماركر في سطر منفصل: [DELIVERY_TIME_QUESTION]
+لا تسأل عن الوقت بنفسك — البوت سيتكفل بذلك تلقائياً — ثم واصل لطلب رقم الهاتف
+
 ### قواعد الدار البيضاء
 إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون مقاطعة — اسأله: "واش تقدر تحدد المقاطعة ديالك؟ 😊
 1.Sbata 2.Maarif 3.Hay Hassani 4.Sidi Maarouf 5.Ain Sebaa 6.Bernoussi 7.Californie 8.Sidi Moumen 9.Hay Mohammadi 10.Ain Borja 11.Roches Noires 12.Lissasfa 13.Moulay Rachid 14.Sidi Othmane 15.Beauséjour 16.Ouasis 17.Bourgogne 18.Ain Diab 19.Centre Ville 20.Derb Omar 21.Derb Sultan 22.Oulfa 23.2 Mars 24.Ain Chock 25.Anfa"
@@ -366,13 +373,13 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 "320 درهم [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
 
 ## CONFIRMATION
+بعد تأكيد رقم الهاتف، اعرض الملخص مباشرة بهذا الشكل ثم أخرج CONFIRMED_ORDER: في نفس الرسالة (لا تسأل "واش تأكد الطلب؟"):
 خلينا نتأكدو:
 👟 BOTTINE CUIR GS081 | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المقاطعة إن وجدت]-[العنوان التفصيلي]
 ⚠️ اكتب المقاطعة بالاسم الذي قاله الزبون بالضبط (مثال: *الدار البيضاء - معاريف* | حي البرج)
-واش تأكد الطلب؟
 
 ## ORDER CONFIRMATION
-عند أي موافقة (نعم/آه/أكيد/واخا/oui/ok/👍):
+⚠️ أخرج CONFIRMED_ORDER: مرة واحدة فقط — بعد تأكيد الزبون لرقم الهاتف مباشرة — في نفس الرسالة مع الملخص:
 أخرج في سطر منفصل:
 CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — ⚠️ إذا الدار البيضاء: اكتب بالضبط Casablanca – [المقاطعة التي اختارها الزبون من القائمة] — مثال: Casablanca – Maarif أو Casablanca – Sbata — لا تخمن ولا تخترع — استخرجها من المحادثة]","shipping_address":"[الحي والشارع ورقم المنزل الذي ذكره الزبون بعد اختيار المقاطعة]"},"product_data":{"brand":"GreatShoes","product_name":"BOTTINE CUIR GS081","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"320"},"payment":{"method":"COD"}}
 
@@ -1097,13 +1104,45 @@ app.post('/webhook', async (req,res) => {
     return;
   }
 
+  // ===== DELIVERY TIME BUTTONS FLOW =====
+  if (deliveryTimeStates[from]) {
+    const dts = deliveryTimeStates[from];
+    try {
+      if (dts.step === 'awaiting_button') {
+        if (text === 'تحديد وقت') {
+          dts.step = 'awaiting_time';
+          conversationHistory[from].push({ role: 'user', content: 'نعم، سأحدد وقتاً' });
+          await sendText(from, 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐\nمثلاً: غداً 14h، الصباح، بعد 18h...');
+        } else {
+          conversationHistory[from].push({ role: 'user', content: 'أي وقت مناسب' });
+          conversationHistory[from].push({ role: 'assistant', content: 'مزيان! [PAUSE] بقى غير رقم الهاتف 😊' });
+          delete deliveryTimeStates[from];
+          await sendText(from, `بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
+        }
+      } else if (dts.step === 'awaiting_time') {
+        const time = text.trim();
+        deliveryTimes[from] = time;
+        conversationHistory[from].push({ role: 'user', content: time });
+        conversationHistory[from].push({ role: 'assistant', content: `تم تسجيل الوقت: ${time} ✅ [PAUSE] بقى غير رقم الهاتف 😊` });
+        delete deliveryTimeStates[from];
+        await sendText(from, `تم تسجيل الوقت: *${time}* ✅\nبقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
+      }
+    } catch(e) { console.error('❌ deliveryTimeStates:', e.message); }
+    return;
+  }
+
   // ===== PENDING CONFIRMATION FLOW (regular chat) =====
   if (pendingConfirmations[from]) {
     const pending = pendingConfirmations[from];
     try {
       if (pending.step === 'awaiting_button') {
         if (text === 'تأكيد الطلب') {
-          const result = await saveOrderToSheet(pending.reply, from);
+          const dt = deliveryTimes[from];
+          const replyToSave = dt
+            ? pending.reply.replace(/"shipping_address"\s*:\s*"([^"]*)"/, (m, addr) => `"shipping_address": "${addr} — وقت: ${dt}"`)
+            : pending.reply;
+          delete deliveryTimes[from];
+          const result = await saveOrderToSheet(replyToSave, from);
           const colorFr = result?.colorFr || 'noir';
           const phoneDisplay = result?.phone || formatPhone(from);
           const cityFr = result?.city || ''; const cityRaw = result?.rawCity || '';
@@ -1254,6 +1293,18 @@ app.post('/webhook', async (req,res) => {
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
       trimHistory(from); persistState();
 
+      if (reply.includes('[DELIVERY_TIME_QUESTION]')) {
+        const cleanReply = reply.replace('[DELIVERY_TIME_QUESTION]', '').trim();
+        if (cleanReply) await sendHumanLike(from, cleanReply);
+        deliveryTimeStates[from] = { step: 'awaiting_button' };
+        await sleep(600);
+        await sendInteractiveButtons(from,
+          'واش عندك وقت مفضل للتوصيل أو الاتصال؟ 🕐',
+          ['تحديد وقت', 'أي وقت مناسب']
+        );
+        return;
+      }
+
       if (reply.includes('CONFIRMED_ORDER:')) {
         orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
@@ -1266,8 +1317,8 @@ app.post('/webhook', async (req,res) => {
         pendingConfirmations[from] = { reply, step: 'awaiting_button' };
         await sleep(500);
         await sendInteractiveButtons(from,
-          'شكراً على اختيارك! 😊\nهل تريد تحديد وقت للتوصيل أو الاتصال؟',
-          ['تأكيد الطلب', 'تحديد وقت التوصيل']
+          'هل تريد تأكيد الطلب؟ 😊',
+          ['تأكيد الطلب', 'إلغاء']
         );
         return;
       }
