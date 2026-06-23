@@ -353,9 +353,13 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ### قواعد العنوان
 ⚠️ اقبل أي عنوان يعطيه الزبون مهما كان قصيراً (حي فقط، أو شارع فقط، أو أي وصف) — لا تطلب تفاصيل إضافية — سجّله كما هو وواصل
 
-### وقت التوصيل (بعد العنوان)
-بعد تسجيل العنوان مباشرة، اكتب في رسالتك هذا الماركر في سطر منفصل: [DELIVERY_TIME_QUESTION]
-لا تسأل عن الوقت بنفسك — البوت سيتكفل بذلك تلقائياً — ثم واصل لطلب رقم الهاتف
+### وقت التوصيل (بعد العنوان) — قاعدة صارمة
+⚠️ بعد أي رسالة يذكر فيها الزبون العنوان (حي/شارع/أي مكان)، يجب أن يحتوي ردك على هذا الماركر في سطر منفصل:
+[DELIVERY_TIME_QUESTION]
+مثال على الرد الصحيح:
+"حسناً يا سيدي [الاسم]، سجلت العنوان 😊
+[DELIVERY_TIME_QUESTION]"
+لا تسأل عن الوقت بنفسك — البوت يتكفل بذلك
 
 ### قواعد الدار البيضاء
 إذا قال الزبون "الدار البيضاء" أو "Casablanca" أو "casa" بدون مقاطعة — اسأله: "واش تقدر تحدد المقاطعة ديالك؟ 😊
@@ -1111,19 +1115,20 @@ app.post('/webhook', async (req,res) => {
       if (dts.step === 'awaiting_button') {
         if (text === 'تحديد وقت') {
           dts.step = 'awaiting_time';
-          conversationHistory[from].push({ role: 'user', content: 'نعم، سأحدد وقتاً' });
+          conversationHistory[from].push({ role: 'user', content: 'نعم، أريد تحديد وقت' });
+          conversationHistory[from].push({ role: 'assistant', content: 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐' });
           await sendText(from, 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐\nمثلاً: غداً 14h، الصباح، بعد 18h...');
         } else {
           conversationHistory[from].push({ role: 'user', content: 'أي وقت مناسب' });
-          conversationHistory[from].push({ role: 'assistant', content: 'مزيان! [PAUSE] بقى غير رقم الهاتف 😊' });
+          conversationHistory[from].push({ role: 'assistant', content: 'مزيان! بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟' });
           delete deliveryTimeStates[from];
-          await sendText(from, `بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
+          await sendText(from, `مزيان! بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
         }
       } else if (dts.step === 'awaiting_time') {
         const time = text.trim();
         deliveryTimes[from] = time;
         conversationHistory[from].push({ role: 'user', content: time });
-        conversationHistory[from].push({ role: 'assistant', content: `تم تسجيل الوقت: ${time} ✅ [PAUSE] بقى غير رقم الهاتف 😊` });
+        conversationHistory[from].push({ role: 'assistant', content: `تم تسجيل الوقت: ${time} ✅ بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟` });
         delete deliveryTimeStates[from];
         await sendText(from, `تم تسجيل الوقت: *${time}* ✅\nبقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
       }
@@ -1143,16 +1148,26 @@ app.post('/webhook', async (req,res) => {
             : pending.reply;
           delete deliveryTimes[from];
           const result = await saveOrderToSheet(replyToSave, from);
-          const colorFr = result?.colorFr || 'noir';
           const phoneDisplay = result?.phone || formatPhone(from);
           const cityFr = result?.city || ''; const cityRaw = result?.rawCity || '';
-          const confirmMsg = extractConfirmMsg(pending.reply);
+          let confirmMsg = extractConfirmMsg(pending.reply);
           if (confirmMsg) {
             let msg = confirmMsg.replace('[الهاتف]', phoneDisplay);
             if (cityRaw && cityFr && cityRaw !== cityFr) msg = msg.split(cityRaw).join(cityFr);
             await sendText(from, msg);
           } else {
-            await sendText(from, `✅ تم تأكيد طلبك!\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
+            const jsonStr = extractOrderJSON(pending.reply);
+            let fullMsg = '';
+            if (jsonStr) {
+              try {
+                const od = JSON.parse(jsonStr);
+                const cd = od.customer_data || {};
+                const pd = od.product_data || {};
+                const dtLine = dt ? ` — وقت: ${dt}` : '';
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'BOTTINE CUIR GS081'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
+              } catch(e) {}
+            }
+            await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
           delete pendingConfirmations[from];
         } else if (text === 'تحديد وقت التوصيل') {
