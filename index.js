@@ -993,89 +993,60 @@ const addParcelDirect = async (order, finalAddress) => {
   return tracking ? { success: true, tracking } : { success: false };
 };
 
+const confirmAndSendToOzon = async (from, order, finalAddress) => {
+  try {
+    const result = await addParcelDirect(order, finalAddress);
+    if (result.success) {
+      await sendHumanLike(from,
+        `✅ تم تأكيد طلبك ${order.name}! [PAUSE]` +
+        `📦 رقم التتبع: *${result.tracking}* [PAUSE]` +
+        `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
+        `شكراً لثقتك ❤️`
+      );
+      try {
+        await axios.post(SHEET_API_URL, JSON.stringify({
+          secret: SHEET_SECRET, action: 'mark_sent',
+          phone: order.phone, tracking: result.tracking
+        }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+      } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
+    } else {
+      await sendHumanLike(from,
+        `✅ تم تسجيل طلبك بنجاح! [PAUSE]` +
+        `🚚 سيتواصل معك فريقنا قريباً لتأكيد التوصيل [PAUSE]` +
+        `شكراً لثقتك ❤️`
+      );
+    }
+  } catch(e) {
+    console.error('❌ addParcelDirect:', e.message);
+    await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
+  }
+  delete websiteOrders[from];
+};
+
 const handleWebsiteOrder = async (from, text) => {
   const order = websiteOrders[from];
   if (!order) return false;
 
   if (order.step === 'awaiting_reply') {
-    order.step = 'awaiting_confirmation';
-    await sendHumanLike(from,
-      `دعني أتأكد من طلبك 😊 [PAUSE]` +
-      `👤 *${order.name}* [PAUSE]` +
-      `📦 ${order.product}${order.color ? ' — '+order.color : ''}${order.size ? ' — '+order.size : ''} [PAUSE]` +
-      `📍 ${order.city ? order.city+' — ' : ''}${order.address} [PAUSE]` +
-      `💰 ${order.price} درهم | 🚚 توصيل مجاني | 💳 دفع عند الاستلام [PAUSE]` +
-      `واش المعلومات صحيحة؟`
-    );
-    return true;
-  }
-
-  if (order.step === 'awaiting_confirmation') {
-    const yes = /نعم|آه|واخا|اه|oui|ok|أكيد|صح|مزيان|يه|ايه|👍/.test(text);
-    const no  = /لا|لأ|خطأ|غلط|non/.test(text);
-    if (yes) {
+    if (text === 'تأكيد الطلب') {
+      await confirmAndSendToOzon(from, order, order.address);
+    } else if (text === 'تحديد وقت التوصيل') {
       order.step = 'awaiting_delivery_time';
       await sendHumanLike(from,
-        `ممتاز 😊 [PAUSE]` +
-        `واش عندك وقت مفضل للتوصيل أو الاتصال؟ [PAUSE]` +
-        `مثلاً: الصباح، بعد 14h، أي وقت... [PAUSE]` +
-        `أو قل *أي وقت* إذا ما عندكش تفضيل`
+        `اكتب الوقت المناسب للتوصيل أو الاتصال 🕐 [PAUSE]` +
+        `مثلاً: غداً 14h، الصباح، بعد 18h... [PAUSE]` +
+        `أو *الآن* إذا كنت متاحاً`
       );
-    } else if (no) {
-      order.step = 'awaiting_correction';
-      await sendHumanLike(from, `لا باس 😊 [PAUSE] أخبرني شنو اللي غلط باش نصلحه`);
-    } else {
-      await sendHumanLike(from, `واش المعلومات صحيحة؟ قل *نعم* أو *لا* 😊`);
     }
     return true;
   }
 
   if (order.step === 'awaiting_delivery_time') {
-    const noPreference = /أي وقت|اي وقت|n.importe|any time|مهم/.test(text.toLowerCase());
+    const noPreference = /أي وقت|اي وقت|الآن|الان|now/.test(text.toLowerCase());
     const finalAddress = noPreference
       ? order.address
       : `${order.address} — وقت: ${text.trim()}`;
-    try {
-      const result = await addParcelDirect(order, finalAddress);
-      if (result.success) {
-        await sendHumanLike(from,
-          `✅ تم تأكيد طلبك ${order.name}! [PAUSE]` +
-          `📦 رقم التتبع: *${result.tracking}* [PAUSE]` +
-          `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
-          `شكراً لثقتك في GreatShoes ❤️`
-        );
-        try {
-          await axios.post(SHEET_API_URL, JSON.stringify({
-            secret: SHEET_SECRET, action: 'mark_sent',
-            phone: order.phone, tracking: result.tracking
-          }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
-        } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
-      } else {
-        await sendHumanLike(from,
-          `✅ تم تسجيل طلبك بنجاح! [PAUSE]` +
-          `🚚 سيتواصل معك فريقنا قريباً لتأكيد التوصيل [PAUSE]` +
-          `شكراً لثقتك في GreatShoes ❤️`
-        );
-      }
-    } catch(e) {
-      console.error('❌ addParcelDirect:', e.message);
-      await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
-    }
-    delete websiteOrders[from];
-    return true;
-  }
-
-  if (order.step === 'awaiting_correction') {
-    order.address = text.trim();
-    order.step = 'awaiting_confirmation';
-    await sendHumanLike(from,
-      `تم التحديث 😊 [PAUSE]` +
-      `👤 *${order.name}* [PAUSE]` +
-      `📦 ${order.product}${order.color ? ' — '+order.color : ''}${order.size ? ' — '+order.size : ''} [PAUSE]` +
-      `📍 ${order.city ? order.city+' — ' : ''}${order.address} [PAUSE]` +
-      `💰 ${order.price} درهم | 🚚 توصيل مجاني [PAUSE]` +
-      `واش دابا المعلومات صحيحة؟`
-    );
+    await confirmAndSendToOzon(from, order, finalAddress);
     return true;
   }
 
@@ -1088,9 +1059,16 @@ app.post('/webhook', async (req,res) => {
   if (!verifySignature(req)) { console.warn('⚠️ Signature غير صحيح'); return res.sendStatus(401); }
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   if (!message) return res.sendStatus(200);
-  if (message.type!=='text') { const from=message.from; try { await sleep(800); await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊'); } catch(e){} return res.sendStatus(200); }
   const from = message.from;
-  const text = message.text.body;
+  let text;
+  if (message.type === 'text') {
+    text = message.text.body;
+  } else if (message.type === 'interactive' && message.interactive?.type === 'button_reply') {
+    text = message.interactive.button_reply.title;
+  } else {
+    if (!websiteOrders[from]) { try { await sleep(800); await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊'); } catch(e){} }
+    return res.sendStatus(200);
+  }
   console.log(`--- رسالة من [${from}]: ${text}`);
   // ✅ إضافة جديدة — منع معالجة نفس الرسالة مرتين (webhook retry)
   if (processedMessages.has(message.id)) { console.warn('⚠️ رسالة مكررة تجاهلها:', message.id); return res.sendStatus(200); }
