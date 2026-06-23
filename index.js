@@ -1278,8 +1278,8 @@ app.post('/new-website-order', async (req, res) => {
     console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
     res.json({ success: true });
   } catch(e) {
-    console.error('❌ /new-website-order:', e.message);
-    res.status(500).json({ error: e.message });
+    console.error('❌ /new-website-order:', e.message, JSON.stringify(e.response?.data));
+    res.status(500).json({ error: e.message, details: e.response?.data });
   }
 });
 
