@@ -1090,6 +1090,9 @@ app.post('/webhook', async (req,res) => {
     text = message.text.body;
   } else if (message.type === 'interactive' && message.interactive?.type === 'button_reply') {
     text = message.interactive.button_reply.title;
+  } else if (message.type === 'button') {
+    // template Quick Reply buttons come as type 'button'
+    text = message.button?.text;
   } else {
     if (!websiteOrders[from]) { try { await sleep(800); await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊'); } catch(e){} }
     return res.sendStatus(200);
