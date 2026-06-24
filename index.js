@@ -1414,6 +1414,10 @@ app.post('/new-website-order', async (req, res) => {
       color: color || '', size: size || '',
       step: 'awaiting_reply', createdAt: Date.now()
     };
+    // منع Claude من تشغيل pendingConfirmations أثناء معالجة الطلب
+    delete pendingConfirmations[waPhone];
+    orderConfirmed.add(waPhone);
+    orderConfirmTimes[waPhone] = Date.now();
     persistState();
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
     await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
