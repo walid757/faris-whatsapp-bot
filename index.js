@@ -1019,12 +1019,21 @@ const addParcelDirect = async (order, finalAddress) => {
   return tracking ? { success: true, tracking } : { success: false };
 };
 
+const FEMALE_NAMES = new Set(['فاطمة','خديجة','مريم','نور','سارة','هناء','رجاء','إيمان','ايمان','سلمى','سلما','نادية','ليلى','ليلا','أسماء','اسماء','حنان','وفاء','زينب','ريم','شيماء','دنيا','بسمة','بسمه','كوثر','ملاك','روان','لينا','منى','رنا','سكينة','حورية','صفية','عائشة','عايشة','رقية','أمينة','امينة','حفصة','نعيمة','فوزية','زهرة','مليكة','لطيفة','فريدة','نجمة','ثريا','مبروكة','يمنى','رحمة','حليمة','رابحة','إلهام','الهام','شروق','غزلان','هيام','نجوى','سميرة','زكية','رشيدة','جميلة','نجاة','خيرة','مينة','ياسمين','ياسمينة','رانيا','دينا','هدى','هدا','لمياء','وئام','مها','نهى','نها','ألاء','الاء','عبير','غادة','غادا','آية','آيه','اية']);
+
+const getTitle = (name) => {
+  if (!name) return '';
+  const first = name.trim().split(/\s+/)[0];
+  if (first.endsWith('ة') || first.endsWith('ه') || FEMALE_NAMES.has(first)) return `للا ${name}`;
+  return `مولاي ${name}`;
+};
+
 const confirmAndSendToOzon = async (from, order, finalAddress) => {
   try {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       await sendHumanLike(from,
-        `✅ تم تأكيد طلبك ${order.name}! [PAUSE]` +
+        `✅ تم تأكيد طلبك ${getTitle(order.name)}! [PAUSE]` +
         `📦 رقم التتبع: *${result.tracking}* [PAUSE]` +
         `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
         `شكراً لثقتك ❤️`
@@ -1062,8 +1071,7 @@ const handleWebsiteOrder = async (from, text) => {
       order.step = 'awaiting_delivery_time'; persistState();
       await sendHumanLike(from,
         `اكتب الوقت المناسب للتوصيل أو الاتصال 🕐 [PAUSE]` +
-        `مثلاً: غداً 14h، الصباح، بعد 18h... [PAUSE]` +
-        `أو *الآن* إذا كنت متاحاً`
+        `مثلاً: غداً 14h، الصباح، بعد 18h، كل يوم بعد 18h...`
       );
     }
     return true;
@@ -1170,7 +1178,7 @@ app.post('/webhook', async (req,res) => {
                 const cd = od.customer_data || {};
                 const pd = od.product_data || {};
                 const dtLine = dt ? ` — وقت: ${dt}` : '';
-                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'BOTTINE CUIR GS081'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'BOTTINE CUIR GS081'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
               } catch(e) {}
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
