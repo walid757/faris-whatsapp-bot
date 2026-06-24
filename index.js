@@ -1066,7 +1066,7 @@ const handleWebsiteOrder = async (from, text) => {
 
   if (order.step === 'awaiting_reply') {
     if (text === 'تأكيد الطلب') {
-      await confirmAndSendToOzon(from, order, order.address);
+      await confirmAndSendToOzon(from, order, order.address || order.city || 'عنوان التوصيل');
     } else if (text === 'تحديد وقت التوصيل') {
       order.step = 'awaiting_delivery_time'; persistState();
       await sendHumanLike(from,
