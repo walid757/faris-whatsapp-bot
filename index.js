@@ -202,7 +202,7 @@ const conversationHistory = _state.conversationHistory || {};
 // ✅ إضافة جديدة
 const pasDeReponseActive = _state.pasDeReponse  || {};
 const refuseActive       = _state.refuseActive  || {};
-const websiteOrders         = {};
+const websiteOrders         = _state.websiteOrders || {};
 const pendingConfirmations  = {};
 const deliveryTimeStates    = {};
 const deliveryTimes         = {};
@@ -223,6 +223,7 @@ const persistState = () => saveState({
   conversationHistory,
   pasDeReponse: pasDeReponseActive,
   refuseActive,
+  websiteOrders,
 });
 
 const userQueues = {}, userLocks = {};
@@ -1045,7 +1046,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     console.error('❌ addParcelDirect:', e.message);
     await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
   }
-  delete websiteOrders[from];
+  delete websiteOrders[from]; persistState();
 };
 
 const handleWebsiteOrder = async (from, text) => {
@@ -1056,7 +1057,7 @@ const handleWebsiteOrder = async (from, text) => {
     if (text === 'تأكيد الطلب') {
       await confirmAndSendToOzon(from, order, order.address);
     } else if (text === 'تحديد وقت التوصيل') {
-      order.step = 'awaiting_delivery_time';
+      order.step = 'awaiting_delivery_time'; persistState();
       await sendHumanLike(from,
         `اكتب الوقت المناسب للتوصيل أو الاتصال 🕐 [PAUSE]` +
         `مثلاً: غداً 14h، الصباح، بعد 18h... [PAUSE]` +
@@ -1401,6 +1402,7 @@ app.post('/new-website-order', async (req, res) => {
       color: color || '', size: size || '',
       step: 'awaiting_reply', createdAt: Date.now()
     };
+    persistState();
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
     await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
     console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
