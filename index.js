@@ -1046,7 +1046,9 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     console.error('❌ addParcelDirect:', e.message);
     await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
   }
-  delete websiteOrders[from]; persistState();
+  delete websiteOrders[from];
+  delete pendingConfirmations[from];
+  persistState();
 };
 
 const handleWebsiteOrder = async (from, text) => {
