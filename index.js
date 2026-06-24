@@ -1012,12 +1012,14 @@ const addParcelDirect = async (order, finalAddress) => {
     'parcel-stock': '0',
     'parcel-note': note
   });
+  console.log('🚚 Ozon payload:', { name: order.name, phone: moPhone, city: cityId, address: finalAddress, price: order.price });
   const res = await axios.post(`${OZON_BASE}/${OZON_CUSTOMER_ID}/${OZON_API_KEY}/add-parcel`, body.toString(), {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000
   });
+  console.log('🚚 Ozon response:', JSON.stringify(res.data));
   const parcel = res.data?.['ADD-PARCEL'];
   const tracking = parcel?.['NEW-PARCEL']?.['TRACKING-NUMBER'];
-  return tracking ? { success: true, tracking } : { success: false };
+  return tracking ? { success: true, tracking } : { success: false, ozonResponse: JSON.stringify(res.data) };
 };
 
 const FEMALE_NAMES = new Set(['فاطمة','خديجة','مريم','نور','سارة','هناء','رجاء','إيمان','ايمان','سلمى','سلما','نادية','ليلى','ليلا','أسماء','اسماء','حنان','وفاء','زينب','ريم','شيماء','دنيا','بسمة','بسمه','كوثر','ملاك','روان','لينا','منى','رنا','سكينة','حورية','صفية','عائشة','عايشة','رقية','أمينة','امينة','حفصة','نعيمة','فوزية','زهرة','مليكة','لطيفة','فريدة','نجمة','ثريا','مبروكة','يمنى','رحمة','حليمة','رابحة','إلهام','الهام','شروق','غزلان','هيام','نجوى','سميرة','زكية','رشيدة','جميلة','نجاة','خيرة','مينة','ياسمين','ياسمينة','رانيا','دينا','هدى','هدا','لمياء','وئام','مها','نهى','نها','ألاء','الاء','عبير','غادة','غادا','آية','آيه','اية']);
@@ -1046,6 +1048,8 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
         console.log('📋 mark_sent response:', JSON.stringify(msRes.data));
       } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
     } else {
+      console.error('❌ Ozon فشل:', result.ozonResponse);
+      try { await sendText(ADMIN_PHONE, `⚠️ Ozon فشل\n👤 ${order.name} | 📞 ${order.phone}\n📍 ${order.city} | ${finalAddress}\n💰 ${order.price}\n\n${result.ozonResponse}`); } catch(ae) {}
       await sendHumanLike(from,
         `✅ تم تسجيل طلبك بنجاح! [PAUSE]` +
         `🚚 سيتواصل معك فريقنا قريباً لتأكيد التوصيل [PAUSE]` +
@@ -1054,6 +1058,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     }
   } catch(e) {
     console.error('❌ addParcelDirect:', e.message);
+    try { await sendText(ADMIN_PHONE, `⚠️ خطأ Ozon: ${e.message}\n👤 ${order.name} | ${order.phone}`); } catch(ae) {}
     await sendHumanLike(from, `✅ تم تسجيل طلبك — سيتواصل معك فريقنا قريباً 🚚`);
   }
   delete websiteOrders[from];
