@@ -211,13 +211,14 @@ const deliveryTimes         = {};
 const pdrTimers    = {};
 const refuseTimers = {};
 // ✅ إضافة جديدة — وقت التأكيد لمنع الحجب الدائم
-const orderConfirmTimes = {};
+const orderConfirmTimes = _state.orderConfirmTimes || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
 const persistState = () => saveState({
   sentImages:[...sentImages],
   orderConfirmed:[...orderConfirmed],
+  orderConfirmTimes,
   notInterested:[...notInterested],
   followUpCount,
   conversationHistory,
