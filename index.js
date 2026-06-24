@@ -1286,7 +1286,11 @@ app.post('/webhook', async (req,res) => {
     // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
     if (orderConfirmed.has(from)) {
       const timeSinceConfirm = Date.now() - (orderConfirmTimes[from] || 0);
-      if (timeSinceConfirm < 10 * 60 * 1000) { console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — تجاهل`); return; }
+      if (timeSinceConfirm < 10 * 60 * 1000) {
+        console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — رد مختصر`);
+        await sendText(from, 'طلبك مسجل ✅ سيتواصل معك فريقنا قريباً للتوصيل 🚚\nإذا عندك أي سؤال أنا هنا 😊');
+        return;
+      }
       orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); persistState();
       console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
     }
