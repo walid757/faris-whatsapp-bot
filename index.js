@@ -1039,10 +1039,10 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
         `شكراً لثقتك ❤️`
       );
       try {
-        await axios.post(SHEET_API_URL, JSON.stringify({
-          secret: SHEET_SECRET, action: 'mark_sent',
-          orderId: order.orderId || '', phone: order.phone, tracking: result.tracking
-        }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+        const msPayload = { secret: SHEET_SECRET, action: 'mark_sent', orderId: order.orderId || '', phone: order.phone, tracking: result.tracking };
+        console.log('📋 mark_sent payload:', JSON.stringify(msPayload));
+        const msRes = await axios.post(SHEET_API_URL, JSON.stringify(msPayload), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+        console.log('📋 mark_sent response:', JSON.stringify(msRes.data));
       } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
     } else {
       await sendHumanLike(from,
@@ -1057,6 +1057,8 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
   }
   delete websiteOrders[from];
   delete pendingConfirmations[from];
+  orderConfirmed.add(from);
+  orderConfirmTimes[from] = Date.now();
   persistState();
 };
 
