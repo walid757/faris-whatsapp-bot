@@ -1041,7 +1041,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
       try {
         await axios.post(SHEET_API_URL, JSON.stringify({
           secret: SHEET_SECRET, action: 'mark_sent',
-          phone: order.phone, tracking: result.tracking
+          orderId: order.orderId || '', phone: order.phone, tracking: result.tracking
         }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
       } catch(se) { console.error('❌ mark_sent sheet:', se.message); }
     } else {
@@ -1402,11 +1402,11 @@ app.post('/set-refuse', async (req, res) => {
 
 app.post('/new-website-order', async (req, res) => {
   try {
-    const { secret, name, phone, city, address, product, price, color, size } = req.body;
+    const { secret, orderId, name, phone, city, address, product, price, color, size } = req.body;
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     const waPhone = formatPhone(phone);
     websiteOrders[waPhone] = {
-      name: name || '', phone: phone || '', waPhone,
+      orderId: orderId || '', name: name || '', phone: phone || '', waPhone,
       city: city || '', address: address || '',
       product: product || '', price: price || '320',
       color: color || '', size: size || '',
