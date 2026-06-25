@@ -1058,11 +1058,10 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
   try {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
-      await sendHumanLike(from,
-        `✅ تم تأكيد طلبك ${getTitle(order.name)}! [PAUSE]` +
-        `📦 رقم التتبع: *${result.tracking}* [PAUSE]` +
-        `🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]` +
-        `شكراً لثقتك ❤️`
+      const _trackIsFr = (userLangPref[from] === 'french');
+      await sendHumanLike(from, _trackIsFr
+        ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
+        : `✅ تم تأكيد طلبك ${getTitle(order.name)}! [PAUSE]📦 رقم التتبع: *${result.tracking}* [PAUSE]🚚 التوصيل ما بين 24 و48 ساعة [PAUSE]شكراً لثقتك ❤️`
       );
       try {
         const msPayload = { secret: SHEET_SECRET, action: 'mark_sent', orderId: order.orderId || '', phone: order.phone, tracking: result.tracking };
@@ -1186,7 +1185,7 @@ app.post('/webhook', async (req,res) => {
     const pending = pendingConfirmations[from];
     try {
       if (pending.step === 'awaiting_button') {
-        if (text === 'تأكيد الطلب') {
+        if (text === 'تأكيد الطلب' || text === 'Confirmer') {
           const dt = deliveryTimes[from];
           const replyToSave = dt
             ? pending.reply.replace(/"shipping_address"\s*:\s*"([^"]*)"/, (m, addr) => `"shipping_address": "${addr} — وقت: ${dt}"`)
@@ -1245,8 +1244,9 @@ app.post('/webhook', async (req,res) => {
             await sendText(from, `✅ تم تأكيد طلبك!\n🕐 الوقت المحدد: ${time}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
           delete pendingConfirmations[from];
-        } else if (text === 'إلغاء') {
-          await sendText(from, 'تم إلغاء الطلب 😊 يمكنك البدء من جديد في أي وقت.');
+        } else if (text === 'إلغاء' || text === 'Annuler') {
+          const _cancelIsFr = (pending.lang === 'french');
+          await sendText(from, _cancelIsFr ? 'Commande annulée 😊 Tu peux recommencer quand tu veux.' : 'تم إلغاء الطلب 😊 يمكنك البدء من جديد في أي وقت.');
           delete pendingConfirmations[from];
           orderConfirmed.delete(from);
         }
@@ -1328,13 +1328,11 @@ app.post('/webhook', async (req,res) => {
     // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
     if (orderConfirmed.has(from)) {
       const timeSinceConfirm = Date.now() - (orderConfirmTimes[from] || 0);
-      if (timeSinceConfirm < 10 * 60 * 1000) {
-        console.log(`⛔ طلب مؤكد مسبقاً لـ ${from} — رد مختصر`);
-        await sendText(from, 'طلبك مسجل ✅ سيتواصل معك فريقنا قريباً للتوصيل 🚚\nإذا عندك أي سؤال أنا هنا 😊');
-        return;
+      if (timeSinceConfirm > 60 * 60 * 1000) {
+        orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); delete userLangPref[from]; persistState();
+        console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
       }
-      orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); delete userLangPref[from]; persistState();
-      console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
+      // ✅ بعد التأكيد: نستمر في الحوار بدل الحجب — نضيف ملاحظة لكلود
     }
     if (!sentImages.has(from)) { sentImages.add(from); persistState(); try { await sleep(500); await sendAllImages(from); } catch(e){ console.error('❌ خطأ الصور:', e.response?JSON.stringify(e.response.data):e.message); } }
     conversationHistory[from].push({role:'user',content:text});
@@ -1350,11 +1348,12 @@ app.post('/webhook', async (req,res) => {
       const lang = userLangPref[from] || (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija'));
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
+      const _postConfirmNote = orderConfirmed.has(from) ? (lang === 'french' ? '\n[Commande déjà confirmée — réponds normalement à ses questions — ne prends pas de nouvelle commande]' : '\n[الطلبية مؤكدة مسبقاً — تحدث معه بشكل طبيعي — لا تطلب تأكيد طلبية جديدة]') : '';
       const langNote = lang === 'french'
-        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
+        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote
         : lang === 'fusha'
-        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
-        : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
+        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote
+        : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
@@ -1389,11 +1388,12 @@ app.post('/webhook', async (req,res) => {
         try { if (previewJson) { const pd = JSON.parse(previewJson); colorFrPreview = pd.product_data?.color_fr || detectColor(pd.product_data?.color_ar||'') || 'noir'; } } catch(e){}
         if (PRODUCT_IMAGES[colorFrPreview]) { try { await sendWhatsAppImage(from, colorFrPreview); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         // Store pending and send interactive buttons
-        pendingConfirmations[from] = { reply, step: 'awaiting_button' };
+        const _btnIsFr = (userLangPref[from] === 'french');
+        pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija' };
         await sleep(500);
         await sendInteractiveButtons(from,
-          'هل تريد تأكيد الطلب؟ 😊',
-          ['تأكيد الطلب', 'إلغاء']
+          _btnIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
+          _btnIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']
         );
         return;
       }
