@@ -1437,6 +1437,15 @@ app.post('/set-refuse', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ✅ endpoint لكشف لغة الزبون من Apps Script
+app.post('/get-lang', (req, res) => {
+  const { phone, secret } = req.body || {};
+  if (secret !== BOT_SECRET) return res.json({ error: 'unauthorized' });
+  const normalized = String(phone || '').replace(/\s/g, '');
+  const waPhone = normalized.startsWith('212') ? normalized : '212' + normalized.replace(/^0/, '');
+  res.json({ lang: userLangPref[waPhone] || 'darija' });
+});
+
 app.post('/new-website-order', async (req, res) => {
   try {
     const { secret, orderId, name, phone, city, address, product, price, color, size } = req.body;
