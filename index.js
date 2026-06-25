@@ -212,6 +212,7 @@ const pdrTimers    = {};
 const refuseTimers = {};
 // ✅ إضافة جديدة — وقت التأكيد لمنع الحجب الدائم
 const orderConfirmTimes = _state.orderConfirmTimes || {};
+const userLangPref = _state.userLangPref || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -225,6 +226,7 @@ const persistState = () => saveState({
   pasDeReponse: pasDeReponseActive,
   refuseActive,
   websiteOrders,
+  userLangPref,
 });
 
 const userQueues = {}, userLocks = {};
@@ -655,6 +657,27 @@ const detectLanguage = (text) => {
   const frenchGrammar = ["je suis","je veux","comment puis","s'il vous","est-ce que","qu'est-ce","pouvez-vous","je cherche","je voudrais"];
   if (frenchGrammar.some(w => t.includes(w))) return 'french';
   return 'darija';
+};
+
+// ✅ كشف طلب تغيير اللغة صراحةً
+const detectFrenchRequest = (text) => {
+  const t = text.toLowerCase().trim();
+  return /\b(bghit|bghit\s+ndir|bghit\s+n|3awz|عاوز|عايز)\s+(fran[cç]ais|french|fr)\b/.test(t)
+    || /\b(parle[rz]?\s+(en\s+)?fran[cç]ais|speak\s+french|en\s+fran[cç]ais|fran[cç]ais\s+stp|fran[cç]ais\s+svp)\b/.test(t)
+    || /^(fran[cç]ais|french|je\s+veux\s+fran[cç]ais)$/i.test(t);
+};
+const detectDarijaRequest = (text) => {
+  const t = text.toLowerCase().trim();
+  return /\b(bghit|3awz)\s+(darija|3arbi|3rbiya|عربي|دارجة)\b/.test(t)
+    || /\b(parle[rz]?\s+(en\s+)?arabe|speak\s+arabic)\b/.test(t);
+};
+
+// ✅ كشف الفرنسية المحسّن (كلمات قصيرة شائعة)
+const isFrenchText = (text) => {
+  const t = text.toLowerCase();
+  // كلمات فرنسية شائعة في المحادثة
+  const frWords = ['bonjour','bonsoir','merci','oui','non','prix','taille','couleur','livraison','combien','quel','quelle','comment','pourquoi','je ','tu ','il ','elle ','nous ','vous ','ils ','elles ','est-ce','c\'est','ça ','ce ','cette ','mon ','ma ','mes ','les ','des ','une ','pour ','avec ','sans ','dans ','sur ','par ','mais ','donc ','aussi ','très ','bien ','tout ','plus ','moins ','pas ','peux','veux','peux essayer','je cherche','je voudrais','s\'il vous','s\'il te','pouvez','voulez','avez'];
+  return frWords.some(w => t.includes(w));
 };
 
 // ✅ إضافة جديدة — getLivreurFromOzon
@@ -1310,7 +1333,7 @@ app.post('/webhook', async (req,res) => {
         await sendText(from, 'طلبك مسجل ✅ سيتواصل معك فريقنا قريباً للتوصيل 🚚\nإذا عندك أي سؤال أنا هنا 😊');
         return;
       }
-      orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); persistState();
+      orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); delete userLangPref[from]; persistState();
       console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
     }
     if (!sentImages.has(from)) { sentImages.add(from); persistState(); try { await sleep(500); await sendAllImages(from); } catch(e){ console.error('❌ خطأ الصور:', e.response?JSON.stringify(e.response.data):e.message); } }
@@ -1318,11 +1341,17 @@ app.post('/webhook', async (req,res) => {
     trimHistory(from);
     try {
       await sleep(1500);
-      const lang = detectLanguage(text);
+      // ✅ كشف طلب تغيير اللغة وحفظه في الجلسة
+      if (detectFrenchRequest(text)) { userLangPref[from] = 'french'; persistState(); }
+      else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
+      // ✅ تحديد اللغة: تفضيل الجلسة أولاً، ثم الكشف التلقائي المحسّن
+      const _detectedLang = detectLanguage(text);
+      const _isFr = isFrenchText(text);
+      const lang = userLangPref[from] || (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija'));
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
       const langNote = lang === 'french'
-        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
+        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
         : lang === 'fusha'
         ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint
         : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint;
