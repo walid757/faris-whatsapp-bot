@@ -206,6 +206,7 @@ const websiteOrders         = _state.websiteOrders || {};
 const pendingConfirmations  = {};
 const deliveryTimeStates    = {};
 const deliveryTimes         = {};
+const websiteOrderTimers    = {};
 
 // ✅ إضافة جديدة
 const pdrTimers    = {};
@@ -1055,6 +1056,7 @@ const getTitle = (name) => {
 };
 
 const confirmAndSendToOzon = async (from, order, finalAddress) => {
+  if (websiteOrderTimers[from]) { clearTimeout(websiteOrderTimers[from]); delete websiteOrderTimers[from]; }
   try {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
@@ -1090,19 +1092,36 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
   persistState();
 };
 
+const markWebsiteOrderStatus = async (waPhone, orderId, status) => {
+  try {
+    await axios.post(SHEET_API_URL, {
+      secret: SHEET_SECRET, action: 'update_order_status',
+      phone: waPhone, orderId: orderId || '', status
+    }, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+    console.log(`📋 Sheet status → ${status} for ${waPhone}`);
+  } catch(e) { console.error('❌ markWebsiteOrderStatus:', e.message); }
+};
+
 const handleWebsiteOrder = async (from, text) => {
   const order = websiteOrders[from];
   if (!order) return false;
 
   if (order.step === 'awaiting_reply') {
     if (text === 'تأكيد الطلب') {
-      await confirmAndSendToOzon(from, order, order.address || order.city || 'عنوان التوصيل');
+      order.step = 'awaiting_website_time'; persistState();
+      await sendInteractiveButtons(from, 'هل تريد تحديد وقت للتوصيل؟ 🕐', ['تحديد وقت', 'أي وقت مناسب']);
     } else if (text === 'تحديد وقت التوصيل') {
       order.step = 'awaiting_delivery_time'; persistState();
       await sendHumanLike(from,
-        `اكتب الوقت المناسب للتوصيل أو الاتصال 🕐 [PAUSE]` +
-        `مثلاً: غداً 14h، الصباح، بعد 18h، كل يوم بعد 18h...`
+        `🕐 حدد الوقت المناسب للاتصال بك [PAUSE]` +
+        `التوصيل ما بين 24 و48 ساعة [PAUSE]` +
+        `التوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً`
       );
+    } else if (text === 'إلغاء' || text === 'Annuler') {
+      if (websiteOrderTimers[from]) { clearTimeout(websiteOrderTimers[from]); delete websiteOrderTimers[from]; }
+      await markWebsiteOrderStatus(from, order.orderId, 'pas de réponse');
+      await sendText(from, 'تم إلغاء طلبك 😊 يمكنك إعادة الطلب في أي وقت.');
+      delete websiteOrders[from]; persistState();
     }
     return true;
   }
@@ -1112,6 +1131,23 @@ const handleWebsiteOrder = async (from, text) => {
     const finalAddress = noPreference
       ? order.address
       : `${order.address} — وقت: ${text.trim()}`;
+    await confirmAndSendToOzon(from, order, finalAddress);
+    return true;
+  }
+
+  if (order.step === 'awaiting_website_time') {
+    if (text === 'تحديد وقت') {
+      order.step = 'awaiting_website_time_input'; persistState();
+      await sendText(from, '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
+    } else {
+      await confirmAndSendToOzon(from, order, order.address || order.city || 'عنوان التوصيل');
+    }
+    return true;
+  }
+
+  if (order.step === 'awaiting_website_time_input') {
+    const _wt = text.trim();
+    const finalAddress = `${order.address} — وقت: ${_wt}`;
     await confirmAndSendToOzon(from, order, finalAddress);
     return true;
   }
@@ -1157,24 +1193,28 @@ app.post('/webhook', async (req,res) => {
     const dts = deliveryTimeStates[from];
     try {
       if (dts.step === 'awaiting_button') {
-        if (text === 'تحديد وقت') {
+        const _dtsLang = dts.lang || 'darija';
+        const _dtsFr = (_dtsLang === 'french');
+        if (text === 'تحديد وقت' || text === 'Fixer horaire') {
           dts.step = 'awaiting_time';
-          conversationHistory[from].push({ role: 'user', content: 'نعم، أريد تحديد وقت' });
-          conversationHistory[from].push({ role: 'assistant', content: 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐' });
-          await sendText(from, 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐\nمثلاً: غداً 14h، الصباح، بعد 18h...');
+          conversationHistory[from].push({ role: 'user', content: _dtsFr ? 'Oui, je veux fixer un horaire' : 'نعم، أريد تحديد وقت' });
+          conversationHistory[from].push({ role: 'assistant', content: _dtsFr ? "Écris l'horaire idéal 🕐" : 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐' });
+          await sendText(from, _dtsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
         } else {
-          conversationHistory[from].push({ role: 'user', content: 'أي وقت مناسب' });
-          conversationHistory[from].push({ role: 'assistant', content: 'مزيان! بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟' });
+          conversationHistory[from].push({ role: 'user', content: _dtsFr ? "N'importe quand" : 'أي وقت مناسب' });
+          conversationHistory[from].push({ role: 'assistant', content: _dtsFr ? 'Parfait! Il reste juste le numéro de téléphone 😊 On garde ce numéro?' : 'مزيان! بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟' });
           delete deliveryTimeStates[from];
-          await sendText(from, `مزيان! بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
+          await sendText(from, _dtsFr ? `Parfait! 😊\nOn garde ce numéro de téléphone, ou tu en as un autre?` : `مزيان! بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
         }
       } else if (dts.step === 'awaiting_time') {
         const time = text.trim();
+        const _dtsLang2 = dts.lang || 'darija';
+        const _dtsFr2 = (_dtsLang2 === 'french');
         deliveryTimes[from] = time;
         conversationHistory[from].push({ role: 'user', content: time });
-        conversationHistory[from].push({ role: 'assistant', content: `تم تسجيل الوقت: ${time} ✅ بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟` });
+        conversationHistory[from].push({ role: 'assistant', content: _dtsFr2 ? `Horaire enregistré: ${time} ✅ Il reste juste le numéro. On garde ce numéro?` : `تم تسجيل الوقت: ${time} ✅ بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟` });
         delete deliveryTimeStates[from];
-        await sendText(from, `تم تسجيل الوقت: *${time}* ✅\nبقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
+        await sendText(from, _dtsFr2 ? `✅ Horaire enregistré: *${time}*\nIl reste juste le numéro de téléphone 😊\nOn garde ce numéro, ou tu en as un autre?` : `تم تسجيل الوقت: *${time}* ✅\nبقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
       }
     } catch(e) { console.error('❌ deliveryTimeStates:', e.message); }
     return;
@@ -1214,9 +1254,10 @@ app.post('/webhook', async (req,res) => {
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
           delete pendingConfirmations[from];
-        } else if (text === 'تحديد وقت التوصيل') {
+        } else if (text === 'تحديد وقت التوصيل' || text === 'Fixer horaire') {
           pending.step = 'awaiting_delivery_time';
-          await sendText(from, 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐\nمثلاً: غداً 14h، الصباح، بعد 18h...');
+          const _dtIsFr = (pending.lang === 'french');
+          await sendText(from, _dtIsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
         }
       } else if (pending.step === 'awaiting_delivery_time') {
         pending.deliveryTime = text.trim();
@@ -1348,7 +1389,7 @@ app.post('/webhook', async (req,res) => {
       const lang = userLangPref[from] || (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija'));
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(text.trim());
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
-      const _postConfirmNote = orderConfirmed.has(from) ? (lang === 'french' ? '\n[Commande déjà confirmée — réponds normalement à ses questions — ne prends pas de nouvelle commande]' : '\n[الطلبية مؤكدة مسبقاً — تحدث معه بشكل طبيعي — لا تطلب تأكيد طلبية جديدة]') : '';
+      const _postConfirmNote = orderConfirmed.has(from) ? (lang === 'french' ? '\n[Commande déjà confirmée — réponds normalement — si le client veut ajouter un produit ou modifier sa commande, collecte toutes les infos (nom, ville, adresse, couleur, pointure, prix) et crée une NOUVELLE commande complète indépendante comme si c\'était la première]' : '\n[الطلبية مؤكدة مسبقاً — تحدث معه بشكل طبيعي — إذا طلب منتج إضافي أو تعديل على الطلبية، اجمع كل البيانات (اسم، مدينة، عنوان، لون، مقاس، سعر) وسجّلها كطلبية جديدة كاملة مستقلة]') : '';
       const langNote = lang === 'french'
         ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote
         : lang === 'fusha'
@@ -1365,11 +1406,12 @@ app.post('/webhook', async (req,res) => {
       if (reply.includes('[DELIVERY_TIME_QUESTION]')) {
         const cleanReply = reply.replace('[DELIVERY_TIME_QUESTION]', '').trim();
         if (cleanReply) await sendHumanLike(from, cleanReply);
-        deliveryTimeStates[from] = { step: 'awaiting_button' };
+        const _dtsIsFr = (userLangPref[from] === 'french');
+        deliveryTimeStates[from] = { step: 'awaiting_button', lang: _dtsIsFr ? 'french' : 'darija' };
         await sleep(600);
         await sendInteractiveButtons(from,
-          'واش عندك وقت مفضل للتوصيل أو الاتصال؟ 🕐',
-          ['تحديد وقت', 'أي وقت مناسب']
+          _dtsIsFr ? 'Tu as un horaire préféré pour la livraison? 🕐' : 'واش عندك وقت مفضل للتوصيل أو الاتصال؟ 🕐',
+          _dtsIsFr ? ['Fixer horaire', "N'importe quand"] : ['تحديد وقت', 'أي وقت مناسب']
         );
         return;
       }
@@ -1393,7 +1435,7 @@ app.post('/webhook', async (req,res) => {
         await sleep(500);
         await sendInteractiveButtons(from,
           _btnIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
-          _btnIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']
+          _btnIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء']
         );
         return;
       }
@@ -1464,8 +1506,26 @@ app.post('/new-website-order', async (req, res) => {
     orderConfirmTimes[waPhone] = Date.now();
     persistState();
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
-    await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
-    console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
+    try {
+      await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
+      console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
+      if (websiteOrderTimers[waPhone]) clearTimeout(websiteOrderTimers[waPhone]);
+      websiteOrderTimers[waPhone] = setTimeout(async () => {
+        if (websiteOrders[waPhone]) {
+          console.log(`⏰ 45 دقيقة بدون رد من ${waPhone}`);
+          await markWebsiteOrderStatus(waPhone, orderId, 'pas de réponse');
+          try { await sendText(waPhone, `مرحباً سيدي ${name}\nلاحظنا أنك لم تكمل طلبك بعد.\nهل تحتاج مساعدة أو عندك سؤال؟ 😊\nنحن هنا إذا أردت إتمام الطلب أو تغييره`); } catch(se) {}
+          delete websiteOrders[waPhone]; persistState();
+        }
+      }, 45 * 60 * 1000);
+    } catch(te) {
+      const errStr = JSON.stringify(te.response?.data || '');
+      if (te.response?.status === 400 && (errStr.includes('131026') || errStr.includes('not a WhatsApp') || errStr.includes('not registered'))) {
+        console.warn(`⚠️ رقم غير موجود على واتساب: ${waPhone}`);
+        await markWebsiteOrderStatus(waPhone, orderId, 'تعذر الاتصال به');
+        try { await sendText(ADMIN_PHONE, `⚠️ رقم غير على واتساب\n👤 ${name} | 📞 ${phone}`); } catch(ae) {}
+      } else { throw te; }
+    }
     res.json({ success: true });
   } catch(e) {
     console.error('❌ /new-website-order:', e.message, JSON.stringify(e.response?.data));
