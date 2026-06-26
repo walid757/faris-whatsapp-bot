@@ -1288,6 +1288,7 @@ app.post('/webhook', async (req,res) => {
         } else if (text === 'إلغاء' || text === 'Annuler') {
           const _cancelIsFr = (pending.lang === 'french');
           await sendText(from, _cancelIsFr ? 'Commande annulée 😊 Tu peux recommencer quand tu veux.' : 'تم إلغاء الطلب 😊 يمكنك البدء من جديد في أي وقت.');
+          try { await saveOrderToSheet(pending.reply, from); await markWebsiteOrderStatus(from, '', 'pas de réponse'); } catch(ce) { console.error('❌ cancel sheet:', ce.message); }
           delete pendingConfirmations[from];
           orderConfirmed.delete(from);
         }
