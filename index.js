@@ -616,7 +616,7 @@ CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقي
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 30 * 60 * 1000;
-const MAX_FOLLOWUPS   = 2;
+const MAX_FOLLOWUPS   = 1;
 const followUpTimers  = {};
 const lastMessageTime = {};
 
