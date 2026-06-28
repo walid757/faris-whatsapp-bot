@@ -1493,7 +1493,7 @@ app.post('/set-refuse', async (req, res) => {
 // ✅ endpoint لكشف لغة الزبون من Apps Script
 app.post('/get-lang', (req, res) => {
   const { phone, secret } = req.body || {};
-  if (secret !== BOT_SECRET) return res.json({ error: 'unauthorized' });
+  if (secret !== SHEET_SECRET) return res.json({ error: 'unauthorized' });
   const normalized = String(phone || '').replace(/\s/g, '');
   const waPhone = normalized.startsWith('212') ? normalized : '212' + normalized.replace(/^0/, '');
   res.json({ lang: userLangPref[waPhone] || 'darija' });
