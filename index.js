@@ -214,6 +214,8 @@ const refuseTimers = {};
 // ✅ إضافة جديدة — وقت التأكيد لمنع الحجب الدائم
 const orderConfirmTimes = _state.orderConfirmTimes || {};
 const userLangPref = _state.userLangPref || {};
+// ✅ إضافة جديدة — تخزين رقم التتبع لكل زبون (رقم الهاتف ← رقم التتبع) لخدمة تتبع الطلب
+const customerTracking = _state.customerTracking || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -228,6 +230,7 @@ const persistState = () => saveState({
   refuseActive,
   websiteOrders,
   userLangPref,
+  customerTracking,
 });
 
 const userQueues = {}, userLocks = {};
@@ -1110,6 +1113,102 @@ const saveOrderToSheet = async (reply, fromPhone) => {
   } catch(err) { console.error('❌ خطأ الشيت:', err.message); return { success:false, colorFr:null, phone:formatPhone(fromPhone) }; }
 };
 
+// ✅ إضافة جديدة — shipChatOrderToOzon: شحن أوتوماتيكي لطلبات المحادثة العادية (غير طلبات الموقع) + حفظ رقم التتبع
+const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, deliveryTimeNote) => {
+  try {
+    const jsonStr = extractOrderJSON(replyText);
+    if (!jsonStr) return;
+    const od = JSON.parse(jsonStr);
+    const cd = od.customer_data || {};
+    const pd = od.product_data || {};
+    const order = {
+      name: cd.full_name || '',
+      phone: phoneDisplay,
+      city: cityFr || cd.city || '',
+      size: pd.size || '',
+      color: pd.color_fr || '',
+      price: pd.unit_price_mad || '320'
+    };
+    const finalAddress = (cd.shipping_address || '') + (deliveryTimeNote ? ` — وقت: ${deliveryTimeNote}` : '');
+    const result = await addParcelDirect(order, finalAddress);
+    if (result.success) {
+      customerTracking[from] = result.tracking;
+      persistState();
+      const _shipIsFr = (userLangPref[from] === 'french');
+      await sendText(from, _shipIsFr
+        ? `📦 Numéro de suivi: *${result.tracking}*\n🚚 Livraison sous 24 à 48h`
+        : `📦 رقم التتبع: *${result.tracking}*\n🚚 التوصيل ما بين 24 و48 ساعة`);
+      try {
+        await axios.post(SHEET_API_URL, JSON.stringify({ secret: SHEET_SECRET, action: 'mark_sent', orderId: '', phone: phoneDisplay, tracking: result.tracking }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+      } catch(se) { console.error('❌ mark_sent (طلب محادثة):', se.message); }
+    } else {
+      console.error('❌ Ozon فشل (طلب محادثة):', result.ozonResponse);
+      try { await sendText(ADMIN_PHONE, `⚠️ Ozon فشل — طلب محادثة\n👤 ${order.name} | 📞 ${order.phone}\n📍 ${order.city}\n\n${result.ozonResponse}`); } catch(ae) {}
+    }
+  } catch(e) { console.error('❌ shipChatOrderToOzon:', e.message); }
+};
+
+// ✅ إضافة جديدة — كشف سؤال الزبون عن حالة/تتبع طلبه
+const isTrackingInquiry = (t) => {
+  const s = (t || '').toLowerCase();
+  if (/رقم\s*التتبع/.test(t || '')) return true;
+  if (/(فين|وين)\s*(طلبي|الطلب|الأمانة)/.test(t || '')) return true;
+  if (/(فوقاش|وقتاش)\s*(غادي|توصل|يوصل)/.test(t || '')) return true;
+  if (/مزال\s*ما\s*(توصلت|وصلت|جاني|جاتني)/.test(t || '')) return true;
+  if (/\b(tracking|numero\s*de\s*suivi|numéro\s*de\s*suivi)\b/.test(s)) return true;
+  if (/\bou\s*(est|en)\s*(ma\s*commande|mon\s*colis)\b/.test(s)) return true;
+  if (/\b(wach\s*wslat|mzal\s*ma\s*tw?slt|fin\s*commande)\b/.test(s)) return true;
+  return false;
+};
+
+// ✅ إضافة جديدة — جلب آخر حالة معروفة للطرد من Ozon Express
+const getOrderStatusFromOzon = async (trackingNum) => {
+  try {
+    const url = `${OZON_BASE}/${OZON_CUSTOMER_ID}/${OZON_API_KEY}/tracking`;
+    const formData = new URLSearchParams();
+    formData.append('tracking-number', trackingNum);
+    const res = await axios.post(url, formData.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 8000 });
+    const history = res.data?.TRACKING?.HISTORY;
+    if (!history) return null;
+    const keys = Object.keys(history);
+    if (keys.length === 0) return null;
+    const last = history[keys[keys.length - 1]];
+    return { statut: String(last?.STATUT || ''), date: last?.DATE || '' };
+  } catch(e) { console.error('❌ getOrderStatusFromOzon:', e.message); return null; }
+};
+
+// ✅ إضافة جديدة — ترجمة حالة Ozon لرسالة ودية مفهومة للزبون
+const formatTrackingStatusMsg = (statut, isFr) => {
+  const s = (statut || '').toLowerCase();
+  if (s.includes('livré') || s.includes('livre')) return isFr ? "✅ Ta commande a été livrée avec succès !" : '✅ تم تسليم طلبك بنجاح!';
+  if (s.includes('distribution')) return isFr ? "🚚 Ta commande est en cours de livraison aujourd'hui !" : '🚚 طلبك خرج للتوصيل اليوم، غادي توصلك قريباً!';
+  if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? '📦 Ta commande est en route vers ta ville.' : '📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.';
+  if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
+  if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
+  if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
+  return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
+};
+
+// ✅ إضافة جديدة — معالج سؤال "فين طلبي" — كيرد بحالة حقيقية من Ozon Express
+const handleTrackingInquiry = async (from, text) => {
+  const trackingNum = customerTracking[from];
+  const isFr = (userLangPref[from] === 'french');
+  if (!trackingNum) {
+    await sendText(from, isFr
+      ? "Je n'ai pas encore de numéro de suivi enregistré pour toi. Si tu as reçu un SMS avec un numéro de suivi, envoie-le moi 😊"
+      : 'ماعنديش رقم تتبع مسجل ليك حاليا 😊 إلا توصلتي بـ SMS فيه رقم التتبع، صيفطهولي وغادي نشوف ليك الحالة');
+    return;
+  }
+  const status = await getOrderStatusFromOzon(trackingNum);
+  if (!status) {
+    await sendText(from, isFr
+      ? `Je vérifie ton colis (${trackingNum}) mais je n'arrive pas à avoir l'info maintenant. Réessaie dans un moment 🙏`
+      : `كنشوف الطرد ديالك (${trackingNum}) ولكن ما قدرتش نجيب المعلومة دابا 🙏 عاود جرب من بعد شوية`);
+    return;
+  }
+  await sendText(from, formatTrackingStatusMsg(status.statut, isFr));
+};
+
 const extractConfirmMsg = (reply) => { const start=reply.indexOf('ORDER_CONFIRM_MSG_START'); const end=reply.indexOf('ORDER_CONFIRM_MSG_END'); if(start!==-1&&end!==-1) return reply.substring(start+'ORDER_CONFIRM_MSG_START'.length,end).trim(); return null; };
 
 const sendFollowUp = async (from) => {
@@ -1218,6 +1317,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
   try {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
+      customerTracking[from] = result.tracking; // ✅ إضافة جديدة — حفظ رقم التتبع لخدمة سؤال "فين طلبي"
       const _trackIsFr = (userLangPref[from] === 'french');
       await sendHumanLike(from, _trackIsFr
         ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
@@ -1411,6 +1511,7 @@ app.post('/webhook', async (req,res) => {
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
+          try { await shipChatOrderToOzon(from, replyToSave, phoneDisplay, cityFr, dt); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
           delete pendingConfirmations[from];
         } else if (text === 'تحديد وقت التوصيل' || text === 'Fixer horaire') {
           pending.step = 'awaiting_delivery_time';
@@ -1442,6 +1543,7 @@ app.post('/webhook', async (req,res) => {
           } else {
             await sendText(from, `✅ تم تأكيد طلبك!\n🕐 الوقت المحدد: ${time}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
+          try { await shipChatOrderToOzon(from, modifiedReply, phoneDisplay, cityFr, time); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
           delete pendingConfirmations[from];
         } else if (text === 'إلغاء' || text === 'Annuler') {
           const _cancelIsFr = (pending.lang === 'french');
@@ -1452,6 +1554,12 @@ app.post('/webhook', async (req,res) => {
         }
       }
     } catch(e) { console.error('❌ pendingConfirmations handler:', e.message); }
+    return;
+  }
+
+  // ✅ إضافة جديدة — سؤال الزبون عن تتبع/حالة طلبه (فين طلبي)
+  if (customerTracking[from] && isTrackingInquiry(text)) {
+    try { await handleTrackingInquiry(from, text); } catch(e) { console.error('❌ handleTrackingInquiry:', e.message); }
     return;
   }
 
