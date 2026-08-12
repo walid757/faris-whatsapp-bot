@@ -1139,7 +1139,10 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
         ? `📦 Numéro de suivi: *${result.tracking}*\n🚚 Livraison sous 24 à 48h`
         : `📦 رقم التتبع: *${result.tracking}*\n🚚 التوصيل ما بين 24 و48 ساعة`);
       try {
-        await axios.post(SHEET_API_URL, JSON.stringify({ secret: SHEET_SECRET, action: 'mark_sent', orderId: '', phone: phoneDisplay, tracking: result.tracking }), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+        const _msPayload = { secret: SHEET_SECRET, action: 'mark_sent', orderId: '', phone: phoneDisplay, tracking: result.tracking };
+        console.log('📋 mark_sent (طلب محادثة) payload:', JSON.stringify(_msPayload));
+        const _msRes = await axios.post(SHEET_API_URL, JSON.stringify(_msPayload), { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
+        console.log('📋 mark_sent (طلب محادثة) response:', JSON.stringify(_msRes.data));
       } catch(se) { console.error('❌ mark_sent (طلب محادثة):', se.message); }
     } else {
       console.error('❌ Ozon فشل (طلب محادثة):', result.ozonResponse);
