@@ -1154,10 +1154,11 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
 // ✅ إضافة جديدة — كشف سؤال الزبون عن حالة/تتبع طلبه
 const isTrackingInquiry = (t) => {
   const s = (t || '').toLowerCase();
-  if (/رقم\s*التتبع/.test(t || '')) return true;
-  if (/(فين|وين)\s*(طلبي|الطلب|الأمانة)/.test(t || '')) return true;
-  if (/(فوقاش|وقتاش)\s*(غادي|توصل|يوصل)/.test(t || '')) return true;
-  if (/مزال\s*ما\s*(توصلت|وصلت|جاني|جاتني)/.test(t || '')) return true;
+  if (/تتبع/.test(t || '')) return true;
+  if (/(فين|وين|أين|اين)\s*(وصل|طلبي|طلبيتي|الطلب|الأمانة|الطرد|حذائي|الصباط)/.test(t || '')) return true;
+  if (/(وصل|وصلت|وصلني)\s*(طلبي|طلبيتي|الطلب|الأمانة|الطرد|الصباط)/.test(t || '')) return true;
+  if (/(فوقاش|وقتاش|متى)\s*(غادي|توصل|يوصل)/.test(t || '')) return true;
+  if (/مزال\s*ما\s*(توصلت|وصلت|وصلني|جاني|جاتني)/.test(t || '')) return true;
   if (/\b(tracking|numero\s*de\s*suivi|numéro\s*de\s*suivi)\b/.test(s)) return true;
   if (/\bou\s*(est|en)\s*(ma\s*commande|mon\s*colis)\b/.test(s)) return true;
   if (/\b(wach\s*wslat|mzal\s*ma\s*tw?slt|fin\s*commande)\b/.test(s)) return true;
