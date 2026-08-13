@@ -1561,7 +1561,7 @@ app.post('/webhook', async (req,res) => {
   }
 
   // ✅ إضافة جديدة — سؤال الزبون عن تتبع/حالة طلبه (فين طلبي)
-  if (customerTracking[from] && isTrackingInquiry(text)) {
+  if (isTrackingInquiry(text)) {
     try { await handleTrackingInquiry(from, text); } catch(e) { console.error('❌ handleTrackingInquiry:', e.message); }
     return;
   }
