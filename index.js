@@ -216,6 +216,8 @@ const orderConfirmTimes = _state.orderConfirmTimes || {};
 const userLangPref = _state.userLangPref || {};
 // ✅ إضافة جديدة — تخزين رقم التتبع لكل زبون (رقم الهاتف ← رقم التتبع) لخدمة تتبع الطلب
 const customerTracking = _state.customerTracking || {};
+// ✅ إضافة جديدة — تخزين آخر حالة معروفة لكل زبون لتفادي تكرار نفس الإشعار
+const customerLastStatus = _state.customerLastStatus || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -231,6 +233,7 @@ const persistState = () => saveState({
   websiteOrders,
   userLangPref,
   customerTracking,
+  customerLastStatus,
 });
 
 const userQueues = {}, userLocks = {};
@@ -1190,6 +1193,7 @@ const formatTrackingStatusMsg = (statut, isFr) => {
   if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
   if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
+  if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) return isFr ? "📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre. On va réessayer très vite." : '📞 المُوصّل حاول يتصل بيك ما قدرش يوصل ليك. غادي نعاودو نتصلو بيك في أقرب وقت 🙏';
   return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
 };
 
@@ -1807,3 +1811,25 @@ app.post('/new-website-order', async (req, res) => {
 app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 v18 — السيرفر على المنفذ ${PORT}`));
+
+// ✅ إضافة جديدة — فحص دوري لحالة كل الطلبيات عند Ozon Express وإشعار الزبون تلقائياً كي تتبدل الحالة
+const checkOzonStatusChanges = async () => {
+  const phones = Object.keys(customerTracking);
+  for (const phone of phones) {
+    const trackingNum = customerTracking[phone];
+    if (!trackingNum) continue;
+    const prevStatus = (customerLastStatus[phone] || '').toLowerCase();
+    if (prevStatus && (prevStatus.includes('livr') || prevStatus.includes('annul'))) continue;
+    try {
+      const status = await getOrderStatusFromOzon(trackingNum);
+      if (!status || !status.statut) continue;
+      if (status.statut === customerLastStatus[phone]) continue;
+      customerLastStatus[phone] = status.statut;
+      persistState();
+      const isFr = (userLangPref[phone] === 'french');
+      await sendText(phone, formatTrackingStatusMsg(status.statut, isFr));
+      console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
+    } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
+  }
+};
+setInterval(() => { checkOzonStatusChanges().catch(e => console.error('❌ checkOzonStatusChanges interval:', e.message)); }, 10 * 60 * 1000);
