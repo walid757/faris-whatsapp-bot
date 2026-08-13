@@ -1369,8 +1369,8 @@ const handleWebsiteOrder = async (from, text) => {
 
   if (order.step === 'awaiting_reply') {
     if (text === 'تأكيد الطلب') {
-      order.step = 'awaiting_website_time'; persistState();
-      await sendInteractiveButtons(from, 'هل تريد تحديد وقت للتوصيل؟ 🕐', ['تحديد وقت', 'أي وقت مناسب']);
+      // ✅ إضافة جديدة — تأكيد الطلب يشحن فالحين بلا ما يعاود يسأل على الوقت
+      await confirmAndSendToOzon(from, order, order.address || order.city || 'عنوان التوصيل');
     } else if (text === 'تحديد وقت التوصيل') {
       order.step = 'awaiting_delivery_time'; persistState();
       await sendHumanLike(from,
@@ -1388,7 +1388,7 @@ const handleWebsiteOrder = async (from, text) => {
   }
 
   if (order.step === 'awaiting_delivery_time') {
-    const noPreference = /أي وقت|اي وقت|الآن|الان|now/.test(text.toLowerCase());
+    const noPreference = /أي وقت|اي وقت|الآن|الان|now|لا أريد|لا اريد/.test(text.toLowerCase());
     const finalAddress = noPreference
       ? order.address
       : `${order.address} — وقت: ${text.trim()}`;
@@ -1462,7 +1462,7 @@ app.post('/webhook', async (req,res) => {
           conversationHistory[from].push({ role: 'assistant', content: _dtsFr ? "Écris l'horaire idéal 🕐" : 'اكتب الوقت المناسب للتوصيل أو الاتصال 🕐' });
           await sendText(from, _dtsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
         } else {
-          conversationHistory[from].push({ role: 'user', content: _dtsFr ? "N'importe quand" : 'أي وقت مناسب' });
+          conversationHistory[from].push({ role: 'user', content: _dtsFr ? "N'importe quand" : 'لا أريد' });
           conversationHistory[from].push({ role: 'assistant', content: _dtsFr ? 'Parfait! Il reste juste le numéro de téléphone 😊 On garde ce numéro?' : 'مزيان! بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟' });
           delete deliveryTimeStates[from];
           await sendText(from, _dtsFr ? `Parfait! 😊\nOn garde ce numéro de téléphone, ou tu en as un autre?` : `مزيان! بقى غير رقم الهاتف 😊\nواش نخلي هذا الرقم، ولا عندك رقم آخر؟`);
@@ -1681,7 +1681,7 @@ app.post('/webhook', async (req,res) => {
         await sleep(600);
         await sendInteractiveButtons(from,
           _dtsIsFr ? 'Tu as un horaire préféré pour la livraison? 🕐' : 'واش عندك وقت مفضل للتوصيل أو الاتصال؟ 🕐',
-          _dtsIsFr ? ['Fixer horaire', "N'importe quand"] : ['تحديد وقت', 'أي وقت مناسب']
+          _dtsIsFr ? ['Fixer horaire', "N'importe quand"] : ['تحديد وقت', 'لا أريد']
         );
         return;
       }
