@@ -1836,6 +1836,25 @@ app.get('/', (req,res) => res.json({status:'ok',version:'v18-final'}));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 v18 — السيرفر على المنفذ ${PORT}`));
 
+// ✅ إضافة جديدة — رسالة PDR الأولى: تفتح حوار لطيف مع الزبون وتسأله عن وقت مناسب (Claude)
+const generatePdrInitialMsg = async (name, product, trackingNum, isFr) => {
+  try {
+    const prompt = isFr
+      ? `Tu es un assistant WhatsApp humain pour une boutique de chaussures en cuir au Maroc.\nÉcris un message WhatsApp court, chaleureux et poli pour le client, en français.\nNom: ${name} | Produit: ${product} | Numéro de suivi: ${trackingNum}\nLe livreur a essayé de le contacter mais n'a pas pu le joindre.\nDemande-lui gentiment quel moment lui conviendrait pour la livraison. 3 à 4 lignes, ton chaleureux, emojis avec modération.`
+      : `أنت مساعد واتساب بشري لمتجر أحذية جلدية بالمغرب.\nاكتب رسالة واتساب قصيرة، دافئة، ومهذبة للزبون بالدارجة المغربية.\nالاسم: ${name} | المنتج: ${product} | رقم التتبع: ${trackingNum}\nالحالة: الليفرور حاول يتصل بالزبون ولكن ما لقاهش.\nاسأله بلطف ولباقة شنو الوقت المناسب ليه باش يتوصل بطلبيتو. من 3 إلى 4 أسطر، أسلوب دافئ، إيموجي باعتدال.`;
+    const res = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }]
+    }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+    return res.data.content[0].text;
+  } catch(e) {
+    console.error('❌ generatePdrInitialMsg:', e.message);
+    return isFr
+      ? `Bonjour ${name} 👋\nOn a ta commande (${product})\n📦 Numéro de suivi: ${trackingNum}\nLe livreur n'a pas pu te joindre — tu peux nous dire quel moment te conviendrait ? 🚚`
+      : `سلام ${name} 👋\nعندنا طلبيتك (${product})\n📦 رقم التتبع: ${trackingNum}\nالليفرور ما قدرش يوصل ليك — واش تقدر تقول لينا شنو الوقت المناسب ليك؟ 🚚`;
+  }
+};
+
 // ✅ إضافة جديدة — فحص دوري لحالة كل الطلبيات عند Ozon Express وإشعار الزبون تلقائياً كي تتبدل الحالة
 const checkOzonStatusChanges = async () => {
   const phones = Object.keys(customerTracking);
@@ -1852,16 +1871,24 @@ const checkOzonStatusChanges = async () => {
       persistState();
       const isFr = (userLangPref[phone] === 'french');
       const statusLowerForLivreur = status.statut.toLowerCase();
-      const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
-      await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
-      console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
-      if (statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) {
+      const isPdrStatus = statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable');
+      const livreurForMsg = (statusLowerForLivreur.includes('distribution') || isPdrStatus) ? await getLivreurFromOzon(trackingNum) : null;
+      if (isPdrStatus) {
         const oi = customerOrderInfo[phone] || {};
+        const pdrMsg = await generatePdrInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
+        await sendText(phone, pdrMsg);
+        if (livreurForMsg && livreurForMsg.phone) {
+          await sleep(1000);
+          await sendText(phone, isFr ? `📞 Tél livreur: ${livreurForMsg.phone}\nTu peux le contacter directement 🙏` : `📞 رقم الليفرور: ${livreurForMsg.phone}\nتقدر تتصل بيه مباشرة 🙏`);
+        }
         pasDeReponseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', phone };
         persistState();
         schedulePdrFollowup(phone);
         console.log(`📝 PDR مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
+      } else {
+        await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       }
+      console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
   }
 };
