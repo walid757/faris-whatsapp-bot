@@ -1192,6 +1192,7 @@ const formatTrackingStatusMsg = (statut, isFr) => {
   if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? '📦 Ta commande est en route vers ta ville.' : '📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.';
   if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
+  if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? "⏳ Ta commande est prête, en attente que le livreur vienne la récupérer." : '⏳ طلبك جاهز، فمرحلة انتظار باش الموصل يجي يأخذو من المستودع.';
   if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
   if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) return isFr ? "📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre. On va réessayer très vite." : '📞 المُوصّل حاول يتصل بيك ما قدرش يوصل ليك. غادي نعاودو نتصلو بيك في أقرب وقت 🙏';
   return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
