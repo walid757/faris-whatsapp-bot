@@ -1185,10 +1185,18 @@ const getOrderStatusFromOzon = async (trackingNum) => {
 };
 
 // ✅ إضافة جديدة — ترجمة حالة Ozon لرسالة ودية مفهومة للزبون
-const formatTrackingStatusMsg = (statut, isFr, trackingNum) => {
+const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
   const s = (statut || '').toLowerCase();
   if (s.includes('livré') || s.includes('livre')) return isFr ? "✅ Ta commande a été livrée avec succès !" : '✅ تم تسليم طلبك بنجاح!';
-  if (s.includes('distribution')) return isFr ? "🚚 Ta commande est en cours de livraison aujourd'hui !" : '🚚 طلبك خرج للتوصيل اليوم، غادي توصلك قريباً!';
+  if (s.includes('distribution')) {
+    const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
+    const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
+    const livreurLineFr = (livreur && livreur.phone) ? `\n🚚 Livreur: ${livreur.name}\n📞 Tél livreur: ${livreur.phone}\n\nSois disponible sur ton numéro 🙏` : '\nLe livreur te contactera bientôt 📞';
+    const livreurLineAr = (livreur && livreur.phone) ? `\n🚚 الليفرور: ${livreur.name}\n📞 رقم الليفرور: ${livreur.phone}\n\nكون متاح على رقمك 🙏` : '\nالليفرور غادي يتصل بيك قريباً 📞';
+    return isFr
+      ? `🚚 Ta commande est en cours de livraison aujourd'hui !${trackLineFr}${livreurLineFr}`
+      : `🚚 طلبك خرج للتوصيل اليوم، غادي توصلك قريباً!${trackLineAr}${livreurLineAr}`;
+  }
   if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? '📦 Ta commande est en route vers ta ville.' : '📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.';
   if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
@@ -1215,7 +1223,8 @@ const handleTrackingInquiry = async (from, text) => {
       : `كنشوف الطرد ديالك (${trackingNum}) ولكن ما قدرتش نجيب المعلومة دابا 🙏 عاود جرب من بعد شوية`);
     return;
   }
-  await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum));
+  const livreurForMsg = status.statut.toLowerCase().includes('distribution') ? await getLivreurFromOzon(trackingNum) : null;
+  await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
 };
 
 const extractConfirmMsg = (reply) => { const start=reply.indexOf('ORDER_CONFIRM_MSG_START'); const end=reply.indexOf('ORDER_CONFIRM_MSG_END'); if(start!==-1&&end!==-1) return reply.substring(start+'ORDER_CONFIRM_MSG_START'.length,end).trim(); return null; };
@@ -1828,7 +1837,8 @@ const checkOzonStatusChanges = async () => {
       customerLastStatus[phone] = status.statut;
       persistState();
       const isFr = (userLangPref[phone] === 'french');
-      await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum));
+      const livreurForMsg = status.statut.toLowerCase().includes('distribution') ? await getLivreurFromOzon(trackingNum) : null;
+      await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
   }
