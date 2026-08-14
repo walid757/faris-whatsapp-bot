@@ -218,6 +218,8 @@ const userLangPref = _state.userLangPref || {};
 const customerTracking = _state.customerTracking || {};
 // ✅ إضافة جديدة — تخزين آخر حالة معروفة لكل زبون لتفادي تكرار نفس الإشعار
 const customerLastStatus = _state.customerLastStatus || {};
+// ✅ إضافة جديدة — تخزين معلومات الطلبية (اسم/منتج/عنوان) لكل زبون لخدمة معالج pas de réponse الأوتوماتيكي
+const customerOrderInfo = _state.customerOrderInfo || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -234,6 +236,7 @@ const persistState = () => saveState({
   userLangPref,
   customerTracking,
   customerLastStatus,
+  customerOrderInfo,
 });
 
 const userQueues = {}, userLocks = {};
@@ -1136,6 +1139,7 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking;
+      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size };
       persistState();
       const _shipIsFr = (userLangPref[from] === 'french');
       await sendText(from, _shipIsFr
@@ -1345,6 +1349,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking; // ✅ إضافة جديدة — حفظ رقم التتبع لخدمة سؤال "فين طلبي"
+      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '' };
       const _trackIsFr = (userLangPref[from] === 'french');
       await sendHumanLike(from, _trackIsFr
         ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
@@ -1850,6 +1855,13 @@ const checkOzonStatusChanges = async () => {
       const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
       await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
+      if (statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) {
+        const oi = customerOrderInfo[phone] || {};
+        pasDeReponseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', phone };
+        persistState();
+        schedulePdrFollowup(phone);
+        console.log(`📝 PDR مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
+      }
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
   }
 };
