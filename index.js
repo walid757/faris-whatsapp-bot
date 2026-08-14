@@ -1202,7 +1202,15 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
   if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : ''}` : `⏳ طلبك جاهز، فمرحلة انتظار باش الموصل يجي يأخذو من المستودع.${trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : ''}`;
   if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
-  if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) return isFr ? "📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre. On va réessayer très vite." : '📞 المُوصّل حاول يتصل بيك ما قدرش يوصل ليك. غادي نعاودو نتصلو بيك في أقرب وقت 🙏';
+  if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) {
+    const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
+    const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
+    const livreurLineFr = (livreur && livreur.phone) ? `\n🚚 Livreur: ${livreur.name}\n📞 Tél livreur: ${livreur.phone}` : '';
+    const livreurLineAr = (livreur && livreur.phone) ? `\n🚚 الليفرور: ${livreur.name}\n📞 رقم الليفرور: ${livreur.phone}` : '';
+    return isFr
+      ? `📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre.${trackLineFr}${livreurLineFr}\n\nOn va réessayer très vite, ou tu peux contacter le livreur directement.`
+      : `📞 المُوصّل حاول يتصل بيك ما قدرش يوصل ليك.${trackLineAr}${livreurLineAr}\n\nغادي نعاودو نتصلو بيك في أقرب وقت، ولا تقدر تتصل بالموصل مباشرة 🙏`;
+  }
   return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
 };
 
@@ -1223,7 +1231,8 @@ const handleTrackingInquiry = async (from, text) => {
       : `كنشوف الطرد ديالك (${trackingNum}) ولكن ما قدرتش نجيب المعلومة دابا 🙏 عاود جرب من بعد شوية`);
     return;
   }
-  const livreurForMsg = status.statut.toLowerCase().includes('distribution') ? await getLivreurFromOzon(trackingNum) : null;
+  const statusLowerForLivreur = status.statut.toLowerCase();
+  const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
   await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
 };
 
@@ -1837,7 +1846,8 @@ const checkOzonStatusChanges = async () => {
       customerLastStatus[phone] = status.statut;
       persistState();
       const isFr = (userLangPref[phone] === 'french');
-      const livreurForMsg = status.statut.toLowerCase().includes('distribution') ? await getLivreurFromOzon(trackingNum) : null;
+      const statusLowerForLivreur = status.statut.toLowerCase();
+      const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
       await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
