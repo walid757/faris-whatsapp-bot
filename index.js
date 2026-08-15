@@ -1222,7 +1222,7 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
   if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? '📦 Ta commande est en route vers ta ville.' : '📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.';
   if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
-  if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : ''}` : `⏳ طلبك جاهز، فمرحلة انتظار باش الموصل يجي يأخذو من المستودع.${trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : ''}`;
+  if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : ''}` : `⏳ طلبك جاهز، فمرحلة انتظار باش الليفرور يجي ياخدو من المستودع.${trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : ''}`;
   if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
   if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) {
     const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
@@ -1231,7 +1231,7 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
     const livreurLineAr = (livreur && livreur.phone) ? `\n🚚 الليفرور: ${livreur.name}\n📞 رقم الليفرور: ${livreur.phone}` : '';
     return isFr
       ? `📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre.${trackLineFr}${livreurLineFr}\n\nOn va réessayer très vite, ou tu peux contacter le livreur directement.`
-      : `📞 المُوصّل حاول يتصل بيك ما قدرش يوصل ليك.${trackLineAr}${livreurLineAr}\n\nغادي نعاودو نتصلو بيك في أقرب وقت، ولا تقدر تتصل بالموصل مباشرة 🙏`;
+      : `📞 الليفرور حاول يتصل بيك ما قدرش يوصل ليك.${trackLineAr}${livreurLineAr}\n\nغادي نعاودو نتصلو بيك في أقرب وقت، ولا تقدر تتصل بالليفرور مباشرة 🙏`;
   }
   return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
 };
