@@ -1169,7 +1169,25 @@ const isTrackingInquiry = (t) => {
   if (/\b(tracking|numero\s*de\s*suivi|numéro\s*de\s*suivi)\b/.test(s)) return true;
   if (/\bou\s*(est|en)\s*(ma\s*commande|mon\s*colis)\b/.test(s)) return true;
   if (/\b(wach\s*wslat|mzal\s*ma\s*tw?slt|fin\s*commande)\b/.test(s)) return true;
+  if (extractTrackingNumberFromText(t)) return true;
   return false;
+};
+
+// ✅ إضافة جديدة — استخراج رقم التتبع (Ozon) من نص رسالة الزبون إلا لصقو بيدو
+const extractTrackingNumberFromText = (text) => {
+  const match = (text || '').match(/\b[A-Za-z]{2,4}\d{6,12}[A-Za-z]{0,4}\b/);
+  return match ? match[0].toUpperCase() : null;
+};
+
+// ✅ إضافة جديدة — البحث عن رقم تتبع مرتبط برقم هاتف مغربي مكتوب فنص رسالة الزبون
+const findTrackingByPhoneInText = (text) => {
+  const phoneMatch = (text || '').match(/\b0?(?:6|7)\d{8}\b|\b212(?:6|7)\d{8}\b/);
+  if (!phoneMatch) return null;
+  const norm = phoneMatch[0].replace(/\D/g, '').slice(-9);
+  for (const key of Object.keys(customerTracking)) {
+    if (key.replace(/\D/g, '').slice(-9) === norm) return customerTracking[key];
+  }
+  return null;
 };
 
 // ✅ إضافة جديدة — جلب آخر حالة معروفة للطرد من Ozon Express
@@ -1220,7 +1238,8 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
 
 // ✅ إضافة جديدة — معالج سؤال "فين طلبي" — كيرد بحالة حقيقية من Ozon Express
 const handleTrackingInquiry = async (from, text) => {
-  const trackingNum = customerTracking[from];
+  const typedTracking = extractTrackingNumberFromText(text);
+  const trackingNum = typedTracking || customerTracking[from] || findTrackingByPhoneInText(text);
   const isFr = (userLangPref[from] === 'french');
   if (!trackingNum) {
     await sendText(from, isFr
@@ -1228,6 +1247,7 @@ const handleTrackingInquiry = async (from, text) => {
       : 'ماعنديش رقم تتبع مسجل ليك حاليا 😊 إلا توصلتي بـ SMS فيه رقم التتبع، صيفطهولي وغادي نشوف ليك الحالة');
     return;
   }
+  if (typedTracking && typedTracking !== customerTracking[from]) { customerTracking[from] = typedTracking; persistState(); }
   const status = await getOrderStatusFromOzon(trackingNum);
   if (!status) {
     await sendText(from, isFr
