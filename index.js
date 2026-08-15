@@ -220,6 +220,8 @@ const customerTracking = _state.customerTracking || {};
 const customerLastStatus = _state.customerLastStatus || {};
 // ✅ إضافة جديدة — تخزين معلومات الطلبية (اسم/منتج/عنوان) لكل زبون لخدمة معالج pas de réponse الأوتوماتيكي
 const customerOrderInfo = _state.customerOrderInfo || {};
+// ✅ إضافة جديدة — حالة السؤال التفاعلي عن رقم التتبع/الهاتف عند سؤال الزبون عن حالة طلبه بلا ما يكون رقم محفوظ
+const trackingInquiryState = _state.trackingInquiryState || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -237,6 +239,7 @@ const persistState = () => saveState({
   customerTracking,
   customerLastStatus,
   customerOrderInfo,
+  trackingInquiryState,
 });
 
 const userQueues = {}, userLocks = {};
@@ -1242,9 +1245,11 @@ const handleTrackingInquiry = async (from, text) => {
   const trackingNum = typedTracking || customerTracking[from] || findTrackingByPhoneInText(text);
   const isFr = (userLangPref[from] === 'french');
   if (!trackingNum) {
+    trackingInquiryState[from] = { step: 'awaiting_tracking' };
+    persistState();
     await sendText(from, isFr
-      ? "Je n'ai pas encore de numéro de suivi enregistré pour toi. Si tu as reçu un SMS avec un numéro de suivi, envoie-le moi 😊"
-      : 'ماعنديش رقم تتبع مسجل ليك حاليا 😊 إلا توصلتي بـ SMS فيه رقم التتبع، صيفطهولي وغادي نشوف ليك الحالة');
+      ? "Je n'ai pas de numéro de suivi enregistré pour toi. Tu peux me l'envoyer ? (le code reçu par SMS) 😊"
+      : 'ماعنديش رقم تتبع مسجل ليك حاليا 😊 واش تقدر تصيفط ليا رقم التتبع (الكود اللي توصلتي بيه فـ SMS)؟');
     return;
   }
   if (typedTracking && typedTracking !== customerTracking[from]) { customerTracking[from] = typedTracking; persistState(); }
@@ -1258,6 +1263,42 @@ const handleTrackingInquiry = async (from, text) => {
   const statusLowerForLivreur = status.statut.toLowerCase();
   const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
   await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
+};
+
+// ✅ إضافة جديدة — متابعة الحوار: إلا سولنا الزبون عن رقم التتبع وما عطاهوش، نسولوه على رقم الهاتف
+const handleTrackingInquiryFollowUp = async (from, text) => {
+  const state = trackingInquiryState[from];
+  const isFr = (userLangPref[from] === 'french');
+  if (state.step === 'awaiting_tracking') {
+    const typed = extractTrackingNumberFromText(text);
+    if (typed) {
+      delete trackingInquiryState[from];
+      customerTracking[from] = typed;
+      persistState();
+      await handleTrackingInquiry(from, text);
+      return;
+    }
+    state.step = 'awaiting_phone';
+    persistState();
+    await sendText(from, isFr
+      ? "Pas de souci ! Donne-moi le numéro de téléphone utilisé pour la commande 📞"
+      : 'ماشي مشكل 😊 عطيني رقم الهاتف اللي دزتي بيه الطلبية 📞');
+    return;
+  }
+  if (state.step === 'awaiting_phone') {
+    const found = findTrackingByPhoneInText(text);
+    delete trackingInquiryState[from];
+    persistState();
+    if (found) {
+      customerTracking[from] = found;
+      persistState();
+      await handleTrackingInquiry(from, text);
+    } else {
+      await sendText(from, isFr
+        ? "Désolé, je n'ai trouvé aucune commande avec ce numéro 🙏 Contacte-nous directement pour vérifier."
+        : 'سمح ليا، ما لقيتش شي طلبية بهاد الرقم 🙏 تواصل معانا مباشرة باش نتأكدو ليك');
+    }
+  }
 };
 
 const extractConfirmMsg = (reply) => { const start=reply.indexOf('ORDER_CONFIRM_MSG_START'); const end=reply.indexOf('ORDER_CONFIRM_MSG_END'); if(start!==-1&&end!==-1) return reply.substring(start+'ORDER_CONFIRM_MSG_START'.length,end).trim(); return null; };
@@ -1606,6 +1647,12 @@ app.post('/webhook', async (req,res) => {
         }
       }
     } catch(e) { console.error('❌ pendingConfirmations handler:', e.message); }
+    return;
+  }
+
+  // ✅ إضافة جديدة — متابعة حوار سؤال رقم التتبع/الهاتف (سبق وسولنا الزبون)
+  if (trackingInquiryState[from]) {
+    try { await handleTrackingInquiryFollowUp(from, text); } catch(e) { console.error('❌ handleTrackingInquiryFollowUp:', e.message); }
     return;
   }
 
