@@ -669,6 +669,7 @@ CASE_13: يريد تغيير المقاس
 CASE_14: يريد تبديل المنتج كلياً
 CASE_15: يريد إلغاء الطلبية صراحةً
 CASE_16: رد غير واضح
+CASE_17: وافق على عرض التخفيض 50 درهم وبغى يكمل بنفس الحذاء
 
 أولاً في سطر منفصل:
 DETECTED_CASE: [رقم الحالة]
@@ -676,7 +677,7 @@ DETECTED_CASE: [رقم الحالة]
 ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — ابدأ بتعاطف حقيقي وعميق — استخدم مهارات الإقناع المناسبة — 5 إلى 7 أسطر — إيموجي باعتدال — لا مختصر جداً ولا ممل.
 
 قواعد الرد:
-CASE_1: "والله فاهمك..." + ضمان قلب قيس عاد خلص + "الجلد الطبيعي كيبان أحلى في الواقع" + اقترح صور إضافية
+CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (يبقى بـ270 درهم بدل 320) + اسأله أي واحد يفضل
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
@@ -691,7 +692,8 @@ CASE_12: "معك حق وسمح لنا..." + اعتذر + اشرح + اعرض إ�
 CASE_13: "لا باس — المقاسات كتختلف..." + اطلب المقاس الجديد + "نبعثوه ليك بنفس كل المعلومات"
 CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك طلبية جديدة فوراً"
 CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
-CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE`;
+CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE
+CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (270 درهم بدل 320) + "الليفرور غادي يتواصل معاك قريباً"`;
 
 // ✅ إضافة جديدة — Static system prompts للكاشينج (توفير التكلفة)
 const PDR_SYSTEM_STATIC = `أنت مساعد واتساب بشري لمتجر GreatShoes للأحذية الجلدية بالمغرب.
@@ -760,6 +762,7 @@ CASE_13: يريد تغيير المقاس
 CASE_14: يريد تبديل المنتج كلياً
 CASE_15: يريد إلغاء الطلبية صراحةً
 CASE_16: رد غير واضح
+CASE_17: وافق على عرض التخفيض 50 درهم وبغى يكمل بنفس الحذاء
 
 أولاً في سطر منفصل:
 DETECTED_CASE: [رقم الحالة]
@@ -767,7 +770,7 @@ DETECTED_CASE: [رقم الحالة]
 ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — ابدأ بتعاطف حقيقي وعميق — استخدم مهارات الإقناع المناسبة — 5 إلى 7 أسطر — إيموجي باعتدال — لا مختصر جداً ولا ممل.
 
 قواعد الرد:
-CASE_1: "والله فاهمك..." + ضمان قلب قيس عاد خلص + "الجلد الطبيعي كيبان أحلى في الواقع" + اقترح صور إضافية
+CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (يبقى بـ270 درهم بدل 320) + اسأله أي واحد يفضل
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
@@ -782,7 +785,8 @@ CASE_12: "معك حق وسمح لنا..." + اعتذر + اشرح + اعرض إ�
 CASE_13: "لا باس — المقاسات كتختلف..." + اطلب المقاس الجديد + "نبعثوه ليك بنفس كل المعلومات"
 CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك طلبية جديدة فوراً"
 CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
-CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE`;
+CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE
+CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (270 درهم بدل 320) + "الليفرور غادي يتواصل معاك قريباً"`;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 30 * 60 * 1000;
@@ -875,12 +879,12 @@ const getLivreurFromOzon = async (trackingNum) => {
 };
 
 // ✅ إضافة جديدة — sendNewOrderToSheet
-const sendNewOrderToSheet = async (info, newSize, newProduct, newColor) => {
+const sendNewOrderToSheet = async (info, newSize, newProduct, newColor, newPrice) => {
   try {
     const colorFr = newColor || detectColor(info.product) || 'noir';
     const size    = newSize  || info.size || '';
     const variant = size && colorFr ? `${size}/${colorFr}` : '';
-    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: '320', product: newProduct || info.product || 'BOTTINE CUIR GS081', color: variant, size: '' };
+    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: String(newPrice || '320'), product: newProduct || info.product || 'BOTTINE CUIR GS081', color: variant, size: '' };
     const response = await axios.post(SHEET_API_URL, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
     console.log('📤 طلبية جديدة للشيت:', response.status);
     return true;
@@ -1094,6 +1098,11 @@ const handleRefuse = async (from, text) => {
     case 14: refuseActive[from].waitingForProduct = true; persistState(); break;
     case 15: scheduleRefuseFollowup(from); break;
     case 16: delete refuseActive[from]; persistState(); break;
+    case 17:
+      await sendNewOrderToSheet(info, info.size, info.product, null, 270);
+      await sleep(1000);
+      await sendText(from, "✅ تم تسجيل التخفيض (270 درهم) — سيتصل بك الليفرور قريباً 🙏");
+      delete refuseActive[from]; persistState(); break;
     default: scheduleRefuseFollowup(from); break;
   }
 };
@@ -1922,6 +1931,25 @@ const generatePdrInitialMsg = async (name, product, trackingNum, isFr) => {
   }
 };
 
+// ✅ إضافة جديدة — رسالة الرفض الأولى: تفتح حوار بأدب ولباقة مع الزبون وتسأله علاش رفض (Claude)
+const generateRefuseInitialMsg = async (name, product, trackingNum, isFr) => {
+  try {
+    const prompt = isFr
+      ? `Tu es un conseiller commercial pour une boutique de chaussures en cuir au Maroc.\nLe client a refusé sa commande à la livraison.\nÉcris un message WhatsApp court, poli et chaleureux, en français.\nNom: ${name} | Produit: ${product} | Numéro de suivi: ${trackingNum}\nExcuse-toi avec sincérité et demande-lui gentiment pourquoi il a refusé, pour pouvoir régler le problème. 3 à 4 lignes, ton chaleureux, emojis avec modération.`
+      : `أنت مستشار مبيعات لمتجر أحذية جلدية بالمغرب.\nالزبون رفض استلام طلبيته عند التوصيل.\nاكتب رسالة واتساب قصيرة، بأدب ولباقة، بالدارجة المغربية.\nالاسم: ${name} | المنتج: ${product} | رقم التتبع: ${trackingNum}\nاعتذر بصدق وسولو بلطف علاش رفض الطلبية باش نقدرو نحلو المشكل. من 3 إلى 4 أسطر، أسلوب دافئ، إيموجي باعتدال.`;
+    const res = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }]
+    }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+    return res.data.content[0].text;
+  } catch(e) {
+    console.error('❌ generateRefuseInitialMsg:', e.message);
+    return isFr
+      ? `Bonjour ${name} 👋\nOn a vu que tu as refusé ta commande (${product}) 😔\nTu peux nous dire pourquoi ? On veut vraiment régler ça 🙏`
+      : `سلام ${name} 👋\nشفنا أنك رفضتي طلبيتك (${product}) 😔\nواش تقدر تقول لينا علاش؟ بغينا نحلو المشكل معاك 🙏`;
+  }
+};
+
 // ✅ إضافة جديدة — فحص دوري لحالة كل الطلبيات عند Ozon Express وإشعار الزبون تلقائياً كي تتبدل الحالة
 const checkOzonStatusChanges = async () => {
   const phones = Object.keys(customerTracking);
@@ -1939,6 +1967,7 @@ const checkOzonStatusChanges = async () => {
       const isFr = (userLangPref[phone] === 'french');
       const statusLowerForLivreur = status.statut.toLowerCase();
       const isPdrStatus = statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable');
+      const isRefuseStatus = statusLowerForLivreur.includes('refus') || statusLowerForLivreur.includes('retour');
       const livreurForMsg = (statusLowerForLivreur.includes('distribution') || isPdrStatus) ? await getLivreurFromOzon(trackingNum) : null;
       if (isPdrStatus) {
         const oi = customerOrderInfo[phone] || {};
@@ -1952,6 +1981,14 @@ const checkOzonStatusChanges = async () => {
         persistState();
         schedulePdrFollowup(phone);
         console.log(`📝 PDR مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
+      } else if (isRefuseStatus) {
+        const oi = customerOrderInfo[phone] || {};
+        const refuseMsg = await generateRefuseInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
+        await sendText(phone, refuseMsg);
+        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', phone };
+        persistState();
+        scheduleRefuseFollowup(phone);
+        console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
       } else {
         await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       }
