@@ -656,6 +656,7 @@ const REFUSE_PROMPT = `أنت مستشار مبيعات خبير في علم ا�
 - رقم التتبع: {TRACKING}
 - العنوان: {ADDRESS}
 - المقاس: {SIZE}
+- السعر: {PRICE} درهم
 
 رد الزبون: "{REPLY}"
 
@@ -685,7 +686,7 @@ DETECTED_CASE: [رقم الحالة]
 ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — ابدأ بتعاطف حقيقي وعميق — استخدم مهارات الإقناع المناسبة — 5 إلى 7 أسطر — إيموجي باعتدال — لا مختصر جداً ولا ممل.
 
 قواعد الرد:
-CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (يبقى بـ270 درهم بدل 320) + اسأله أي واحد يفضل
+CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (احسب السعر الجديد بطرح 50 من السعر الأصلي المذكور فمعلومات الطلبية) + اسأله أي واحد يفضل
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
@@ -701,7 +702,7 @@ CASE_13: "لا باس — المقاسات كتختلف..." + اطلب المق�
 CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك طلبية جديدة فوراً"
 CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
 CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE
-CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (270 درهم بدل 320) + "الليفرور غادي يتواصل معاك قريباً"`;
+CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (احسب السعر الجديد بطرح 50 من السعر الأصلي المذكور فمعلومات الطلبية) + "الليفرور غادي يتواصل معاك قريباً"`;
 
 // ✅ إضافة جديدة — Static system prompts للكاشينج (توفير التكلفة)
 const PDR_SYSTEM_STATIC = `أنت مساعد واتساب بشري لمتجر GreatShoes للأحذية الجلدية بالمغرب.
@@ -778,7 +779,7 @@ DETECTED_CASE: [رقم الحالة]
 ثم اكتب رداً بالدارجة المغربية كأنك إنسان حقيقي — ابدأ بتعاطف حقيقي وعميق — استخدم مهارات الإقناع المناسبة — 5 إلى 7 أسطر — إيموجي باعتدال — لا مختصر جداً ولا ممل.
 
 قواعد الرد:
-CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (يبقى بـ270 درهم بدل 320) + اسأله أي واحد يفضل
+CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه اختيارين بوضوح: 1) نبدلو ليك بحذاء آخر (لون/موديل مختلف) 2) نعطيوك تخفيض 50 درهم فنفس الحذاء (احسب السعر الجديد بطرح 50 من السعر الأصلي المذكور فمعلومات الطلبية) + اسأله أي واحد يفضل
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
@@ -794,7 +795,7 @@ CASE_13: "لا باس — المقاسات كتختلف..." + اطلب المق�
 CASE_14: اطلب تفاصيل المنتج الجديد + "نجهزو ليك طلبية جديدة فوراً"
 CASE_15: تعاطف + حاول مرة أخيرة + "واش فيه شي نقدرو نصلحو؟"
 CASE_16: "عفاك حبيبي..." + اسأل بلطف عن السبب الحقيقي + EMOTIONAL_INTELLIGENCE
-CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (270 درهم بدل 320) + "الليفرور غادي يتواصل معاك قريباً"`;
+CASE_17: شكره بحرارة + أخبره أن التخفيض متسجل (احسب السعر الجديد بطرح 50 من السعر الأصلي المذكور فمعلومات الطلبية) + "الليفرور غادي يتواصل معاك قريباً"`;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 30 * 60 * 1000;
@@ -1070,15 +1071,17 @@ const handleRefuse = async (from, text) => {
   const customerName  = info.name;
   const customerPhone = formatPhone(from);
   if (refuseTimers[from]) { clearTimeout(refuseTimers[from]); delete refuseTimers[from]; }
+  const orderPrice = parseInt(info.price, 10) || 320;
   const prompt = REFUSE_PROMPT
     .replace('{NAME}',     customerName)
     .replace('{PRODUCT}',  info.product)
     .replace('{TRACKING}', trackingNum)
     .replace('{ADDRESS}',  info.address || '')
     .replace('{SIZE}',     info.size    || '')
+    .replace('{PRICE}',    String(orderPrice))
     .replace('{REPLY}',    text);
   // ✅ إضافة جديدة — Haiku + Caching لتوفير التكلفة
-  const refuseUserMsg = `معلومات الطلبية:\n- الاسم: ${customerName}\n- المنتج: ${info.product}\n- رقم التتبع: ${trackingNum}\n- العنوان: ${info.address || ''}\n- المقاس: ${info.size || ''}\n\nرد الزبون: "${text}"`;
+  const refuseUserMsg = `معلومات الطلبية:\n- الاسم: ${customerName}\n- المنتج: ${info.product}\n- رقم التتبع: ${trackingNum}\n- العنوان: ${info.address || ''}\n- المقاس: ${info.size || ''}\n- السعر: ${orderPrice} درهم\n\nرد الزبون: "${text}"`;
   const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', {
     model: 'claude-haiku-4-5-20251001', max_tokens: 700,
     system: [{ type: 'text', text: REFUSE_SYSTEM_STATIC, cache_control: { type: 'ephemeral' } }],
@@ -1127,11 +1130,14 @@ const handleRefuse = async (from, text) => {
     case 16:
       await escalateToAdmin(from, customerName, trackingNum, 'رد غير واضح (Refuse)', text);
       delete refuseActive[from]; persistState(); break;
-    case 17:
-      await sendNewOrderToSheet(info, info.size, info.product, null, 270);
+    case 17: {
+      const originalPrice = parseInt(info.price, 10) || 320;
+      const discountedPrice = originalPrice - 50;
+      await sendNewOrderToSheet(info, info.size, info.product, null, discountedPrice);
       await sleep(1000);
-      await sendText(from, "✅ تم تسجيل التخفيض (270 درهم) — سيتصل بك الليفرور قريباً 🙏");
+      await sendText(from, `✅ تم تسجيل التخفيض (${discountedPrice} درهم بدل ${originalPrice}) — سيتصل بك الليفرور قريباً 🙏`);
       delete refuseActive[from]; persistState(); break;
+    }
     default:
       await escalateToAdmin(from, customerName, trackingNum, 'حالة غير معروفة (Refuse)', text);
       delete refuseActive[from]; persistState(); break;
@@ -1243,7 +1249,7 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking;
-      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size };
+      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size, price: order.price || '320' };
       persistState();
       const _shipIsFr = (userLangPref[from] === 'french');
       await sendText(from, _shipIsFr
@@ -1511,7 +1517,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking; // ✅ إضافة جديدة — حفظ رقم التتبع لخدمة سؤال "فين طلبي"
-      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '' };
+      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '', price: order.price || '320' };
       const _trackIsFr = (userLangPref[from] === 'french');
       await sendHumanLike(from, _trackIsFr
         ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
@@ -1950,10 +1956,10 @@ app.post('/set-pas-de-reponse', async (req, res) => {
 // ✅ إضافة جديدة — Endpoint refusé
 app.post('/set-refuse', async (req, res) => {
   try {
-    const { secret, phone, trackingNum, name, product, address, size } = req.body;
+    const { secret, phone, trackingNum, name, product, address, size, price } = req.body;
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     const waPhone = formatPhone(phone);
-    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', phone: waPhone };
+    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', price: price || '320', phone: waPhone };
     persistState();
     scheduleRefuseFollowup(waPhone);
     console.log(`📝 Refuse مسجل للزبون ${waPhone}`);
@@ -2092,7 +2098,7 @@ const checkOzonStatusChanges = async () => {
         const oi = customerOrderInfo[phone] || {};
         const refuseMsg = await generateRefuseInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
         await sendText(phone, refuseMsg);
-        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', phone };
+        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '320', phone };
         persistState();
         scheduleRefuseFollowup(phone);
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
