@@ -16,6 +16,8 @@ const APP_SECRET       = process.env.WHATSAPP_APP_SECRET;
 
 // ✅ إضافة جديدة
 const ADMIN_PHONE      = '212641902149';
+// ✅ إضافة جديدة — رقم المسؤول للتصعيد الفوري عند أي سوء تفاهم/حالة غير واضحة مع الزبون
+const ESCALATION_ADMIN_PHONE = '212644151359';
 const OZON_BASE        = "https://api.ozonexpress.ma/customers";
 const OZON_CUSTOMER_ID = "80238";
 const OZON_API_KEY     = "75c42e-b5f35e-22f865-80ac38-a8a2fd";
@@ -222,6 +224,10 @@ const customerLastStatus = _state.customerLastStatus || {};
 const customerOrderInfo = _state.customerOrderInfo || {};
 // ✅ إضافة جديدة — حالة السؤال التفاعلي عن رقم التتبع/الهاتف عند سؤال الزبون عن حالة طلبه بلا ما يكون رقم محفوظ
 const trackingInquiryState = _state.trackingInquiryState || {};
+// ✅ إضافة جديدة — وقت تسليم كل طلبية (لخدمة نافذة التغيير بعد التسليم)
+const customerDeliveredAt = _state.customerDeliveredAt || {};
+// ✅ إضافة جديدة — حالة حوار التغيير بعد التسليم (مقاس/مشكل فالحذاء)
+const postDeliveryIssueState = _state.postDeliveryIssueState || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -240,6 +246,8 @@ const persistState = () => saveState({
   customerLastStatus,
   customerOrderInfo,
   trackingInquiryState,
+  customerDeliveredAt,
+  postDeliveryIssueState,
 });
 
 const userQueues = {}, userLocks = {};
@@ -878,6 +886,21 @@ const getLivreurFromOzon = async (trackingNum) => {
   } catch(e) { console.error('❌ getLivreurFromOzon:', e.message); return { name: '', phone: '' }; }
 };
 
+// ✅ إضافة جديدة — تصعيد فوري للأدمين عند أي سوء تفاهم/حالة غير واضحة مع الزبون + إخبار الزبون برقم المسؤول
+const escalateToAdmin = async (from, name, trackingNum, situationLabel, customerMsg) => {
+  try {
+    await sendText(formatPhone(ESCALATION_ADMIN_PHONE),
+      `🚨 GreatShoes — ${situationLabel}\n\n👤 ${name || ''} | 📞 ${formatPhone(from)}\n📦 ${trackingNum || ''}\n💬 ${customerMsg || ''}`
+    );
+  } catch(e) { console.error('❌ escalateToAdmin:', e.message); }
+  try {
+    const isFr = (userLangPref[from] === 'french');
+    await sendText(from, isFr
+      ? "Pour régler ça rapidement, contacte directement notre responsable au 0644151359 🙏"
+      : 'باش نحلو هاد الشي بسرعة، تواصل مباشرة مع المسؤول ديالنا على 0644151359 🙏');
+  } catch(e) {}
+};
+
 // ✅ إضافة جديدة — sendNewOrderToSheet
 const sendNewOrderToSheet = async (info, newSize, newProduct, newColor, newPrice) => {
   try {
@@ -1031,8 +1054,12 @@ const handlePasDeReponse = async (from, text) => {
       break;
     case 13: pasDeReponseActive[from].waitingForSize = true; persistState(); break;
     case 14: pasDeReponseActive[from].waitingForProduct = true; persistState(); break;
-    case 15: schedulePdrFollowup(from); break;
-    default: schedulePdrFollowup(from); break;
+    case 15:
+      await escalateToAdmin(from, customerName, trackingNum, 'رد غير واضح (Pas de réponse)', text);
+      delete pasDeReponseActive[from]; persistState(); break;
+    default:
+      await escalateToAdmin(from, customerName, trackingNum, 'حالة غير معروفة (Pas de réponse)', text);
+      delete pasDeReponseActive[from]; persistState(); break;
   }
 };
 
@@ -1097,13 +1124,78 @@ const handleRefuse = async (from, text) => {
     case 13: refuseActive[from].waitingForSize = true; persistState(); break;
     case 14: refuseActive[from].waitingForProduct = true; persistState(); break;
     case 15: scheduleRefuseFollowup(from); break;
-    case 16: delete refuseActive[from]; persistState(); break;
+    case 16:
+      await escalateToAdmin(from, customerName, trackingNum, 'رد غير واضح (Refuse)', text);
+      delete refuseActive[from]; persistState(); break;
     case 17:
       await sendNewOrderToSheet(info, info.size, info.product, null, 270);
       await sleep(1000);
       await sendText(from, "✅ تم تسجيل التخفيض (270 درهم) — سيتصل بك الليفرور قريباً 🙏");
       delete refuseActive[from]; persistState(); break;
-    default: scheduleRefuseFollowup(from); break;
+    default:
+      await escalateToAdmin(from, customerName, trackingNum, 'حالة غير معروفة (Refuse)', text);
+      delete refuseActive[from]; persistState(); break;
+  }
+};
+
+// ✅ إضافة جديدة — كشف رسالة الزبون عن رغبة تغيير المقاس أو مشكل فالحذاء بعد التسليم
+const isPostDeliveryIssueText = (t) => {
+  const s = (t || '').toLowerCase();
+  if (/(بدل|تبديل|نبدل|غير|تغيير)\s*(المقاس|القياس|الرقم|الحذاء|الصباط)/.test(t || '')) return true;
+  if (/(صغير|كبير)\s*(عليا|علي\s*شوية|شوية\s*علي)/.test(t || '')) return true;
+  if (/(مشكل|عيب|خربان|مقطوع|تفتق|فك)\s*.{0,12}(حذاء|صباط)/.test(t || '')) return true;
+  if (/\b(changer|échanger|echanger|echange|taille|pointure)\b/.test(s)) return true;
+  return false;
+};
+
+// ✅ إضافة جديدة — بداية حوار التغيير بعد التسليم: كنسولو واش الحذاء تلبس ومشى بيه
+const startPostDeliveryIssue = async (from) => {
+  postDeliveryIssueState[from] = { step: 'awaiting_worn_check' };
+  persistState();
+  const isFr = (userLangPref[from] === 'french');
+  await sendText(from, isFr
+    ? "Pas de souci, on va t'aider 😊 Juste une question: est-ce que tu as déjà porté et marché avec la chaussure ?"
+    : 'ماشي مشكل، غادي نعاونوك 😊 غير سؤال بسيط: واش لبستي ومشيتي بالحذاء؟');
+};
+
+// ✅ إضافة جديدة — متابعة حوار التغيير بعد التسليم
+const handlePostDeliveryIssueReply = async (from, text) => {
+  const state = postDeliveryIssueState[from];
+  const isFr = (userLangPref[from] === 'french');
+  const oi = customerOrderInfo[from] || {};
+  const trackingNum = customerTracking[from] || '';
+  if (state.step === 'awaiting_worn_check') {
+    const wornNo  = /\b(لا|ماشي|ماحطيتش|ما\s*لبستش|مالبستش|ماتلبستش|ما\s*تلبستش|non)\b/i.test(text);
+    const wornYes = !wornNo && /\b(إيه|ايه|واه|نعم|أيوة|ايوا|oui|iyeh)\b/i.test(text);
+    if (wornYes) {
+      delete postDeliveryIssueState[from]; persistState();
+      await escalateToAdmin(from, oi.name, trackingNum, 'طلب تغيير بعد لبس الحذاء', text);
+      return;
+    }
+    if (!wornNo) {
+      delete postDeliveryIssueState[from]; persistState();
+      await escalateToAdmin(from, oi.name, trackingNum, 'رد غير واضح (تغيير بعد التسليم)', text);
+      return;
+    }
+    state.step = 'awaiting_issue_detail';
+    persistState();
+    await sendText(from, isFr
+      ? "Parfait 😊 Dis-moi: c'est la pointure qu'il faut changer, ou un autre souci avec la chaussure ?"
+      : 'مزيان 😊 قول ليا: واش بغيتي تبدل المقاس، ولا كاين مشكل آخر فالحذاء؟');
+    return;
+  }
+  if (state.step === 'awaiting_issue_detail') {
+    delete postDeliveryIssueState[from]; persistState();
+    const sizeMatch = text.match(/\b(38|39|40|41|42|43|44|45)\b/);
+    const exchangeInfo = { name: oi.name, phone: formatPhone(from), city: '', address: oi.address || '', product: sizeMatch ? oi.product : `${oi.product || ''} — تغيير: ${text.trim()}`, size: sizeMatch ? sizeMatch[1] : oi.size };
+    const ok = await sendNewOrderToSheet(exchangeInfo, sizeMatch ? sizeMatch[1] : null, null, null, 45);
+    if (ok) {
+      await sendText(from, isFr
+        ? "✅ Commande de change enregistrée (45 DH frais de livraison) — le livreur te contactera bientôt 🙏"
+        : '✅ تم تسجيل طلبية التغيير (45 درهم مصاريف التوصيل) — سيتصل بك الليفرور قريباً 🙏');
+    } else {
+      await escalateToAdmin(from, oi.name, trackingNum, 'فشل تسجيل طلبية تغيير بعد التسليم', text);
+    }
   }
 };
 
@@ -1671,6 +1763,15 @@ app.post('/webhook', async (req,res) => {
     return;
   }
 
+  // ✅ إضافة جديدة — طلب تغيير مقاس/مشكل فالحذاء بعد التسليم (فترة يوم-يومين)
+  if (isPostDeliveryIssueText(text) && (customerLastStatus[from] || '').toLowerCase().includes('livr')) {
+    const deliveredAt = customerDeliveredAt[from] || 0;
+    if (deliveredAt && (Date.now() - deliveredAt) <= 2 * 24 * 60 * 60 * 1000) {
+      try { await startPostDeliveryIssue(from); } catch(e) { console.error('❌ startPostDeliveryIssue:', e.message); }
+      return;
+    }
+  }
+
   // ✅ FIX EMOTIONAL — تعاطف قبل البيع
   if (isEmotionalState(text)) {
     try {
@@ -1737,6 +1838,12 @@ app.post('/webhook', async (req,res) => {
       console.error('❌ خطأ Refuse handler:', e.message);
       await sendText(from, "سمح لنا " + refuseActive[from]?.name + " 😊\nواش تقدر تخبرنا علاش رفضتي؟ 🙏");
     }
+    return;
+  }
+
+  // ✅ إضافة جديدة — متابعة حوار التغيير بعد التسليم (مقاس/مشكل فالحذاء)
+  if (postDeliveryIssueState[from]) {
+    try { await handlePostDeliveryIssueReply(from, text); } catch(e) { console.error('❌ handlePostDeliveryIssueReply:', e.message); }
     return;
   }
 
@@ -1990,6 +2097,7 @@ const checkOzonStatusChanges = async () => {
         scheduleRefuseFollowup(phone);
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
       } else {
+        if (statusLowerForLivreur.includes('livr')) { customerDeliveredAt[phone] = Date.now(); persistState(); }
         await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
       }
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
