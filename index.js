@@ -1279,6 +1279,8 @@ const isTrackingInquiry = (t) => {
   if (/\b(tracking|numero\s*de\s*suivi|numéro\s*de\s*suivi)\b/.test(s)) return true;
   if (/\bou\s*(est|en)\s*(ma\s*commande|mon\s*colis)\b/.test(s)) return true;
   if (/\b(wach\s*wslat|mzal\s*ma\s*tw?slt|fin\s*commande)\b/.test(s)) return true;
+  if (/\b(fin|fen|win|wach|3lash)\b[\s\S]{0,20}\b(waslat|weslat|wslat|toslo|touslou|colis?|coli)\b/.test(s)) return true;
+  if (/\bcoli\b[\s\S]{0,20}\b(fin|fen|win)\b/.test(s)) return true;
   if (extractTrackingNumberFromText(t)) return true;
   return false;
 };
