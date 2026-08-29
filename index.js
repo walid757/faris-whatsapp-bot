@@ -1874,10 +1874,12 @@ app.post('/webhook', async (req,res) => {
       // ✅ كشف طلب تغيير اللغة وحفظه في الجلسة
       if (detectFrenchRequest(text)) { userLangPref[from] = 'french'; persistState(); }
       else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
+      // ✅ إضافة جديدة — نص أوتوماتيكي كيبعثو Facebook/Meta بروحو كي الزبون يضغط على الإعلان (ماشي كتابة حقيقية ديال الزبون) — ما نعتبروهش مؤشر أنو كيهضر بالفرنسية
+      const isMetaAdAutoText = /^bonjour\s*!*\s*puis-je\s+en\s+savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim());
       // ✅ تحديد اللغة: تفضيل الجلسة أولاً، ثم الكشف التلقائي المحسّن
       const _detectedLang = detectLanguage(text);
       const _isFr = isFrenchText(text);
-      const lang = userLangPref[from] || (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija'));
+      const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
       // ✅ إصلاح — نحيدو الإيموجي قبل فحص التحية باش "Bonjour ! 😊" تتعرف عليها كتحية بسيطة بحال "Bonjour !"
       const textNoEmojiForGreeting = text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/gu, '').trim();
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(textNoEmojiForGreeting);
