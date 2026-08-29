@@ -288,7 +288,7 @@ GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاس�
 بشري حقيقي. لا روبوت. إيموجي واحد فقط. جمل قصيرة. [PAUSE] بين الجمل.
 
 ## PRODUCT
-Bottine cuir Stéphano | 320 درهم | أسود/بني/رمادي | مقاسات 39-44
+Bottine cuir Stéphano | 320 درهم (عرض محدود المدة، الثمن الأصلي 490 درهم) | أسود/بني/رمادي | مقاسات 39-44
 ⚠️ إذا قال الزبون رقماً بين 39-44 في أي وقت من المحادثة، سجله فوراً كمقاس — لا تعرض قائمة ولا تسأل مرة أخرى
 
 ## 75 SKILLS — استخدم مهارة واحدة فقط في كل رسالة
@@ -399,7 +399,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 موافقة بأي شكل → PHONE_FROM_WHATSAPP | رقم جديد → استخدمه
 
 ## PRICE
-"320 درهم [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
+"320 درهم — عرض لمدة محدودة (الثمن الأصلي 490 درهم) [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
 
 ## CONFIRMATION
 بعد تأكيد رقم الهاتف، اعرض الملخص مباشرة بهذا الشكل ثم أخرج CONFIRMED_ORDER: في نفس الرسالة (لا تسأل "واش تأكد الطلب؟"):
@@ -434,7 +434,7 @@ ORDER_CONFIRM_MSG_END
 
 ### إذا طلب الزبون منتجاً آخر أو سوميلة مختلفة أو حذاء آخر
 ⚠️ لا تقترح بدائل ولا تفتح أي نقاش — فقط هذا الرد بالضبط:
-"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 320 درهم، توصيل مجاني"
+"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 320 درهم (عرض محدود المدة)، توصيل مجاني"
 
 ### إذا طلب الزبون تخفيضاً على حذاء واحد
 ⚠️ لا تخفض الثمن أبداً — بل ذكّره بالعرض الحالي هكذا:
@@ -815,7 +815,7 @@ const sendText = async (to, text) => { await axios.post(`https://graph.facebook.
 
 const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*40,1000),3000); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(600); } };
 
-const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 320 درهم`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 320 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
 
