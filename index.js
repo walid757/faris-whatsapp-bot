@@ -288,7 +288,7 @@ GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاس�
 بشري حقيقي. لا روبوت. إيموجي واحد فقط. جمل قصيرة. [PAUSE] بين الجمل.
 
 ## PRODUCT
-Bottine cuir Stéphano | 420 درهم | أسود/بني/رمادي | مقاسات 39-44
+Bottine cuir Stéphano | 320 درهم | أسود/بني/رمادي | مقاسات 39-44
 ⚠️ إذا قال الزبون رقماً بين 39-44 في أي وقت من المحادثة، سجله فوراً كمقاس — لا تعرض قائمة ولا تسأل مرة أخرى
 
 ## 75 SKILLS — استخدم مهارة واحدة فقط في كل رسالة
@@ -297,13 +297,13 @@ Bottine cuir Stéphano | 420 درهم | أسود/بني/رمادي | مقاسا�
 1.RECIPROCITY أعطِ قبل أن تطلب | 2.COMMITMENT ابنِ موافقات صغيرة | 3.SOCIAL_PROOF "الأكثر طلباً هذا الشهر" | 4.AUTHORITY "5 سنين تخصص" | 5.LIKING امدح بصدق | 6.SCARCITY "بقى غير 2" | 7.UNITY "عائلة GreatShoes"
 
 ### مجموعة 2: نظريات القرار
-8.PROSPECT_THEORY "تتلف في 6 أشهر — هذي تدوم سنين، فعلياً أرخص" | 9.LOSS_AVERSION "لا تضيع التوصيل المجاني" | 10.ANCHORING "السوق 600-1000 — هذا 420 فقط" | 11.DECOY "أحذية أخرى 700-900 — هذا 420 نفس الجودة" | 12.MENTAL_ACCOUNTING "أقل من 1 درهم في اليوم" | 13.CERTAINTY "تشوف تقيس تعجبك تخلص — مضمون 100%" | 14.TEMPORAL_DISCOUNTING "420 اليوم = توفير 500+ على المدى البعيد"
+8.PROSPECT_THEORY "تتلف في 6 أشهر — هذي تدوم سنين، فعلياً أرخص" | 9.LOSS_AVERSION "لا تضيع التوصيل المجاني" | 10.ANCHORING "الثمن الأصلي 490 — دابا فعرض 320 فقط" | 11.DECOY "أحذية أخرى 700-900 — هذا 320 نفس الجودة" | 12.MENTAL_ACCOUNTING "أقل من 1 درهم في اليوم" | 13.CERTAINTY "تشوف تقيس تعجبك تخلص — مضمون 100%" | 14.TEMPORAL_DISCOUNTING "320 اليوم = توفير 170 درهم قبل ما يرجع العرض للثمن الأصلي"
 
 ### مجموعة 3: علم النفس المعرفي
 15.ZEIGARNIK "بقى غير خطوة صغيرة..." | 16.COGNITIVE_LOAD جملتان فقط | 17.PARADOX_OF_CHOICE خيارين فقط "الأسود أو البني؟" | 18.PRIMING ابدأ بـ"جودة، ثقة، راحة" | 19.FLUENCY كلمات بسيطة=مصداقية | 20.INFORMATION_GAP "عندي سر عن المقاسات — تبغي تعرفه؟" | 21.REACTANCE لا تقل "اشتري" — قل "واش يناسبك؟"
 
 ### مجموعة 4: بناء الثقة
-22.TRUST_VELOCITY ثقة في 3 رسائل | 23.PRATFALL صدق صغير="الجلد محتاج عناية بسيطة لكن يدوم" | 24.AUTONOMY "القرار ليك — أنا غير كنعطيك المعلومة" | 25.RECIPROCITY_PLUS نصيحة مجانية عن العناية بالجلد | 26.PEAK_END آخر رسالة دائماً دافئة | 27.WEBER'S_LAW لا تخفض السعر — أضف قيمة "420+توصيل+استبدال"
+22.TRUST_VELOCITY ثقة في 3 رسائل | 23.PRATFALL صدق صغير="الجلد محتاج عناية بسيطة لكن يدوم" | 24.AUTONOMY "القرار ليك — أنا غير كنعطيك المعلومة" | 25.RECIPROCITY_PLUS نصيحة مجانية عن العناية بالجلد | 26.PEAK_END آخر رسالة دائماً دافئة | 27.WEBER'S_LAW لا تخفض السعر — أضف قيمة "320+توصيل+استبدال"
 
 ### مجموعة 5: الإقناع العاطفي
 28.STORYTELLING "زبون من مراكش قال نفس الشيء — دابا كيطلب كل موسم" | 29.FUTURE_PACING "تخيل صباح العيد بهاد البوتين — كل الناس سألوك فين شريتيه" | 30.NARRATIVE_TRANSPORTATION القصة تُنسي المقاومة | 31.EMOTIONAL_ANCHORING "كل مرة تلبسه — تتذكر اختيار صح" | 32.NOSTALGIA "مثل ما كان جدودنا — يدوم ويتحسن مع الوقت" | 33.IDENTIFIABLE_VICTIM "يوسف من فاس قال نفس كلامك — دابا كيطلب كل موسم" | 34.OPTIMISM_BIAS "غادي تتفاجأ بردود الفعل"
@@ -399,12 +399,12 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 موافقة بأي شكل → PHONE_FROM_WHATSAPP | رقم جديد → استخدمه
 
 ## PRICE
-"420 درهم [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
+"320 درهم [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
 
 ## CONFIRMATION
 بعد تأكيد رقم الهاتف، اعرض الملخص مباشرة بهذا الشكل ثم أخرج CONFIRMED_ORDER: في نفس الرسالة (لا تسأل "واش تأكد الطلب؟"):
 خلينا نتأكدو:
-👟 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 420 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المقاطعة إن وجدت]-[العنوان التفصيلي]
+👟 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المقاطعة إن وجدت]-[العنوان التفصيلي]
 ⚠️ اكتب المقاطعة بالاسم الذي قاله الزبون بالضبط (مثال: *الدار البيضاء - معاريف* | حي البرج)
 
 ## ORDER CONFIRMATION
@@ -416,7 +416,7 @@ CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_d
 ORDER_CONFIRM_MSG_START
 ✨ شكراً لثقتك في GreatShoes
 تم استلام طلبك، بدأنا تجهيز حذائك.
-📦 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 420 درهم | 🚚 مجاني
+📦 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني
 👤 [الاسم] | 📞 [الهاتف] | 📍 [المدينة]-[العنوان]
 ⏳ سنتواصل معك قريباً لتأكيد الطلب.
 فريق GreatShoes 🤎
@@ -434,12 +434,12 @@ ORDER_CONFIRM_MSG_END
 
 ### إذا طلب الزبون منتجاً آخر أو سوميلة مختلفة أو حذاء آخر
 ⚠️ لا تقترح بدائل ولا تفتح أي نقاش — فقط هذا الرد بالضبط:
-"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 420 درهم، توصيل مجاني"
+"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 320 درهم، توصيل مجاني"
 
 ### إذا طلب الزبون تخفيضاً على حذاء واحد
 ⚠️ لا تخفض الثمن أبداً — بل ذكّره بالعرض الحالي هكذا:
-"هاد البوتين كان بـ 550 درهم 😊 [PAUSE] دابا عندنا عرض خاص — 420 درهم فقط مع التوصيل المجاني [PAUSE] وعما قريب غادي يرجع للثمن الأصلي — استفد من هاد الفرصة دابا"
-بالفرنسية: "Cette bottine était à 550 dirhams 😊 [PAUSE] En ce moment on a une offre spéciale — seulement 420 dhs avec la livraison gratuite [PAUSE] Bientôt le prix reviendra à la normale — profite de cette offre maintenant"
+"هاد البوتين ثمنو الأصلي 490 درهم 😊 [PAUSE] دابا عندنا عرض خاص ابتداءً من اليوم — 320 درهم فقط مع التوصيل المجاني [PAUSE] العرض غادي ينتهي قريباً ويرجع الثمن لـ490 درهم — استفد من هاد الفرصة دابا"
+بالفرنسية: "Cette bottine coûte normalement 490 dirhams 😊 [PAUSE] À partir d'aujourd'hui on a une offre spéciale — seulement 320 dhs avec la livraison gratuite [PAUSE] L'offre se termine bientôt et le prix reviendra à 490 dhs — profite-en maintenant"
 
 ### عرض الجوج — خاص بـ Bottine cuir Stéphano فقط
 إذا طلب الزبون حذاءين أو تخفيضاً أو قال "غالي" أو "بجوج" أو أي إشارة للشراء المزدوج:
@@ -690,7 +690,7 @@ CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه ا
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
-CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "420 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
+CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "320 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
 CASE_6: "لا باس — الظروف كتعرض..." + تعاطف بصدق + اعرض إعادة الإرسال في وقت مناسب
 CASE_7: "لا باس..." + اعرض إعادة التوصيل + أعطه رقم الليفرور
 CASE_8: اطلب تفاصيل العنوان بلطف (زنقة، رقم منزل، معلمة قريبة)
@@ -783,7 +783,7 @@ CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه ا
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
-CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "420 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
+CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "320 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
 CASE_6: "لا باس — الظروف كتعرض..." + تعاطف بصدق + اعرض إعادة الإرسال في وقت مناسب
 CASE_7: "لا باس..." + اعرض إعادة التوصيل + أعطه رقم الليفرور
 CASE_8: اطلب تفاصيل العنوان بلطف (زنقة، رقم منزل، معلمة قريبة)
@@ -815,7 +815,7 @@ const sendText = async (to, text) => { await axios.post(`https://graph.facebook.
 
 const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*40,1000),3000); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(600); } };
 
-const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 420 درهم`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 320 درهم`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
 
@@ -908,7 +908,7 @@ const sendNewOrderToSheet = async (info, newSize, newProduct, newColor, newPrice
     const colorFr = newColor || detectColor(info.product) || 'noir';
     const size    = newSize  || info.size || '';
     const variant = size && colorFr ? `${size}/${colorFr}` : '';
-    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: String(newPrice || '420'), product: newProduct || info.product || 'Bottine cuir Stéphano', color: variant, size: '' };
+    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: String(newPrice || '320'), product: newProduct || info.product || 'Bottine cuir Stéphano', color: variant, size: '' };
     const response = await axios.post(SHEET_API_URL, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
     console.log('📤 طلبية جديدة للشيت:', response.status);
     return true;
@@ -1071,7 +1071,7 @@ const handleRefuse = async (from, text) => {
   const customerName  = info.name;
   const customerPhone = formatPhone(from);
   if (refuseTimers[from]) { clearTimeout(refuseTimers[from]); delete refuseTimers[from]; }
-  const orderPrice = parseInt(info.price, 10) || 420;
+  const orderPrice = parseInt(info.price, 10) || 320;
   const prompt = REFUSE_PROMPT
     .replace('{NAME}',     customerName)
     .replace('{PRODUCT}',  info.product)
@@ -1131,7 +1131,7 @@ const handleRefuse = async (from, text) => {
       await escalateToAdmin(from, customerName, trackingNum, 'رد غير واضح (Refuse)', text);
       delete refuseActive[from]; persistState(); break;
     case 17: {
-      const originalPrice = parseInt(info.price, 10) || 420;
+      const originalPrice = parseInt(info.price, 10) || 320;
       const discountedPrice = originalPrice - 50;
       await sendNewOrderToSheet(info, info.size, info.product, null, discountedPrice);
       await sleep(1000);
@@ -1221,7 +1221,7 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const variant = size&&colorFr ? `${size}/${colorFr}` : '';
     const rawCity = customer.city || '';
     const city    = normalizeCityFr(rawCity);
-    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city, address:customer.shipping_address||'', price:product.unit_price_mad||'420', product:product.product_name||'Bottine cuir Stéphano', color:variant, size:'' };
+    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city, address:customer.shipping_address||'', price:product.unit_price_mad||'320', product:product.product_name||'Bottine cuir Stéphano', color:variant, size:'' };
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
     const response = await axios.post(SHEET_API_URL, payload, { headers:{'Content-Type':'application/json'}, timeout:10000 });
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
@@ -1243,13 +1243,13 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
       city: cityFr || cd.city || '',
       size: pd.size || '',
       color: pd.color_fr || '',
-      price: pd.unit_price_mad || '420'
+      price: pd.unit_price_mad || '320'
     };
     const finalAddress = (cd.shipping_address || '') + (deliveryTimeNote ? ` — وقت: ${deliveryTimeNote}` : '');
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking;
-      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size, price: order.price || '420' };
+      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size, price: order.price || '320' };
       persistState();
       const _shipIsFr = (userLangPref[from] === 'french');
       await sendText(from, _shipIsFr
@@ -1490,7 +1490,7 @@ const addParcelDirect = async (order, finalAddress) => {
     'parcel-phone': moPhone,
     'parcel-city': String(cityId),
     'parcel-address': finalAddress,
-    'parcel-price': String(order.price || 420),
+    'parcel-price': String(order.price || 320),
     'parcel-stock': '0',
     'parcel-note': note
   });
@@ -1519,7 +1519,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking; // ✅ إضافة جديدة — حفظ رقم التتبع لخدمة سؤال "فين طلبي"
-      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '', price: order.price || '420' };
+      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '', price: order.price || '320' };
       const _trackIsFr = (userLangPref[from] === 'french');
       await sendHumanLike(from, _trackIsFr
         ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
@@ -1708,7 +1708,7 @@ app.post('/webhook', async (req,res) => {
                 const cd = od.customer_data || {};
                 const pd = od.product_data || {};
                 const dtLine = dt ? ` — وقت: ${dt}` : '';
-                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'420'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
               } catch(e) {}
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
@@ -1961,7 +1961,7 @@ app.post('/set-refuse', async (req, res) => {
     const { secret, phone, trackingNum, name, product, address, size, price } = req.body;
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     const waPhone = formatPhone(phone);
-    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', price: price || '420', phone: waPhone };
+    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', price: price || '320', phone: waPhone };
     persistState();
     scheduleRefuseFollowup(waPhone);
     console.log(`📝 Refuse مسجل للزبون ${waPhone}`);
@@ -1986,7 +1986,7 @@ app.post('/new-website-order', async (req, res) => {
     websiteOrders[waPhone] = {
       orderId: orderId || '', name: name || '', phone: phone || '', waPhone,
       city: city || '', address: address || '',
-      product: product || '', price: price || '420',
+      product: product || '', price: price || '320',
       color: color || '', size: size || '',
       step: 'awaiting_reply', createdAt: Date.now()
     };
@@ -1997,7 +1997,7 @@ app.post('/new-website-order', async (req, res) => {
     persistState();
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
     try {
-      await sendOrderTemplate(waPhone, name, productDisplay, price || '420');
+      await sendOrderTemplate(waPhone, name, productDisplay, price || '320');
       console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
       if (websiteOrderTimers[waPhone]) clearTimeout(websiteOrderTimers[waPhone]);
       websiteOrderTimers[waPhone] = setTimeout(async () => {
@@ -2119,7 +2119,7 @@ const checkOzonStatusChanges = async () => {
         const oi = customerOrderInfo[phone] || {};
         const refuseMsg = await generateRefuseInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
         await sendText(phone, refuseMsg);
-        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '420', phone };
+        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '320', phone };
         persistState();
         scheduleRefuseFollowup(phone);
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
