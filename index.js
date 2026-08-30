@@ -419,7 +419,7 @@ ORDER_CONFIRM_MSG_START
 تم استلام طلبك، بدأنا تجهيز حذائك.
 📦 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 320 درهم | 🚚 مجاني
 👤 [الاسم] | 📞 [الهاتف] | 📍 [المدينة]-[العنوان]
-⏳ سنتواصل معك قريباً لتأكيد الطلب.
+🌟 نتمنى لك يوماً سعيداً، وشكراً لثقتك فينا!
 فريق GreatShoes 🤎
 ORDER_CONFIRM_MSG_END
 
@@ -1709,7 +1709,7 @@ app.post('/webhook', async (req,res) => {
                 const cd = od.customer_data || {};
                 const pd = od.product_data || {};
                 const dtLine = dt ? ` — وقت: ${dt}` : '';
-                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n⏳ سنتواصل معك قريباً لتأكيد التوصيل.\nفريق GreatShoes 🤎`;
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'320'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n🌟 نتمنى لك يوماً سعيداً، وشكراً لثقتك فينا!\nفريق GreatShoes 🤎`;
               } catch(e) {}
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
@@ -1929,15 +1929,23 @@ app.post('/webhook', async (req,res) => {
         const _btnIsFr = (userLangPref[from] === 'french');
         pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija' };
         await sleep(500);
+        // ✅ إصلاح — إلا الزبون سبق وحدد وقت التوصيل (عبر [DELIVERY_TIME_QUESTION])، ما نعاودوش نقترحو عليه "تحديد وقت التوصيل" هنا
+        const _alreadyHasTime = !!deliveryTimes[from];
         await sendInteractiveButtons(from,
           _btnIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
-          _btnIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء']
+          _alreadyHasTime
+            ? (_btnIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء'])
+            : (_btnIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء'])
         );
         return;
       }
 
-      const colorMatch = reply.match(/\[SEND_IMAGE:(noir|marron|gris)\]/);
-      if (colorMatch) { reply=reply.replace(colorMatch[0],'').trim(); try{await sendWhatsAppImage(from,colorMatch[1]);await sleep(500);}catch(e){} }
+      // ✅ إصلاح — كنقراو *كل* الماركرات [SEND_IMAGE:x] فالرد (ماشي غير أول وحدة)، باش ما يبقاش كلام خام كي الزبون يطلب بزاف ألوان مرة وحدة (مثلاً "Kolhom")
+      const colorMatches = [...reply.matchAll(/\[SEND_IMAGE:(noir|marron|gris)\]/g)];
+      if (colorMatches.length > 0) {
+        reply = reply.replace(/\[SEND_IMAGE:(noir|marron|gris)\]/g, '').trim();
+        for (const m of colorMatches) { try{await sendWhatsAppImage(from,m[1]);await sleep(500);}catch(e){} }
+      }
       else if (reply.includes('[RESEND_IMAGES]')||isInsistingOnImages(text)) { reply=reply.replace('[RESEND_IMAGES]','').trim(); try{await sendAllImages(from);await sleep(500);}catch(e){} }
       else { const color=detectColor(text); const wantsImage=text.toLowerCase().includes('صورة')||text.toLowerCase().includes('شوف')||text.toLowerCase().includes('image'); if(color&&wantsImage){try{await sendWhatsAppImage(from,color);await sleep(500);}catch(e){}} }
 
