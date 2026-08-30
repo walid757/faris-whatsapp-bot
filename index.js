@@ -829,6 +829,8 @@ const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir'
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
 // ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
 const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t); };
+// ✅ إضافة جديدة — كشف كي المدينة أو العنوان فارغين أو "لم يتم تحديده" أو ماركر غير معبأ [مثل هذا]، باش ما نأكدوش الطلب بمعلومات ناقصة
+const isMissingOrderField = (val) => { const v=(val||'').trim(); if(!v) return true; if(/لم يتم تحديد/.test(v)) return true; if(/^\[.*\]$/.test(v)) return true; return false; };
 
 const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includes("حزين")||t.includes("تعبان")||t.includes("مشكلة")||t.includes("خصام")||t.includes("زوجة")||t.includes("مريض")||t.includes("توفي")||t.includes("ضغط")||t.includes("بكيت")||t.includes("صعيب")||t.includes("تخاصمت")||t.includes("مابغيتش نحكي"); };
 
@@ -1934,6 +1936,26 @@ app.post('/webhook', async (req,res) => {
       }
 
       if (reply.includes('CONFIRMED_ORDER:')) {
+        // ✅ إضافة جديدة — قبل ما نأكدو الطلب، نتأكدو أن المدينة والعنوان معبيين فعلاً (ماشي فارغين ولا "لم يتم تحديده" ولا ماركر [غير معبأ])
+        // هذا لتفادي حالة كي الزبون يعطي المدينة/العنوان فمحادثة طويلة وClaude ينسى ويأكد الطلب بمعلومات ناقصة
+        const _previewJsonCheck = extractOrderJSON(reply);
+        let _missingField = null;
+        try {
+          if (_previewJsonCheck) {
+            const _cdCheck = JSON.parse(_previewJsonCheck).customer_data || {};
+            if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
+            else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
+          }
+        } catch(e){}
+        if (_missingField) {
+          const _isFrMissing = (userLangPref[from] === 'french');
+          const _askMsg = _missingField === 'city'
+            ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
+            : (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍");
+          await sendHumanLike(from, _askMsg);
+          console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
+          return;
+        }
         orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
         // Send the summary text first (everything before CONFIRMED_ORDER:)
