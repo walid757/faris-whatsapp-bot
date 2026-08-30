@@ -826,6 +826,8 @@ const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
+// ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
+const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t); };
 
 const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includes("حزين")||t.includes("تعبان")||t.includes("مشكلة")||t.includes("خصام")||t.includes("زوجة")||t.includes("مريض")||t.includes("توفي")||t.includes("ضغط")||t.includes("بكيت")||t.includes("صعيب")||t.includes("تخاصمت")||t.includes("مابغيتش نحكي"); };
 
@@ -1674,6 +1676,13 @@ app.post('/webhook', async (req,res) => {
         const time = text.trim();
         const _dtsLang2 = dts.lang || 'darija';
         const _dtsFr2 = (_dtsLang2 === 'french');
+        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت، نوضح ليه ونستناو رد حقيقي
+        if (looksLikeQuestionNotTime(text)) {
+          await sendText(from, _dtsFr2
+            ? "N'importe quel horaire te convient, dis-moi juste une heure ou une période approximative (ex: après 16h) 😊"
+            : 'أي وقت كيناسبك، غير قول ليا ساعة أو فترة تقريبية (مثلاً بعد الزوال، ولا بعد 16h) 😊');
+          return;
+        }
         deliveryTimes[from] = time;
         conversationHistory[from].push({ role: 'user', content: time });
         conversationHistory[from].push({ role: 'assistant', content: _dtsFr2 ? `Horaire enregistré: ${time} ✅ Il reste juste le numéro. On garde ce numéro?` : `تم تسجيل الوقت: ${time} ✅ بقى غير رقم الهاتف 😊 واش نخلي هذا الرقم، ولا عندك رقم آخر؟` });
@@ -1725,6 +1734,14 @@ app.post('/webhook', async (req,res) => {
           await sendText(from, _dtIsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
         }
       } else if (pending.step === 'awaiting_delivery_time') {
+        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت (مثلاً "واش أي وقت مناسب؟")، نوضح ليه ونستناو رد حقيقي، بلا ما نسجلو السؤال كوقت
+        if (looksLikeQuestionNotTime(text)) {
+          const _dtqIsFr = (pending.lang === 'french');
+          await sendText(from, _dtqIsFr
+            ? "N'importe quel horaire te convient, dis-moi juste une heure ou une période approximative (ex: après 16h) 😊"
+            : 'أي وقت كيناسبك، غير قول ليا ساعة أو فترة تقريبية (مثلاً بعد الزوال، ولا بعد 16h) 😊');
+          return;
+        }
         pending.deliveryTime = text.trim();
         pending.step = 'awaiting_final_confirm';
         await sendInteractiveButtons(from,
