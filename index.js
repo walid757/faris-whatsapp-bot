@@ -2047,6 +2047,9 @@ app.post('/register-order-tracking', async (req, res) => {
     const waPhone = formatPhone(phone);
     customerTracking[waPhone] = trackingNum;
     customerOrderInfo[waPhone] = { name: name || '', product: product || '', address: address || '', size: size || '', price: price || '320' };
+    // ✅ إصلاح — إلا الطلبية تأكدت يدوياً فالشيت (بلا ما يرد الزبون على البوت)، نلغيو مؤقت الـ45 دقيقة باش ما يبقاش يكتب "pas de réponse" فوق الحالة "مرسل" بعد ما تكون الطلبية شحنات فعلاً
+    if (websiteOrderTimers[waPhone]) { clearTimeout(websiteOrderTimers[waPhone]); delete websiteOrderTimers[waPhone]; }
+    delete websiteOrders[waPhone];
     persistState();
     console.log(`📝 تسجيل تتبع Youcan ← ${waPhone} | ${trackingNum}`);
     res.json({ success: true });
