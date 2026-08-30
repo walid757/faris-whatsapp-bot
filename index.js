@@ -1630,7 +1630,10 @@ app.post('/webhook', async (req,res) => {
   if (!verifySignature(req)) { console.warn('⚠️ Signature غير صحيح'); return res.sendStatus(401); }
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   if (!message) return res.sendStatus(200);
-  const from = message.from;
+  // ✅ إصلاح — أحياناً message.from كيوصل فارغ (رسائل نادرة/متزامنة)، نرجعو للرقم من contacts[0].wa_id كـ fallback
+  const from = message.from || req.body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.wa_id;
+  // ✅ إصلاح — إلا مازال الرقم فارغ، ما نحاولوش نرد (كان كيطيح خطأ "parameter to is required" وتضيع الرسالة بلا جواب للزبون)
+  if (!from) { console.warn('⚠️ رقم الزبون فارغ (from) — تجاهل الرسالة. payload:', JSON.stringify(req.body?.entry?.[0]?.changes?.[0]?.value || {})); return res.sendStatus(200); }
   let text;
   if (message.type === 'text') {
     text = message.text.body;
@@ -1729,7 +1732,8 @@ app.post('/webhook', async (req,res) => {
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
-          try { await shipChatOrderToOzon(from, replyToSave, phoneDisplay, cityFr, dt); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          // ✅ إصلاح — كنبعثو pending.reply الأصلي (بلا "— وقت:" مزيد فيه من قبل) حيت shipChatOrderToOzon كيزيد الوقت بنفسه؛ كنا كنبعثو replyToSave (فيه الوقت مزيد) فكان الوقت كيتكرر مرتين فعنوان أوزون ويرفض الطلبية (Invalid address length)
+          try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, dt); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
           delete pendingConfirmations[from];
         } else if (text === 'تحديد وقت التوصيل' || text === 'Fixer horaire') {
           pending.step = 'awaiting_delivery_time';
@@ -1769,7 +1773,8 @@ app.post('/webhook', async (req,res) => {
           } else {
             await sendText(from, `✅ تم تأكيد طلبك!\n🕐 الوقت المحدد: ${time}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
-          try { await shipChatOrderToOzon(from, modifiedReply, phoneDisplay, cityFr, time); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          // ✅ إصلاح — نفس الإصلاح: pending.reply الأصلي بدل modifiedReply (فيه الوقت مزيد من قبل)، باش ما يتكررش الوقت فعنوان أوزون
+          try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, time); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
           delete pendingConfirmations[from];
         } else if (text === 'إلغاء' || text === 'Annuler') {
           const _cancelIsFr = (pending.lang === 'french');
@@ -2053,8 +2058,9 @@ app.post('/new-website-order', async (req, res) => {
     orderConfirmTimes[waPhone] = Date.now();
     persistState();
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
+    // ✅ إصلاح — إلا الاسم أو المنتج جايين فارغين من الشيت (مثلاً خانة الاسم مانساتش)، واتساب كيرفض القالب بخطأ "text is missing text value" والزبون ما يتوصلش بأي رسالة؛ هنا نعطيو قيمة افتراضية باش الرسالة ديما تتصيفط
     try {
-      await sendOrderTemplate(waPhone, name, productDisplay, price || '330');
+      await sendOrderTemplate(waPhone, name || 'زبون', productDisplay || 'Bottine cuir Stéphano', price || '330');
       console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
       if (websiteOrderTimers[waPhone]) clearTimeout(websiteOrderTimers[waPhone]);
       websiteOrderTimers[waPhone] = setTimeout(async () => {
