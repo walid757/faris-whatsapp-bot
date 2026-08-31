@@ -426,7 +426,7 @@ ORDER_CONFIRM_MSG_START
 تم استلام طلبك، بدأنا تجهيز حذائك.
 📦 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 350 درهم | 🚚 مجاني
 👤 [الاسم] | 📞 [الهاتف] | 📍 [المدينة]-[العنوان]
-🌟 نتمنى لك يوماً سعيداً، وشكراً لثقتك فينا!
+❤️ ما تنساش قلب قيس، وأهم حاجة حتى يعجبك عاد خلص!
 فريق GreatShoes 🤎
 ORDER_CONFIRM_MSG_END
 
@@ -1782,7 +1782,7 @@ app.post('/webhook', async (req,res) => {
                 const cd = od.customer_data || {};
                 const pd = od.product_data || {};
                 const dtLine = dt ? ` — وقت: ${dt}` : '';
-                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'350'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n🌟 نتمنى لك يوماً سعيداً، وشكراً لثقتك فينا!\nفريق GreatShoes 🤎`;
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'350'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n❤️ ما تنساش قلب قيس، وأهم حاجة حتى يعجبك عاد خلص!\nفريق GreatShoes 🤎`;
               } catch(e) {}
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
