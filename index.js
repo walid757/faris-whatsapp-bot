@@ -209,6 +209,8 @@ const pendingConfirmations  = {};
 const deliveryTimeStates    = {};
 const deliveryTimes         = {};
 const websiteOrderTimers    = {};
+// ✅ إضافة جديدة — تذكير للزبون لي وصل لمرحلة "ملخص الطلبية + الأزرار" وما ضغطش على أي زر بعد فترة
+const pendingConfirmTimers  = {};
 
 // ✅ إضافة جديدة
 const pdrTimers    = {};
@@ -836,6 +838,8 @@ const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.in
 const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t); };
 // ✅ إضافة جديدة — كشف كي المدينة أو العنوان فارغين أو "لم يتم تحديده" أو ماركر غير معبأ [مثل هذا]، باش ما نأكدوش الطلب بمعلومات ناقصة
 const isMissingOrderField = (val) => { const v=(val||'').trim(); if(!v) return true; if(/لم يتم تحديد/.test(v)) return true; if(/^\[.*\]$/.test(v)) return true; return false; };
+// ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
+const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
 const isEmotionalState = (text) => { const t=text.toLowerCase(); return t.includes("حزين")||t.includes("تعبان")||t.includes("مشكلة")||t.includes("خصام")||t.includes("زوجة")||t.includes("مريض")||t.includes("توفي")||t.includes("ضغط")||t.includes("بكيت")||t.includes("صعيب")||t.includes("تخاصمت")||t.includes("مابغيتش نحكي"); };
 
@@ -1445,6 +1449,26 @@ const sendFollowUp = async (from) => {
 
 const resetFollowUpTimer = (from) => { if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} if(!orderConfirmed.has(from)&&!notInterested.has(from)) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT); };
 
+// ✅ إضافة جديدة — تذكير للزبون لي وصل لمرحلة "ملخص الطلبية + الأزرار" (pendingConfirmations، step awaiting_button) وما ضغطش على أي زر بعد فترة
+const clearPendingConfirmTimer = (from) => { if(pendingConfirmTimers[from]){clearTimeout(pendingConfirmTimers[from]);delete pendingConfirmTimers[from];} };
+const sendPendingConfirmReminder = async (from) => {
+  try {
+    delete pendingConfirmTimers[from];
+    if (!pendingConfirmations[from] || pendingConfirmations[from].step !== 'awaiting_button') return;
+    const _prIsFr = (pendingConfirmations[from].lang === 'french');
+    await sendText(from, _prIsFr
+      ? "Toujours là ? 😊 Ta commande t'attend juste ici — clique pour confirmer 👇"
+      : 'مازلتي هنا؟ 😊 طلبيتك ديما مستنياك — غير اضغط باش تأكد 👇');
+    const _prHasTime = !!deliveryTimes[from];
+    await sendInteractiveButtons(from,
+      _prIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
+      _prHasTime
+        ? (_prIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء'])
+        : (_prIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء'])
+    );
+  } catch(e) { console.error('❌ sendPendingConfirmReminder:', e.message); }
+};
+
 const verifySignature = (req) => { if(!APP_SECRET) return true; const sig=req.headers['x-hub-signature-256']; if(!sig) return false; const expected='sha256='+crypto.createHmac('sha256',APP_SECRET).update(JSON.stringify(req.body)).digest('hex'); return crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(expected)); };
 
 // ===== WEBSITE ORDER CONFIRMATION =====
@@ -1561,6 +1585,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
   }
   delete websiteOrders[from];
   delete pendingConfirmations[from];
+  clearPendingConfirmTimer(from);
   orderConfirmed.add(from);
   orderConfirmTimes[from] = Date.now();
   persistState();
@@ -1707,6 +1732,7 @@ app.post('/webhook', async (req,res) => {
   // ===== PENDING CONFIRMATION FLOW (regular chat) =====
   if (pendingConfirmations[from]) {
     const pending = pendingConfirmations[from];
+    clearPendingConfirmTimer(from); // ✅ إضافة جديدة — الزبون رد، نلغيو تذكير "مازال ما ضغطش" الحالي
     try {
       if (pending.step === 'awaiting_button') {
         if (text === 'تأكيد الطلب' || text === 'Confirmer') {
@@ -1744,6 +1770,20 @@ app.post('/webhook', async (req,res) => {
           pending.step = 'awaiting_delivery_time';
           const _dtIsFr = (pending.lang === 'french');
           await sendText(from, _dtIsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
+        } else {
+          // ✅ إضافة جديدة — الزبون كتب نص حر (سؤال مثلاً) بدل ما يضغط زر — بدل الصمت التام، نعاودو نوريو ليه الأزرار بوضوح
+          const _abIsFr = (pending.lang === 'french');
+          await sendText(from, _abIsFr
+            ? "Pour continuer, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
+            : 'باش نكملو، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          const _abHasTime = !!deliveryTimes[from];
+          await sendInteractiveButtons(from,
+            _abIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
+            _abHasTime
+              ? (_abIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء'])
+              : (_abIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء'])
+          );
+          pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         }
       } else if (pending.step === 'awaiting_delivery_time') {
         // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت (مثلاً "واش أي وقت مناسب؟")، نوضح ليه ونستناو رد حقيقي، بلا ما نسجلو السؤال كوقت
@@ -1790,6 +1830,20 @@ app.post('/webhook', async (req,res) => {
         }
       }
     } catch(e) { console.error('❌ pendingConfirmations handler:', e.message); }
+    return;
+  }
+
+  // ✅ إضافة جديدة — ندم فوري بعد تأكيد/شحن الطلب (مثلاً "غير كنضحك مبغيتش نشري") — تنبيه فوري للأدمين + رد واضح للزبون بدل ما يفوتها البوت أو يرد برسالة تلقائية بلا علاقة
+  if (orderConfirmed.has(from) && looksLikeOrderRegret(text)) {
+    try {
+      const oi = customerOrderInfo[from] || {};
+      const trackingNum = customerTracking[from] || '';
+      await sendText(ADMIN_PHONE, `🚨 زبون طلب إلغاء فوري بعد التأكيد!\n👤 ${oi.name || ''} | 📞 ${formatPhone(from)}\n📦 تتبع: ${trackingNum || 'لم يشحن بعد'}\n💬 "${text}"\n⚠️ تواصل معه فوراً قبل الشحن/التوصيل`);
+    } catch(ae) { console.error('❌ تنبيه ندم فوري:', ae.message); }
+    const _regretIsFr = (userLangPref[from] === 'french');
+    await sendText(from, _regretIsFr
+      ? "D'accord, c'est noté 🙏 Notre équipe va te contacter très vite pour confirmer l'annulation. Merci de nous l'avoir dit tout de suite 😊"
+      : 'مفهوم، تسجل عندنا 🙏 فريقنا غادي يتواصل معاك فالحال باش نأكدو الإلغاء. شكراً بلي قلتيها لينا مباشرة 😊');
     return;
   }
 
@@ -1981,6 +2035,9 @@ app.post('/webhook', async (req,res) => {
         // Store pending and send interactive buttons
         const _btnIsFr = (userLangPref[from] === 'french');
         pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija' };
+        // ✅ إضافة جديدة — تذكير إلا الزبون وصل هنا (ملخص + أزرار) وما ضغطش على أي زر بعد نص ساعة
+        clearPendingConfirmTimer(from);
+        pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         await sleep(500);
         // ✅ إصلاح — إلا الزبون سبق وحدد وقت التوصيل (عبر [DELIVERY_TIME_QUESTION])، ما نعاودوش نقترحو عليه "تحديد وقت التوصيل" هنا
         const _alreadyHasTime = !!deliveryTimes[from];
@@ -2059,6 +2116,7 @@ app.post('/new-website-order', async (req, res) => {
     };
     // منع Claude من تشغيل pendingConfirmations أثناء معالجة الطلب
     delete pendingConfirmations[waPhone];
+    clearPendingConfirmTimer(waPhone);
     orderConfirmed.add(waPhone);
     orderConfirmTimes[waPhone] = Date.now();
     persistState();
