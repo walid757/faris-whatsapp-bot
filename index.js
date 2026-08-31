@@ -813,6 +813,9 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const SILENCE_TIMEOUT = 30 * 60 * 1000;
 const MAX_FOLLOWUPS   = 1;
 const followUpTimers  = {};
+// ✅ إضافة جديدة — متابعة وحدة أخيرة بعد يوم كامل للزبناء لي وقفو فمنتصف المحادثة (أكبر سبب لعدم التأكيد حسب تحليل المحادثات)
+const LONG_FOLLOWUP_DELAY = 24 * 60 * 60 * 1000;
+const longFollowUpSent    = new Set();
 const lastMessageTime = {};
 
 // ✅ إضافة جديدة
@@ -1434,7 +1437,12 @@ const sendFollowUp = async (from) => {
   if (orderConfirmed.has(from)||notInterested.has(from)) return;
   if (!conversationHistory[from]||conversationHistory[from].length===0) return;
   const count = followUpCount[from]||0;
-  if (count>=MAX_FOLLOWUPS) { delete followUpTimers[from]; return; }
+  if (count>=MAX_FOLLOWUPS) {
+    delete followUpTimers[from];
+    // ✅ إضافة جديدة — نفدات المتابعات القصيرة وباقي الزبون ساكت؛ نجربو متابعة وحدة أخيرة بعد يوم كامل قبل ما نوقفو نهائياً
+    if (!longFollowUpSent.has(from)) { longFollowUpSent.add(from); followUpTimers[from]=setTimeout(()=>sendLongFollowUp(from),LONG_FOLLOWUP_DELAY); }
+    return;
+  }
   followUpCount[from]=count+1; persistState();
   console.log(`📨 متابعة رقم ${count+1} لـ ${from}`);
   try {
@@ -1444,7 +1452,22 @@ const sendFollowUp = async (from) => {
     const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
     await sendHumanLike(from, claudeRes.data.content[0].text);
     if (count+1<MAX_FOLLOWUPS) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT);
+    // ✅ إضافة جديدة — بعد آخر متابعة قصيرة، نجربو متابعة وحدة أخيرة بعد يوم كامل بأسلوب مختلف قبل ما نوقفو نهائياً
+    else if (!longFollowUpSent.has(from)) { longFollowUpSent.add(from); followUpTimers[from]=setTimeout(()=>sendLongFollowUp(from),LONG_FOLLOWUP_DELAY); }
   } catch(e) { console.error('❌ خطأ المتابعة:', e.message); }
+};
+
+// ✅ إضافة جديدة — متابعة أخيرة بعد يوم كامل من الصمت، بأسلوب دافئ بلا إلحاح، ثم توقف نهائياً (ما كترجعش تتكرر)
+const sendLongFollowUp = async (from) => {
+  delete followUpTimers[from];
+  if (orderConfirmed.has(from)||notInterested.has(from)) return;
+  if (!conversationHistory[from]||conversationHistory[from].length===0) return;
+  try {
+    const followUpPrompt = `مر يوم كامل والعميل صامت من بعد آخر متابعة. هاذي آخر متابعة نهائياً — أسلوب مختلف تماماً وودود بلا إلحاح، مثلاً سؤال بسيط أو تذكير لطيف بالعرض. [PAUSE] بين الجمل.`;
+    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...conversationHistory[from],{role:'user',content:followUpPrompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+    await sendHumanLike(from, claudeRes.data.content[0].text);
+    console.log(`📨 متابعة طويلة الأمد (بعد يوم) لـ ${from}`);
+  } catch(e) { console.error('❌ خطأ المتابعة الطويلة:', e.message); }
 };
 
 const resetFollowUpTimer = (from) => { if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} if(!orderConfirmed.has(from)&&!notInterested.has(from)) followUpTimers[from]=setTimeout(()=>sendFollowUp(from),SILENCE_TIMEOUT); };
