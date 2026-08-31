@@ -402,6 +402,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 
 ## PHONE
 بعد الاسم+المدينة+العنوان: "[الاسم]، بقى غير رقم الهاتف 😊 [PAUSE] واش نخلي هذا الرقم، ولا عندك رقم آخر؟"
+⚠️ إجباري — لازم تسأل بالضبط سؤال "واش نخلي هذا الرقم، ولا عندك رقم آخر؟" حرفياً، لا تكتفِ بجملة عامة كـ"بقى غير رقم الهاتف" بلا ما تسول السؤال — الزبون خاصو يفهم بوضوح أنه لازم يجاوب بنعم أو يعطي رقم آخر
 موافقة بأي شكل → PHONE_FROM_WHATSAPP | رقم جديد → استخدمه
 
 ## PRICE
@@ -417,7 +418,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ## ORDER CONFIRMATION
 ⚠️ أخرج CONFIRMED_ORDER: مرة واحدة فقط — بعد تأكيد الزبون لرقم الهاتف مباشرة — في نفس الرسالة مع الملخص:
 أخرج في سطر منفصل:
-CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — ⚠️ إذا الدار البيضاء: اكتب بالضبط Casablanca – [المقاطعة التي اختارها الزبون من القائمة] — مثال: Casablanca – Maarif أو Casablanca – Sbata — لا تخمن ولا تخترع — استخرجها من المحادثة]","shipping_address":"[الحي والشارع ورقم المنزل الذي ذكره الزبون بعد اختيار المقاطعة]"},"product_data":{"brand":"GreatShoes","product_name":"Bottine cuir Stéphano","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"420"},"payment":{"method":"COD"}}
+CONFIRMED_ORDER:{"order_status":"CONFIRMED","source":"GreatShoes_AI","customer_data":{"full_name":"[الاسم]","phone":"[PHONE_FROM_WHATSAPP أو الرقم]","city":"[المدينة بالفرنسية — ⚠️ إذا الدار البيضاء: اكتب بالضبط Casablanca – [المقاطعة التي اختارها الزبون من القائمة] — مثال: Casablanca – Maarif أو Casablanca – Sbata — لا تخمن ولا تخترع — استخرجها من المحادثة]","shipping_address":"[الحي والشارع ورقم المنزل الذي ذكره الزبون بعد اختيار المقاطعة]"},"product_data":{"brand":"GreatShoes","product_name":"Bottine cuir Stéphano","color_ar":"[اللون بالعربية]","color_fr":"[noir/marron/gris]","size":"[المقاس]","unit_price_mad":"350"},"payment":{"method":"COD"}}
 
 ثم:
 ORDER_CONFIRM_MSG_START
@@ -838,7 +839,7 @@ const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir'
 
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
 // ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
-const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t); };
+const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t) || /مافهمتش|ما فهمتش|ماعرفتش|ما عرفتش|machi wa9t|ma fhemtch|mafhemtch|pas compris|comprends pas|je sais pas|ma3reftch/i.test(t); };
 // ✅ إضافة جديدة — كشف كي المدينة أو العنوان فارغين أو "لم يتم تحديده" أو ماركر غير معبأ [مثل هذا]، باش ما نأكدوش الطلب بمعلومات ناقصة
 const isMissingOrderField = (val) => { const v=(val||'').trim(); if(!v) return true; if(/لم يتم تحديد/.test(v)) return true; if(/^\[.*\]$/.test(v)) return true; return false; };
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
