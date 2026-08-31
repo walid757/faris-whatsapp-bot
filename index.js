@@ -840,6 +840,20 @@ const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir'
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
 // ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
 const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t) || /مافهمتش|ما فهمتش|ماعرفتش|ما عرفتش|machi wa9t|ma fhemtch|mafhemtch|pas compris|comprends pas|je sais pas|ma3reftch/i.test(t); };
+// ✅ إضافة جديدة — إلا الزبون سول سؤال حقيقي بدل ما يعطي وقت التوصيل، نجاوبو عليه بذكاء (Claude) بدل رسالة جاهزة ثابتة، ومن بعد نعاودو نطلبو منه الوقت فنفس الرسالة
+const answerTimeQuestionThenAsk = async (from, text, isFr) => {
+  try {
+    const prompt = `الزبون سول سؤال بدل ما يعطي وقت التوصيل: "${text}". جاوب على سؤاله بإيجاز وبنفس أسلوبك المعتاد، ومن بعد فنفس الرسالة ذكّره بلطف يعطيك وقت مناسب للتوصيل (مثلاً بعد الزوال، بعد 16h...). [PAUSE] بين الجمل.`;
+    const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:400, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:[...(conversationHistory[from]||[]),{role:'user',content:prompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+    await sendHumanLike(from, claudeRes.data.content[0].text);
+  } catch(e) {
+    console.error('❌ answerTimeQuestionThenAsk:', e.message);
+    // ✅ fallback — رسالة جاهزة إلا طاح خطأ فـClaude، باش الزبون ما يبقاش بلا جواب
+    await sendText(from, isFr
+      ? "N'importe quel horaire te convient, dis-moi juste une heure ou une période approximative (ex: après 16h) 😊"
+      : 'أي وقت كيناسبك، غير قول ليا ساعة أو فترة تقريبية (مثلاً بعد الزوال، ولا بعد 16h) 😊');
+  }
+};
 // ✅ إضافة جديدة — كشف كي المدينة أو العنوان فارغين أو "لم يتم تحديده" أو ماركر غير معبأ [مثل هذا]، باش ما نأكدوش الطلب بمعلومات ناقصة
 const isMissingOrderField = (val) => { const v=(val||'').trim(); if(!v) return true; if(/لم يتم تحديد/.test(v)) return true; if(/^\[.*\]$/.test(v)) return true; return false; };
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
@@ -1736,11 +1750,9 @@ app.post('/webhook', async (req,res) => {
         const time = text.trim();
         const _dtsLang2 = dts.lang || 'darija';
         const _dtsFr2 = (_dtsLang2 === 'french');
-        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت، نوضح ليه ونستناو رد حقيقي
+        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت، نجاوبو على سؤاله (Claude) ومن بعد نطلبو منه الوقت، بدل ما نسجلو السؤال كوقت
         if (looksLikeQuestionNotTime(text)) {
-          await sendText(from, _dtsFr2
-            ? "N'importe quel horaire te convient, dis-moi juste une heure ou une période approximative (ex: après 16h) 😊"
-            : 'أي وقت كيناسبك، غير قول ليا ساعة أو فترة تقريبية (مثلاً بعد الزوال، ولا بعد 16h) 😊');
+          await answerTimeQuestionThenAsk(from, text, _dtsFr2);
           return;
         }
         deliveryTimes[from] = time;
@@ -1810,12 +1822,10 @@ app.post('/webhook', async (req,res) => {
           pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         }
       } else if (pending.step === 'awaiting_delivery_time') {
-        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت (مثلاً "واش أي وقت مناسب؟")، نوضح ليه ونستناو رد حقيقي، بلا ما نسجلو السؤال كوقت
+        // ✅ إصلاح — إلا الزبون سول سؤال بدل ما يعطي وقت (مثلاً "واش أي وقت مناسب؟")، نجاوبو على سؤاله (Claude) ومن بعد نطلبو منه الوقت
         if (looksLikeQuestionNotTime(text)) {
           const _dtqIsFr = (pending.lang === 'french');
-          await sendText(from, _dtqIsFr
-            ? "N'importe quel horaire te convient, dis-moi juste une heure ou une période approximative (ex: après 16h) 😊"
-            : 'أي وقت كيناسبك، غير قول ليا ساعة أو فترة تقريبية (مثلاً بعد الزوال، ولا بعد 16h) 😊');
+          await answerTimeQuestionThenAsk(from, text, _dtqIsFr);
           return;
         }
         pending.deliveryTime = text.trim();
