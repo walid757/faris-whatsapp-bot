@@ -839,7 +839,9 @@ const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir'
 
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
 // ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
-const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); return /[؟?]/.test(t) || /^(واش|وا ش|علاش|شنو|كيفاش|wach|c'est quoi|est-ce)/i.test(t) || /مافهمتش|ما فهمتش|ماعرفتش|ما عرفتش|machi wa9t|ma fhemtch|mafhemtch|pas compris|comprends pas|je sais pas|ma3reftch/i.test(t); };
+// ✅ إصلاح — بدل لائحة كلمات محدودة (كانت كتفوت صيغ جداد كل مرة كـ"شرح لي")، كنفحصو بالعكس: واش النص فيه أي مؤشر وقت حقيقي (رقم، ساعة، فترة يوم...). إلا ما كانش، كنعتبروه ماشي وقت (سؤال/حيرة/كلام آخر) — أشمل وأضمن من محاولة تخمين كل صيغة ممكنة
+const looksLikeTimeExpression = (text) => { const t=(text||'').trim(); if(!t) return false; return /\d/.test(t) || /ساعة|صباح|مساء|الزوال|الظهر|العصر|المغرب|العشية|العشاء|الليل|الفجر|دابا|الآن|الان|غدا|غدوة|بكري|قريب|حوالي|تقريبا|بعد|قبل|heure|matin|soir|après|avant|maintenant|demain|now|tonight|morning|evening/i.test(t); };
+const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); if(!t) return false; return !looksLikeTimeExpression(t); };
 // ✅ إضافة جديدة — إلا الزبون سول سؤال حقيقي بدل ما يعطي وقت التوصيل، نجاوبو عليه بذكاء (Claude) بدل رسالة جاهزة ثابتة، ومن بعد نعاودو نطلبو منه الوقت فنفس الرسالة
 const answerTimeQuestionThenAsk = async (from, text, isFr) => {
   try {
