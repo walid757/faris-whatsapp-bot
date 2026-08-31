@@ -1277,6 +1277,7 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
       name: cd.full_name || '',
       phone: phoneDisplay,
       city: cityFr || cd.city || '',
+      product: pd.product_name || 'Bottine cuir Stéphano', // ✅ إصلاح — كان ناقص، فكانت ملاحظة أوزون كتبان "40 - noir" بلا اسم المنتج، بخلاف طلبات الموقع/يوكان لي فيهم اسم المنتج
       size: pd.size || '',
       color: pd.color_fr || '',
       price: pd.unit_price_mad || '350'
