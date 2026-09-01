@@ -1439,7 +1439,9 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
   if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
   if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
   if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : ''}` : `⏳ طلبك جاهز، فمرحلة انتظار باش الليفرور يجي ياخدو من المستودع.${trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : ''}`;
-  if (s.includes('nouveau') || s.includes('pris en charge') || s.includes('ramass')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
+  // ✅ إصلاح — "Ramassé" (تم الاستلام من الليفرور) رسالة خاصة بيها، ماشي نفس رسالة "Nouveau Colis"
+  if (s.includes('ramass')) return isFr ? `📦 Ta commande a été récupérée par le livreur, elle est en route !${trackingNum ? `\nNuméro de suivi: *${trackingNum}*` : ''}` : `📦 تم استلام طلبك من طرف الليفرور، راه فالطريق!${trackingNum ? `\nرقم التتبع: *${trackingNum}*` : ''}`;
+  if (s.includes('nouveau') || s.includes('pris en charge')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
   if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) {
     const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
     const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
@@ -2339,6 +2341,11 @@ const checkOzonStatusChanges = async () => {
       persistState();
       const isFr = (userLangPref[phone] === 'french');
       const statusLowerForLivreur = status.statut.toLowerCase();
+      // ✅ إضافة جديدة — "Nouveau Colis" ما نخبروش بيها الزبون (مكررة مع رسالة تأكيد الطلب لي فيها رقم التتبع من قبل) — الإخبار غير للحالات: Attente de ramassage، Ramassé، Mise en distribution، Pas de réponse، Refusé
+      if (statusLowerForLivreur.includes('nouveau') && !statusLowerForLivreur.includes('ramass')) {
+        console.log(`⏭️ تخطي إشعار "Nouveau Colis" ← ${phone} | ${trackingNum}`);
+        continue;
+      }
       const isPdrStatus = statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable');
       const isRefuseStatus = statusLowerForLivreur.includes('refus') || statusLowerForLivreur.includes('retour');
       const livreurForMsg = (statusLowerForLivreur.includes('distribution') || isPdrStatus) ? await getLivreurFromOzon(trackingNum) : null;
