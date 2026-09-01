@@ -1423,35 +1423,36 @@ const getOrderStatusFromOzon = async (trackingNum) => {
 };
 
 // ✅ إضافة جديدة — ترجمة حالة Ozon لرسالة ودية مفهومة للزبون
-const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur) => {
+const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur, name) => {
   const s = (statut || '').toLowerCase();
-  if (s.includes('livré') || s.includes('livre')) return isFr ? "✅ Ta commande a été livrée avec succès !" : '✅ تم تسليم طلبك بنجاح!';
+  // ✅ إضافة جديدة — اسم الزبون مع "سيدي/للا" فبداية كل رسالة تتبع، ورقم التتبع ديماً فالآخر (لي طلبه صاحب المتجر)
+  const titleAr = name ? `${getTitle(name)}، ` : '';
+  const titleFr = name ? `${name}, ` : '';
+  const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
+  const trackLineFr = trackingNum ? `\nNuméro de suivi: *${trackingNum}*` : '';
+  if (s.includes('livré') || s.includes('livre')) return isFr ? `${titleFr}✅ Ta commande a été livrée avec succès !${trackLineFr}` : `${titleAr}✅ تم تسليم طلبك بنجاح!${trackLineAr}`;
   if (s.includes('distribution')) {
-    const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
-    const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
     const livreurLineFr = (livreur && livreur.phone) ? `\n🚚 Livreur: ${livreur.name}\n📞 Tél livreur: ${livreur.phone}\n\nSois disponible sur ton numéro 🙏` : '\nLe livreur te contactera bientôt 📞';
     const livreurLineAr = (livreur && livreur.phone) ? `\n🚚 الليفرور: ${livreur.name}\n📞 رقم الليفرور: ${livreur.phone}\n\nكون متاح على رقمك 🙏` : '\nالليفرور غادي يتصل بيك قريباً 📞';
     return isFr
-      ? `🚚 Ta commande est en cours de livraison aujourd'hui !${trackLineFr}${livreurLineFr}`
-      : `🚚 طلبك خرج للتوصيل اليوم، غادي توصلك قريباً!${trackLineAr}${livreurLineAr}`;
+      ? `${titleFr}🚚 Ta commande est en cours de livraison aujourd'hui !${trackLineFr}${livreurLineFr}`
+      : `${titleAr}🚚 طلبك خرج للتوصيل اليوم، غادي توصلك قريباً!${trackLineAr}${livreurLineAr}`;
   }
-  if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? '📦 Ta commande est en route vers ta ville.' : '📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.';
-  if (s.includes('refus') || s.includes('retour')) return isFr ? "⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça." : '⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.';
-  if (s.includes('annul')) return isFr ? '❌ Cette commande a été annulée.' : '❌ هاد الطلب تم إلغاؤه.';
-  if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : ''}` : `⏳ طلبك جاهز، فمرحلة انتظار باش الليفرور يجي ياخدو من المستودع.${trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : ''}`;
+  if (s.includes('transit') || s.includes('expédi') || s.includes('expedi')) return isFr ? `${titleFr}📦 Ta commande est en route vers ta ville.${trackLineFr}` : `${titleAr}📦 طلبك فالطريق ليك، فتنقل بين المدن دابا.${trackLineAr}`;
+  if (s.includes('refus') || s.includes('retour')) return isFr ? `${titleFr}⚠️ Il y a eu un souci avec la livraison. On va te contacter pour régler ça.${trackLineFr}` : `${titleAr}⚠️ كاين مشكل صغير فالتوصيل — غادي نتواصلو معاك نحلوه.${trackLineAr}`;
+  if (s.includes('annul')) return isFr ? `${titleFr}❌ Cette commande a été annulée.${trackLineFr}` : `${titleAr}❌ هاد الطلب تم إلغاؤه.${trackLineAr}`;
+  if (s.includes('attente de ramassage') || s.includes('attente ramassage')) return isFr ? `${titleFr}⏳ Ta commande est prête, en attente que le livreur vienne la récupérer.${trackLineFr}` : `${titleAr}⏳ طلبك جاهز، فمرحلة انتظار باش الليفرور يجي ياخدو من المستودع.${trackLineAr}`;
   // ✅ إصلاح — "Ramassé" (تم الاستلام من الليفرور) رسالة خاصة بيها، ماشي نفس رسالة "Nouveau Colis"
-  if (s.includes('ramass')) return isFr ? `📦 Ta commande a été récupérée par le livreur, elle est en route !${trackingNum ? `\nNuméro de suivi: *${trackingNum}*` : ''}` : `📦 تم استلام طلبك من طرف الليفرور، راه فالطريق!${trackingNum ? `\nرقم التتبع: *${trackingNum}*` : ''}`;
-  if (s.includes('nouveau') || s.includes('pris en charge')) return isFr ? '📋 Ta commande est enregistrée et en préparation.' : '📋 طلبك مسجل وفي طور التجهيز.';
+  if (s.includes('ramass')) return isFr ? `${titleFr}📦 Ta commande a été récupérée par le livreur, elle est en route !${trackLineFr}` : `${titleAr}📦 تم استلام طلبك من طرف الليفرور، راه فالطريق!${trackLineAr}`;
+  if (s.includes('nouveau') || s.includes('pris en charge')) return isFr ? `${titleFr}📋 Ta commande est enregistrée et en préparation.${trackLineFr}` : `${titleAr}📋 طلبك مسجل وفي طور التجهيز.${trackLineAr}`;
   if (s.includes('pas de r') || s.includes('sans r') || s.includes('injoignable')) {
-    const trackLineFr = trackingNum ? `\n📦 Numéro de suivi: *${trackingNum}*` : '';
-    const trackLineAr = trackingNum ? `\n📦 رقم التتبع: *${trackingNum}*` : '';
     const livreurLineFr = (livreur && livreur.phone) ? `\n🚚 Livreur: ${livreur.name}\n📞 Tél livreur: ${livreur.phone}` : '';
     const livreurLineAr = (livreur && livreur.phone) ? `\n🚚 الليفرور: ${livreur.name}\n📞 رقم الليفرور: ${livreur.phone}` : '';
     return isFr
-      ? `📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre.${trackLineFr}${livreurLineFr}\n\nOn va réessayer très vite, ou tu peux contacter le livreur directement.`
-      : `📞 الليفرور حاول يتصل بيك ما قدرش يوصل ليك.${trackLineAr}${livreurLineAr}\n\nغادي نعاودو نتصلو بيك في أقرب وقت، ولا تقدر تتصل بالليفرور مباشرة 🙏`;
+      ? `${titleFr}📞 Le livreur a essayé de te contacter mais n'a pas pu te joindre.${trackLineFr}${livreurLineFr}\n\nOn va réessayer très vite, ou tu peux contacter le livreur directement.`
+      : `${titleAr}📞 الليفرور حاول يتصل بيك ما قدرش يوصل ليك.${trackLineAr}${livreurLineAr}\n\nغادي نعاودو نتصلو بيك في أقرب وقت، ولا تقدر تتصل بالليفرور مباشرة 🙏`;
   }
-  return isFr ? `📦 Statut actuel: ${statut}` : `📦 آخر حالة معروفة: ${statut}`;
+  return isFr ? `${titleFr}📦 Statut actuel: ${statut}${trackLineFr}` : `${titleAr}📦 آخر حالة معروفة: ${statut}${trackLineAr}`;
 };
 
 // ✅ إضافة جديدة — معالج سؤال "فين طلبي" — كيرد بحالة حقيقية من Ozon Express
@@ -1477,7 +1478,7 @@ const handleTrackingInquiry = async (from, text) => {
   }
   const statusLowerForLivreur = status.statut.toLowerCase();
   const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
-  await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
+  await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, customerOrderInfo[from]?.name));
 };
 
 // ✅ إضافة جديدة — متابعة الحوار: إلا سولنا الزبون عن رقم التتبع وما عطاهوش، نسولوه على رقم الهاتف
@@ -1656,7 +1657,7 @@ const getTitle = (name) => {
   if (!name) return '';
   const first = name.trim().split(/\s+/)[0];
   if (first.endsWith('ة') || first.endsWith('ه') || FEMALE_NAMES.has(first)) return `للا ${name}`;
-  return `مولاي ${name}`;
+  return `سيدي ${name}`; // ✅ إصلاح — "سيدي" بدل "مولاي" باش يبقى موحّد مع باقي البوت (رد الاسم، رسائل التتبع...)
 };
 
 const confirmAndSendToOzon = async (from, order, finalAddress) => {
@@ -2371,7 +2372,7 @@ const checkOzonStatusChanges = async () => {
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
       } else {
         if (statusLowerForLivreur.includes('livr')) { customerDeliveredAt[phone] = Date.now(); persistState(); }
-        await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg));
+        await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, (customerOrderInfo[phone] || {}).name));
       }
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
