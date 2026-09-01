@@ -418,6 +418,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 
 ### قواعد العنوان
 ⚠️ اقبل أي عنوان يعطيه الزبون مهما كان قصيراً (حي فقط، أو شارع فقط، أو أي وصف) — لا تطلب تفاصيل إضافية — سجّله كما هو وواصل
+⚠️⚠️ استثناء إجباري — العنوان ممنوع يكون غير تكرار لاسم المدينة نفسها (مثلاً الزبون قال المدينة "فاس" ومن بعد كتب "فاس" أو "Fes" كعنوان) — هذا ماشي عنوان حقيقي، خصوصاً فالمدن الكبيرة (فاس، مراكش، الدار البيضاء...) اللي فيها بزاف الأحياء. إذا وقع هذا، اشرح للزبون بلطف أنك محتاج الحي أو الشارع بالضبط (ماشي اسم المدينة مرة أخرى) قبل ما تكمل
 
 ### وقت التوصيل (بعد العنوان) — قاعدة صارمة
 ⚠️ بعد أي رسالة يذكر فيها الزبون العنوان (حي/شارع/أي مكان)، يجب أن يحتوي ردك على هذا الماركر في سطر منفصل:
@@ -913,6 +914,14 @@ const answerTimeQuestionThenAsk = async (from, text, isFr) => {
 };
 // ✅ إضافة جديدة — كشف كي المدينة أو العنوان فارغين أو "لم يتم تحديده" أو ماركر غير معبأ [مثل هذا]، باش ما نأكدوش الطلب بمعلومات ناقصة
 const isMissingOrderField = (val) => { const v=(val||'').trim(); if(!v) return true; if(/لم يتم تحديد/.test(v)) return true; if(/^\[.*\]$/.test(v)) return true; return false; };
+// ✅ إضافة جديدة — كشف كي العنوان هو غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: الزبون قال "Fes" كمدينة، وتسجلت "Fes" كعنوان بحالها
+const isAddressJustCityName = (address, city) => {
+  const norm = (s) => (s||'').split('—')[0].trim().toLowerCase().replace(/[éèêë]/g,'e').replace(/[àâ]/g,'a').replace(/[^a-z0-9؀-ۿ\s]/g,'').trim();
+  const a = norm(address), c = norm(city).split(/[–-]/)[0].trim(); // كنشيلو المقاطعة (مثلاً "casablanca – maarif" → "casablanca") باش نقارنو غير مع اسم المدينة
+  if (!a || !c) return false;
+  if (a.length < 6) return true; // عنوان قصير بزاف (أقل من 6 حروف) ما يمكنش يكون حي+شارع حقيقيين
+  return a === c || c === a;
+};
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
 const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
@@ -2103,6 +2112,8 @@ app.post('/webhook', async (req,res) => {
             const _pdCheck = _parsedCheck.product_data || {};
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
+            // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
+            else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
             // ✅ إضافة جديدة — إلا المقاس خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && !/^(39|40|41|42|43|44)$/.test(String(_pdCheck.size).trim())) _missingField = 'size';
           }
