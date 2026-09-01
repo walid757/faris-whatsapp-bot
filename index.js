@@ -296,6 +296,7 @@ Bottine cuir Stéphano | أسود/بني/رمادي | مقاسات 39-44
 "🔥 السعر: 350 درهم ~490 درهم~ فقط"
 (الرمز ~ حوالين 490 كيدير خط فوقها فواتساب — خليه بالضبط هكذا)
 ⚠️ إذا قال الزبون رقماً بين 39-44 في أي وقت من المحادثة، سجله فوراً كمقاس — لا تعرض قائمة ولا تسأل مرة أخرى
+⚠️⚠️ إذا قال الزبون رقماً خارج 39-44 (مثلاً 45، 46، 38، 37...) — ممنوع نهائياً تسجله كمقاس أو تخرج CONFIRMED_ORDER بيه. اعتذر بلطف وقول ليه أن المقاسات المتوفرة حالياً هي 39 إلى 44 فقط، واسأله واش يناسبو أقرب مقاس متوفر (43 أو 44 إذا طلب أكبر)
 
 ## 75 SKILLS — استخدم مهارة واحدة فقط في كل رسالة
 
@@ -448,6 +449,26 @@ ORDER_CONFIRM_MSG_END
 اشرح له بالتفصيل هكذا بالدارجة:
 "سوميلتنا EVA وماشي كومة 😊 [PAUSE] السر الحقيقي فالفرق مع الأحذية المشابهة الرخاص هو فجوج حوايج: أولاً الجلد — عندنا جلد طبيعي من برا ومن الداخل، والأحذية الرخاص كيستعملو جلد صناعي من الداخل [PAUSE] ثانياً السوميلة — سوميلة EVA خفيفة بزاف بالمقارنة مع سوميلة كومة، ومريحة أكثر فالمشي وعندها مرونة عالية، بخلاف كومة اللي تقيلة وقاسية [PAUSE] EVA غالية شوية فالثمن وزايدة شوية فالارتفاع مقارنة مع كومة، لكن الفرق فالراحة والجودة يستاهل 💪"
 بالفرنسية: "Notre semelle est en EVA, pas en gomme 😊 [PAUSE] La vraie différence avec les chaussures similaires moins chères vient de deux choses: d'abord le cuir — le nôtre est en cuir véritable à l'extérieur ET à l'intérieur, alors que les modèles moins chers utilisent du cuir synthétique à l'intérieur [PAUSE] ensuite la semelle — l'EVA est beaucoup plus légère que la gomme, plus confortable à la marche et plus souple, contrairement à la gomme qui est lourde et rigide [PAUSE] l'EVA coûte un peu plus cher et est légèrement plus haute que la gomme, mais le confort et la qualité en valent la peine 💪"
+
+### إذا سأل الزبون واش القياس/المقاس مضبوط أو خايف يجيه غير مناسب
+اطمئنو هكذا بالدارجة:
+"غالبية الزبناء كيجيهم المقاس مناسب 100% إلى اختارو نفس الرقم لي كيلبسوه ديماً فالصباط 😊 [PAUSE] وأهم حاجة باش تكون مرتاح: تقدر تاخد المقاس مباشرة مع الليفرور منين توصلك الطلبية — تقيس قدامو قبل ما تخلص، هذا أحسن حل [PAUSE] وإلا ما تيسرش، تقدر تقيسو بخاطرك فالدار [PAUSE] معلومة مهمة: الجلد ديالنا طبيعي 100% (ماشي صناعي)، وهاد النوع كيتمدد شوية مع الوقت — إلا جاك شوية ضيق فأول يوم أو يومين، راه غايتوسع وياخد شكل رجلك بالضبط [PAUSE] وأهم نقطة لي تطمئنك: تغيير المقاس مجاني فـ48 ساعة، بشرط غير ما تكونش لبستيه ومشيتي بيه بره 💪"
+بالفرنسية: "La grande majorité de nos clients trouvent la bonne pointure en choisissant le numéro qu'ils portent habituellement 😊 [PAUSE] Le plus important pour être tranquille: tu peux essayer directement avec le livreur à la livraison — tu essaies avant de payer, c'est la meilleure solution [PAUSE] Sinon tu peux aussi l'essayer tranquillement chez toi [PAUSE] Info importante: notre cuir est 100% véritable (pas synthétique), et ce type de cuir s'assouplit légèrement avec le temps — si elle est un peu serrée le premier jour ou deux, elle va s'élargir et prendre la forme de ton pied [PAUSE] Et le plus rassurant: l'échange de pointure est gratuit sous 48h, à condition de ne pas l'avoir portée et marché avec dehors 💪"
+
+### إذا قال الزبون الحذاء جاه مزير أو ضيق شوية (بعد ما وصلات الطلبية أو كيقيسها)
+⚠️ جاوب بطريقة بشرية دافئة على مراحل بـ[PAUSE] — لا تعطي المعلومات كاملة دفعة واحدة فرسالة وحدة طويلة، خلي الحوار طبيعي:
+مثال على الترتيب: أولاً طمّنو بإيجاز، [PAUSE] من بعد اشرح أن الجلد الطبيعي كيتمدد مع الاستعمال خصوصاً فالبلايص لي كتتضغط، [PAUSE] وضح أن التمدد محدود (ماشي غادي يزيد مقاس كامل) ولكن كيولي أريح مع الأيام، [PAUSE] وفالأخير نبهو: إلا كان كيعصر بزاف أو كيدير ليه ألم، ما يعتمدش على التمدد وحده — ذكّرو بخيار تغيير المقاس مجاناً فـ48 ساعة كحل مضمون
+أمثلة جمل تقدر تستعملها (وزعها على عدة رسائل بـ[PAUSE]، لا تلصقها كاملة فرسالة وحدة):
+"فهمتك 😊" [PAUSE] "الجلد الطبيعي إلا كان غير مزير شوية، غالباً كيتحل ويتمدد مع الاستعمال، خصوصاً فالبلايص اللي كتتضغط فيها على رجلك" [PAUSE] "التمدد كيكون محدود، ماشي غادي يزيد مقاس كامل، ولكن مع الأيام كيولي أريح حيث الجلد كياخذ شكل رجلك" [PAUSE] "إلا كان كيعصر عليك بزاف أو كيدير ليك ألم قوي، ما تعتمدش أنه غادي يتمدد بزاف — فهاد الحالة نقدرو نبدلو ليك المقاس مجاناً فـ48 ساعة بشرط ما تكونش لبستيه ومشيتي بيه بره"
+بالفرنسية (بنفس المبدأ، موزعة على [PAUSE]): "Je comprends 😊" [PAUSE] "Le cuir véritable, s'il est juste un peu serré, se détend généralement avec l'usage, surtout aux endroits qui appuient sur le pied" [PAUSE] "L'assouplissement reste limité, ça ne va pas gagner une pointure entière, mais ça devient plus confortable avec les jours car le cuir prend la forme du pied" [PAUSE] "Si ça serre beaucoup ou ça fait mal, ne compte pas uniquement sur l'assouplissement — dans ce cas on peut échanger la pointure gratuitement sous 48h, à condition de ne pas l'avoir portée dehors"
+
+### إذا سأل الزبون على مدة التوصيل بالتحديد
+"التوصيل للمغرب كامل ومجاني 🚚 [PAUSE] فالمدن الكبرى كيوصل غالباً فـ24 ساعة، وفالمناطق البعيدة ما بين يومين و3 أيام"
+بالفرنسية: "La livraison est gratuite dans tout le Maroc 🚚 [PAUSE] Dans les grandes villes elle arrive généralement en 24h, et dans les zones plus éloignées entre 2 et 3 jours"
+
+### إذا سأل الزبون على أصل/جودة المنتوج (مثلاً "واش صنع تركي؟" أو "واش نفس الجودة لي فالصور؟")
+"الجلد ديالنا جلد مغربي طبيعي 100%، ماشي تركي 🇲🇦 [PAUSE] غير السوميلة EVA هي لي مستوردة من الخارج، والباقي كلو صناعة وجلد مغربي أصيل"
+بالفرنسية: "Notre cuir est du cuir marocain 100% véritable, pas turc 🇲🇦 [PAUSE] Seule la semelle EVA est importée, tout le reste est de fabrication et cuir marocain authentique"
 
 ### إذا طلب الزبون تخفيضاً على حذاء واحد
 ⚠️ لا تخفض الثمن أبداً — بل ذكّره بالعرض الحالي هكذا:
@@ -2043,16 +2064,22 @@ app.post('/webhook', async (req,res) => {
         let _missingField = null;
         try {
           if (_previewJsonCheck) {
-            const _cdCheck = JSON.parse(_previewJsonCheck).customer_data || {};
+            const _parsedCheck = JSON.parse(_previewJsonCheck);
+            const _cdCheck = _parsedCheck.customer_data || {};
+            const _pdCheck = _parsedCheck.product_data || {};
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
+            // ✅ إضافة جديدة — إلا المقاس خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
+            else if (_pdCheck.size && !/^(39|40|41|42|43|44)$/.test(String(_pdCheck.size).trim())) _missingField = 'size';
           }
         } catch(e){}
         if (_missingField) {
           const _isFrMissing = (userLangPref[from] === 'french');
           const _askMsg = _missingField === 'city'
             ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
-            : (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍");
+            : _missingField === 'address'
+            ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
+            : (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟");
           await sendHumanLike(from, _askMsg);
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
           return;
