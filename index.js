@@ -179,7 +179,8 @@ const normalizeCityFr = (city) => {
   return bestMatch || city;
 };
 
-const STATE_FILE = path.join(__dirname, 'bot_state.json');
+// ✅ إصلاح — نستعملو /data (Railway Volume دائم) إلا كان موجود، باش الحالة (تتبع الطلبيات، تاريخ المحادثات...) ما تتمسحش عند كل redeploy؛ نرجعو لمجلد التطبيق محلياً إلا ماكانش /data (بحال التطوير المحلي)
+const STATE_FILE = fs.existsSync('/data') ? path.join('/data', 'bot_state.json') : path.join(__dirname, 'bot_state.json');
 const loadState = () => {
   try { if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
   catch (e) { console.error('⚠️ خطأ في تحميل الحالة:', e.message); }
