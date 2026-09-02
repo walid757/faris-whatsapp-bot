@@ -1507,7 +1507,12 @@ const handleTrackingInquiry = async (from, text) => {
   }
   const statusLowerForLivreur = status.statut.toLowerCase();
   const livreurForMsg = (statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable')) ? await getLivreurFromOzon(trackingNum) : null;
-  await sendText(from, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, customerOrderInfo[from]?.name));
+  const trackingMsgText = formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, customerOrderInfo[from]?.name);
+  await sendText(from, trackingMsgText);
+  // ✅ إضافة جديدة — نسجلو رسالة التتبع فذاكرة المحادثة، باش Claude يبقى عندو السياق إلا الزبون رد عليها (بحال "شكراً" أو "واش غادي توصل اليوم؟")
+  if (!conversationHistory[from]) conversationHistory[from] = [];
+  conversationHistory[from].push({ role: 'assistant', content: trackingMsgText });
+  persistState();
 };
 
 // ✅ إضافة جديدة — متابعة الحوار: إلا سولنا الزبون عن رقم التتبع وما عطاهوش، نسولوه على رقم الهاتف
@@ -2421,7 +2426,12 @@ const checkOzonStatusChanges = async () => {
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
       } else {
         if (statusLowerForLivreur.includes('livr')) { customerDeliveredAt[phone] = Date.now(); persistState(); }
-        await sendText(phone, formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, (customerOrderInfo[phone] || {}).name));
+        const autoTrackingMsgText = formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, (customerOrderInfo[phone] || {}).name);
+        await sendText(phone, autoTrackingMsgText);
+        // ✅ إضافة جديدة — نسجلو رسالة التتبع التلقائية فذاكرة المحادثة، باش Claude يبقى عندو السياق إلا الزبون رد عليها
+        if (!conversationHistory[phone]) conversationHistory[phone] = [];
+        conversationHistory[phone].push({ role: 'assistant', content: autoTrackingMsgText });
+        persistState();
       }
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
     } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
