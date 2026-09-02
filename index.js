@@ -149,6 +149,34 @@ const CITY_ID_MAP = {
   "Nouaceur":433,"Bouskoura":421,"Dar Bouazza":415,"Tit Mellil":478,"Had Soualem":724,
   "Ben Guerir":601,"Youssoufia":2133,"Sidi Bennour":935,"Oulad Teima":956,
   "Inzegane":151,"Aït Melloul":49,"Tahanoute":1633,
+  // ✅ إضافة جديدة — تزامن مع لائحة Apps Script (165 مدينة كاملة) باش نتفادو حالة "مدينة غير معروفة" كتشحن بالغلط للدار البيضاء
+  "Kalaat Mgouna":1391,"Biougra":1068,
+  "Boujdour":91,"Kasba Tadla":157,"M Diq":193,"Martil":205,"Cabo Negro":271,
+  "Imouzar Kandre":339,"Ain Leuh":364,"Sidi Aadi - Azrou":370,"Errahma Ville":403,
+  "Tamaris":409,"Jamaat Shaim":427,"Sebt Gzoula":439,"Souiria Kdima":445,
+  "Daroua":493,"Azemmour":523,"Moulay Abdellah":529,"Riche-02":619,
+  "Sidi Rahhal":731,"Boufkrane":773,"Sbaa Ayoune":780,"Moly Drisse Zarhoune":787,
+  "Lmhaya":794,"Lhaj Kadour Ville":801,"Tawjtat":808,"Bab Berred":879,
+  "Laaroui":886,"Selouane":893,"Segangan-Nador":900,"Beni Ensar":907,
+  "Sidi-Bibi":942,"Keliaa":949,"Anza":963,"Walidia":970,"Boujniba":984,
+  "Skhour Rehamna":1019,"Zaouiat Cheikh":1047,"Ait Amira-Agadir":1075,
+  "Mehdia":1082,"Mehdia Ville":1096,"Sidi Kaouki-Essouira":1124,
+  "Mhamid El Ghizlane":1131,"Boumia":1138,"Chellalat":1145,"El Mansouria":1243,
+  "Rissani Ville":1250,"Erfoud Ville":1257,"Missour":1264,"Goulmima-Errachidia":1286,
+  "Tinejdad Ville":1293,"Oualmes Ville":1300,"Rommani Ville":1314,"Houara":1321,
+  "Drarga":1328,"Belfaa":1342,"Souk Sebt Oulad Nemma":1356,"Elhajeb Ville":1363,
+  "Jerada":1384,"Layoun Cherkia":1398,"Bir Jdid":1412,"Sidi Hajjaj-Casa":1419,
+  "Moulay Yaacoub":1440,"Sidi Harazem":1447,"Ras El Ma-Fes":1454,"Ain Cheggag":1461,
+  "Kariat Ba Mohamed":1468,"Imzouren":1482,"Bni Bouayach":1489,
+  "Boumaln Dades-Tinghir":1531,"Zayou":1536,"Aglou":1539,"Tafraoute":1540,
+  "Oulad Jerrar-Tiznit":1541,"Bounaamane-Tiznit":1542,"El Maader El Kabir-Tiznit":1543,
+  "Maaziz":1544,"Sebt El Guerdane":1545,"Alnif":1546,"Taghazout":1547,
+  "Tamraght-Agadir":1548,"Aourir-Agadir":1549,"Kariat Arkman-Nador":1555,
+  "Had Hrara-Safi":1556,"Tnin El Ghiate-Safi":1557,"Tamansourt-Marrakech":1559,
+  "Oudaya-Marrakech":1560,"Louizia":1561,"Ajdir-Houcima":1562,
+  "Sidi Bouzid-El Jadida":1563,"Jorf Sefar":1564,"Mazagan":1565,"Msawar Raso":1566,
+  "Lhawzia-Jadida":1567,"Zaouit Sidi Smail":1568,"Chichaoua":1648,
+  "Tnine Chtouka El Jadida":1650,
 };
 
 const levenshtein = (a, b) => {
@@ -1132,7 +1160,8 @@ const handlePasDeReponse = async (from, text) => {
       }
       delete pasDeReponseActive[from]; persistState(); break;
     case 2: schedulePdrFollowup(from); break;
-    case 3: break;
+    // ✅ إصلاح — الزبون بغى يبدل العنوان: كنا كنسولوه العنوان الجديد ولكن ما كنسجلوش الرد التالي ديالو ولا كنبعثوه لليفرور. دابا كنحفظو أننا كنستناو العنوان الجديد باش الرسالة الجاية تتبعث مباشرة لليفرور
+    case 3: pasDeReponseActive[from].waitingForAddress = true; persistState(); break;
     case 4:
       if (livreur.phone) {
         await sendText(formatPhone(livreur.phone),
@@ -1591,13 +1620,14 @@ const toMoroccanPhone = (phone) => {
 };
 
 const getCityId = (cityFr) => {
-  if (!cityFr) return 2174;
+  // ✅ إصلاح — كان كيرجع 2174 (الدار البيضاء) بصمت منين ما تلقاش المدينة، فكانت طلبيات تتشحن لمدينة غلط بلا أي تنبيه (حالة حقيقية: "Tindouf" شحنات للدار البيضاء). دابا كنرجعو null باش الشحن يتوقف ويتنبه الأدمين بدل ما يشحن لمكان غلط
+  if (!cityFr) return null;
   const k = cityFr.trim();
   if (CITY_ID_MAP[k]) return CITY_ID_MAP[k];
   for (const key in CITY_ID_MAP) {
     if (k.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(k.toLowerCase())) return CITY_ID_MAP[key];
   }
-  return 2174;
+  return null;
 };
 
 const sendInteractiveButtons = async (to, bodyText, buttons) => {
@@ -1630,6 +1660,11 @@ const sendOrderTemplate = async (to, name, product, price) => {
 
 const addParcelDirect = async (order, finalAddress) => {
   const cityId = getCityId(normalizeCityFr(order.city || ''));
+  // ✅ إضافة جديدة — إلا المدينة ماعرفناهاش، ما نشحنوش (كان كيشحن بصمت للدار البيضاء) — نرجعو فشل واضح باش يتنبه الأدمين والزبون
+  if (!cityId) {
+    console.error(`❌ مدينة غير معروفة — ما تشحنش: "${order.city}"`);
+    return { success: false, ozonResponse: `مدينة غير معروفة: "${order.city}" — يرجى التأكد من المدينة يدوياً` };
+  }
   const note = [order.product, order.size, order.color].filter(Boolean).join(' - ');
   const moPhone = toMoroccanPhone(order.phone || order.waPhone);
   const body = new URLSearchParams({
@@ -2005,6 +2040,20 @@ app.post('/webhook', async (req,res) => {
       if (pasDeReponseActive[from].waitingForProduct) {
         await sendNewOrderToSheet(pasDeReponseActive[from], null, text, null);
         await sendText(from, "✅ ممتاز " + pasDeReponseActive[from].name + " 😊\n\nتم تسجيل طلبيتك الجديدة\nسيتصل بك الليفرور قريباً 🚚\nشكراً لثقتك في GreatShoes 🤎");
+        delete pasDeReponseActive[from]; persistState(); return;
+      }
+      // ✅ إضافة جديدة — الزبون عطا العنوان الجديد لي طلبناه منو (CASE_3) — نبعثوه مباشرة لليفرور ونأكدو للزبون
+      if (pasDeReponseActive[from].waitingForAddress) {
+        const pdrAddrInfo = pasDeReponseActive[from];
+        try {
+          const addrLivreur = await getLivreurFromOzon(pdrAddrInfo.trackingNum);
+          if (addrLivreur?.phone) {
+            await sendText(formatPhone(addrLivreur.phone),
+              "📍 GreatShoes — عنوان جديد\n\n👤 " + pdrAddrInfo.name + " | 📞 " + formatPhone(from) + "\n📦 " + pdrAddrInfo.trackingNum + "\n🏠 العنوان الجديد: " + text + "\n\nيرجى التوصيل للعنوان الجديد 🙏"
+            );
+          }
+        } catch(ae) { console.error('❌ إرسال العنوان الجديد لليفرور:', ae.message); }
+        await sendText(from, "✅ تسجل العنوان الجديد، وصيفطناه لليفرور 🙏\nشكراً على التوضيح 🤎");
         delete pasDeReponseActive[from]; persistState(); return;
       }
       await handlePasDeReponse(from, text);
