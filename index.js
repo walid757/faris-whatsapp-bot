@@ -2122,7 +2122,8 @@ app.post('/webhook', async (req,res) => {
       if (detectFrenchRequest(text)) { userLangPref[from] = 'french'; persistState(); }
       else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
       // ✅ إضافة جديدة — نص أوتوماتيكي كيبعثو Facebook/Meta بروحو كي الزبون يضغط على الإعلان (ماشي كتابة حقيقية ديال الزبون) — ما نعتبروهش مؤشر أنو كيهضر بالفرنسية
-      const isMetaAdAutoText = /^bonjour\s*!*\s*puis-je\s+en\s+savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim());
+      // ✅ إصلاح — كنقبلو أيضاً نسخ مشوهة/ناقصة من هاد النص (حالات حقيقية: نص مقطوع بلا "Bonjour ! Puis-je en"، أو كلمة زايدة اندمجات وسط "savoir" بحال "savprixoir")
+      const isMetaAdAutoText = /puis-je\s+en\s+sav\w*oir\s+plus\s+(à|a)\s+ce\s+sujet/i.test(text) || /^savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim());
       // ✅ تحديد اللغة: تفضيل الجلسة أولاً، ثم الكشف التلقائي المحسّن
       const _detectedLang = detectLanguage(text);
       const _isFr = isFrenchText(text);
