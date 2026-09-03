@@ -1436,19 +1436,24 @@ const findTrackingByPhoneInText = (text) => {
 };
 
 // ✅ إضافة جديدة — جلب آخر حالة معروفة للطرد من Ozon Express
-const getOrderStatusFromOzon = async (trackingNum) => {
+// ✅ إصلاح — زدنا رقم التتبع فرسالة الخطأ (كان الخطأ عام بلا ما نعرفو شكون)، وزدنا محاولة ثانية إلا طاحت الأولى (بحال timeout عابر)، باش زبون ما يبقاش بلا متابعة بسبب فشل مؤقت وحيد
+const getOrderStatusFromOzon = async (trackingNum, _isRetry) => {
   try {
     const url = `${OZON_BASE}/${OZON_CUSTOMER_ID}/${OZON_API_KEY}/tracking`;
     const formData = new URLSearchParams();
     formData.append('tracking-number', trackingNum);
-    const res = await axios.post(url, formData.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 8000 });
+    const res = await axios.post(url, formData.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 12000 });
     const history = res.data?.TRACKING?.HISTORY;
     if (!history) return null;
     const keys = Object.keys(history);
     if (keys.length === 0) return null;
     const last = history[keys[keys.length - 1]];
     return { statut: String(last?.STATUT || ''), date: last?.DATE || '' };
-  } catch(e) { console.error('❌ getOrderStatusFromOzon:', e.message); return null; }
+  } catch(e) {
+    console.error(`❌ getOrderStatusFromOzon (${trackingNum}):`, e.message);
+    if (!_isRetry) { await sleep(1500); return getOrderStatusFromOzon(trackingNum, true); }
+    return null;
+  }
 };
 
 // ✅ إضافة جديدة — ترجمة حالة Ozon لرسالة ودية مفهومة للزبون
@@ -2382,13 +2387,21 @@ const generateRefuseInitialMsg = async (name, product, trackingNum, isFr) => {
 };
 
 // ✅ إضافة جديدة — فحص دوري لحالة كل الطلبيات عند Ozon Express وإشعار الزبون تلقائياً كي تتبدل الحالة
+// ✅ إضافة جديدة — منع تداخل تنفيذين لنفس الحلقة (إلا الدورة السابقة مازال ما كملاتش، بسبب بزاف طلبيات متراكمة مثلاً)، وتسجيل عدد الطلبيات المفحوصة/المُخبرة/الأخطاء فكل دورة لرؤية أوضح
+let _checkOzonRunning = false;
 const checkOzonStatusChanges = async () => {
+  if (_checkOzonRunning) { console.warn('⏭️ checkOzonStatusChanges: الدورة السابقة مازال خدامة، تخطينا هاد الدورة لتفادي التداخل'); return; }
+  _checkOzonRunning = true;
+  let _checked = 0, _notified = 0, _cycleErrors = 0;
+  try {
   const phones = Object.keys(customerTracking);
+  console.log(`🔄 checkOzonStatusChanges: بدأ فحص ${phones.length} طلبية`);
   for (const phone of phones) {
     const trackingNum = customerTracking[phone];
     if (!trackingNum) continue;
     const prevStatus = (customerLastStatus[phone] || '').toLowerCase();
     if (prevStatus && (prevStatus.includes('livr') || prevStatus.includes('annul'))) continue;
+    _checked++;
     try {
       const status = await getOrderStatusFromOzon(trackingNum);
       if (!status || !status.statut) continue;
@@ -2435,7 +2448,12 @@ const checkOzonStatusChanges = async () => {
         persistState();
       }
       console.log(`📣 إشعار حالة تلقائي ← ${phone} | ${trackingNum} | ${status.statut}`);
-    } catch(e) { console.error('❌ checkOzonStatusChanges:', phone, e.message); }
+      _notified++;
+    } catch(e) { _cycleErrors++; console.error('❌ checkOzonStatusChanges:', phone, e.message); }
+  }
+  console.log(`✅ checkOzonStatusChanges: انتهى — فحص ${_checked} | إشعارات جديدة ${_notified} | أخطاء ${_cycleErrors}`);
+  } finally {
+    _checkOzonRunning = false;
   }
 };
 setInterval(() => { checkOzonStatusChanges().catch(e => console.error('❌ checkOzonStatusChanges interval:', e.message)); }, 10 * 60 * 1000);
