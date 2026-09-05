@@ -2111,6 +2111,22 @@ app.post('/webhook', async (req,res) => {
     return;
   }
 
+  // ✅ إضافة جديدة — بمجرد ما يتأكد الطلب، أي سؤال آخر بعدو (ما كاين ليه معالج خاص فوق: ندم/تتبع/PDR/Refuse/مشكل بعد التسليم) يتبعث مباشرة للفريق الإداري بدل ما يجاوب البوت بشكل عام، حيت المحادثة كتعتبر متوقفة من بعد التأكيد
+  if (orderConfirmed.has(from)) {
+    const _timeSinceConfirmForAdmin = Date.now() - (orderConfirmTimes[from] || 0);
+    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000) {
+      const _oiForAdmin = customerOrderInfo[from] || {};
+      try {
+        await sendText('212644151359', `📩 سؤال من زبون أتم طلبه\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 "${text}"\n\n(الزبون سبق وأكد طلبه، يرجى الرد عليه مباشرة)`);
+      } catch(_adminForwardErr) { console.error('❌ تحويل سؤال بعد التأكيد:', _adminForwardErr.message); }
+      const _isFrPostConfirmQ = (userLangPref[from] === 'french');
+      await sendText(from, _isFrPostConfirmQ
+        ? "Merci pour ton message 🙏 Notre équipe va te répondre directement très vite."
+        : 'شكراً على رسالتك 🙏 فريقنا غايجاوبك مباشرة فأقرب وقت.');
+      return;
+    }
+  }
+
   enqueue(from, async () => {
     // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
     if (orderConfirmed.has(from)) {
