@@ -2148,7 +2148,8 @@ app.post('/webhook', async (req,res) => {
       else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
       // ✅ إضافة جديدة — نص أوتوماتيكي كيبعثو Facebook/Meta بروحو كي الزبون يضغط على الإعلان (ماشي كتابة حقيقية ديال الزبون) — ما نعتبروهش مؤشر أنو كيهضر بالفرنسية
       // ✅ إصلاح — كنقبلو أيضاً نسخ مشوهة/ناقصة من هاد النص (حالات حقيقية: نص مقطوع بلا "Bonjour ! Puis-je en"، أو كلمة زايدة اندمجات وسط "savoir" بحال "savprixoir")
-      const isMetaAdAutoText = /puis-je\s+en\s+sav\w*oir\s+plus\s+(à|a)\s+ce\s+sujet/i.test(text) || /^savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim());
+      // ✅ إضافة جديدة — نفس الفكرة لكن النسخة العربية ديال نص الإعلان الأوتوماتيكي ("السلام عليكم، أريد الاستفسار عن منتجاتكم للأحذية الجلدية")، لقيناها مكررة بحذافيرها عند عدة زبناء مختلفين فتحليل اللوگات
+      const isMetaAdAutoText = /puis-je\s+en\s+sav\w*oir\s+plus\s+(à|a)\s+ce\s+sujet/i.test(text) || /^savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim()) || text.includes('أريد الاستفسار عن منتجاتكم للأحذية الجلدية');
       // ✅ تحديد اللغة: تفضيل الجلسة أولاً، ثم الكشف التلقائي المحسّن
       const _detectedLang = detectLanguage(text);
       const _isFr = isFrenchText(text);
