@@ -976,6 +976,12 @@ const isAddressJustCityName = (address, city) => {
   if (a.length < 6) return true; // عنوان قصير بزاف (أقل من 6 حروف) ما يمكنش يكون حي+شارع حقيقيين
   return a === c || c === a;
 };
+// ✅ إضافة جديدة — كشف كي المقاس (أو المقاسات، حالة عرض الجوج لي كيحتوي على مقاسين فنفس الحقل) خارج 39-44 — كنستخرجو كل الأرقام المكونة من رقمين ونتأكدو أن كل واحد فيهم داخل النطاق، بدل ما نفرضو أن الحقل يحتوي على رقم واحد فقط (هادشي كان كيرفض بالغلط طلبات الجوج اللي فيهم مقاسين صحيحين بحال "42/noir و 40/marron")
+const isInvalidSize = (sizeStr) => {
+  const nums = String(sizeStr||'').match(/\d{2}/g);
+  if (!nums || nums.length === 0) return false; // ما كاينش رقم باين — نخليو الفحوصات الأخرى (المدينة/العنوان) تتكلف بيه
+  return nums.some(n => !['39','40','41','42','43','44'].includes(n));
+};
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
 const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
@@ -2231,8 +2237,8 @@ app.post('/webhook', async (req,res) => {
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
-            // ✅ إضافة جديدة — إلا المقاس خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
-            else if (_pdCheck.size && !/^(39|40|41|42|43|44)$/.test(String(_pdCheck.size).trim())) _missingField = 'size';
+            // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
+            else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إضافة جديدة — الثمن ديال Stéphano خاصو يكون بالضبط 370 (وحدة) أو 600 (عرض الجوج) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
             else if ((!_pdCheck.product_name || /st[ée]phano/i.test(_pdCheck.product_name)) && _pdCheck.unit_price_mad && !['370','600'].includes(String(_pdCheck.unit_price_mad).trim())) _missingField = 'price';
           }
