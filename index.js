@@ -2231,6 +2231,8 @@ app.post('/webhook', async (req,res) => {
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
             // ✅ إضافة جديدة — إلا المقاس خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && !/^(39|40|41|42|43|44)$/.test(String(_pdCheck.size).trim())) _missingField = 'size';
+            // ✅ إضافة جديدة — الثمن ديال Stéphano خاصو يكون بالضبط 370 (وحدة) أو 600 (عرض الجوج) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
+            else if ((!_pdCheck.product_name || /st[ée]phano/i.test(_pdCheck.product_name)) && _pdCheck.unit_price_mad && !['370','600'].includes(String(_pdCheck.unit_price_mad).trim())) _missingField = 'price';
           }
         } catch(e){}
         if (_missingField) {
@@ -2239,7 +2241,9 @@ app.post('/webhook', async (req,res) => {
             ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
             : _missingField === 'address'
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
-            : (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟");
+            : _missingField === 'size'
+            ? (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟")
+            : (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 370 dhs pour une paire, ou 600 dhs pour deux paires ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 370 درهم لحذاء وحدة، ولا 600 درهم لجوج؟ 😊");
           await sendHumanLike(from, _askMsg);
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
           return;
