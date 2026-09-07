@@ -555,7 +555,8 @@ ORDER_CONFIRM_MSG_END
 ⚠️ هذا العرض خاص بهذا المنتج فقط — لا تطبقه على أي منتج آخر في المستقبل
 قدم العرض هكذا (إلا ماكانش سبق قدمتو فرد التخفيض أعلاه):
 "عندنا عرض خاص 😊 [PAUSE] جوج أحذية بـ 600 درهم فقط — توفير 140 درهم [PAUSE] نفس الجودة، توصيل مجاني، دفع عند الاستلام — واش يعجبك العرض؟"
-إذا قبل → اجمع: اسم، مدينة، عنوان، رقم الهاتف، ثم أخرج CONFIRMED_ORDER مع price: "600" وsize تحتوي على كلا المقاسين واللونين
+إذا قبل → اجمع: اسم، مدينة، عنوان، رقم الهاتف، ثم أخرج CONFIRMED_ORDER مع price: "600"
+⚠️⚠️ إجباري — حقول product_data فحالة عرض الجوج خاصهم يكونو معبيين بمعلومات الحذاءين بجوج، ماشي فارغين ولا فيهم لون واحد غير: اكتب بالضبط هكذا (مثال): "size":"40 و 44","color_fr":"noir+marron","color_ar":"أسود وبني" — ممنوع نهائياً تخلي size أو color_fr فارغين ("")
 
 ### إذا سأل الزبون "هل أنت روبوت؟" أو "ذكاء اصطناعي" أو ما شابه
 ⚠️ لا تنكر ولا تتهرب — فقط هذا الرد بالضبط باللغة التي يتحدث بها الزبون:
@@ -2241,6 +2242,8 @@ app.post('/webhook', async (req,res) => {
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إضافة جديدة — الثمن ديال Stéphano خاصو يكون بالضبط 370 (وحدة) أو 600 (عرض الجوج) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
             else if ((!_pdCheck.product_name || /st[ée]phano/i.test(_pdCheck.product_name)) && _pdCheck.unit_price_mad && !['370','600'].includes(String(_pdCheck.unit_price_mad).trim())) _missingField = 'price';
+            // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
+            else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
           }
         } catch(e){}
         if (_missingField) {
@@ -2251,6 +2254,8 @@ app.post('/webhook', async (req,res) => {
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
             : _missingField === 'size'
             ? (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟")
+            : _missingField === 'variant'
+            ? (_isFrMissing ? "Pardon, peux-tu me confirmer les 2 couleurs et les 2 pointures pour les deux bottines ? 😊" : "سمح ليا، بغيت نتأكد من اللونين والمقاسين ديال الحذاءين بجوج — قوليا مثلاً 'اسود 42 وبني 40' 😊")
             : (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 370 dhs pour une paire, ou 600 dhs pour deux paires ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 370 درهم لحذاء وحدة، ولا 600 درهم لجوج؟ 😊");
           await sendHumanLike(from, _askMsg);
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
