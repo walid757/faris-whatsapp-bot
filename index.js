@@ -259,6 +259,9 @@ const trackingInquiryState = _state.trackingInquiryState || {};
 const customerDeliveredAt = _state.customerDeliveredAt || {};
 // ✅ إضافة جديدة — حالة حوار التغيير بعد التسليم (مقاس/مشكل فالحذاء)
 const postDeliveryIssueState = _state.postDeliveryIssueState || {};
+// ✅ إضافة جديدة — تتبع أي نسخة (A/B/C) من رسالة الترحيب الأولى تلقاها كل زبون + عداد التناوب، لخدمة اختبار A/B ديال STATE_0/1
+const openingVariant = _state.openingVariant || {};
+let openingVariantCounter = _state.openingVariantCounter || 0;
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -279,6 +282,8 @@ const persistState = () => saveState({
   trackingInquiryState,
   customerDeliveredAt,
   postDeliveryIssueState,
+  openingVariant,
+  openingVariantCounter,
 });
 
 const userQueues = {}, userLocks = {};
@@ -918,11 +923,25 @@ const markAsRead = async (messageId) => { try { await axios.post(`https://graph.
 
 const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
-const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*40,1000),3000); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(600); } };
+// ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
+const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*60,1500),4500); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(900); } };
 
 const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 370 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
+
+// ✅ إضافة جديدة — اختبار A/B/C لرسالة الترحيب الأولى (STATE_0/1): 3 نسخ ثابتة نصيفطوهم بالتناوب بدل ما نخليو Claude يولد الرد فأول رسالة — هدفها نتتبعو أي نسخة كتأدي لأكثر تأكيدات، وزيادة على هذا كتوفر تكلفة استدعاء Claude لأول رسالة (غالباً كليك إعلان بلا محتوى حقيقي)
+const OPENING_VARIANTS = {
+  A: "مرحبا بيك عندنا 😊 [PAUSE] Bottine cuir Stéphano 🔥 السعر: 370 درهم ~490 درهم~ فقط، جلد طبيعي، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
+  B: "أهلا وسهلا 🌹 [PAUSE] Bottine cuir Stéphano — من الموديلات الأكثر طلباً هاد الأسبوع 🔥 السعر: 370 درهم ~490 درهم~ فقط (عرض لمدة محدودة)، جلد طبيعي 100%، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
+  C: "مرحبا بيك 😊 [PAUSE] قبل ما نعطيك التفاصيل، شنو كتبحث فيه بالضبط — لون معين ولا مقاس محدد؟ [PAUSE] هاد Bottine cuir Stéphano ثمنو 370 درهم ~490 درهم~ فقط، جلد طبيعي، والتوصيل مجاني 🚚، متوفر فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
+};
+const OPENING_VARIANTS_FR = {
+  A: "Bonjour et bienvenue 😊 [PAUSE] Bottine cuir Stéphano 🔥 Prix: 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
+  B: "Bienvenue 🌹 [PAUSE] Bottine cuir Stéphano — un des modèles les plus demandés cette semaine 🔥 Prix: 370 dhs ~490 dhs~ seulement (offre limitée), cuir véritable 100%, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
+  C: "Bonjour 😊 [PAUSE] Avant de te donner les détails, tu cherches quoi exactement — une couleur précise ou une pointure particulière ? [PAUSE] Cette Bottine cuir Stéphano coûte 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚, disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
+};
+const getNextOpeningVariant = () => { const keys = Object.keys(OPENING_VARIANTS); const key = keys[openingVariantCounter % keys.length]; openingVariantCounter++; return key; };
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
@@ -2154,6 +2173,17 @@ app.post('/webhook', async (req,res) => {
       const _detectedLang = detectLanguage(text);
       const _isFr = isFrenchText(text);
       const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
+      // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة وحدة من 3 نسخ ثابتة لرسالة الترحيب بدل ما نخلي Claude يولدها، باش نقدرو نتتبعو أي نسخة (A/B/C) كتأدي لأكثر تأكيدات لاحقاً
+      if (conversationHistory[from].length === 1 && !openingVariant[from]) {
+        const _variantKey = getNextOpeningVariant();
+        openingVariant[from] = _variantKey;
+        const _openingText = (lang === 'french') ? OPENING_VARIANTS_FR[_variantKey] : OPENING_VARIANTS[_variantKey];
+        await sendHumanLike(from, _openingText);
+        conversationHistory[from].push({role:'assistant',content:_openingText.replace(/\[PAUSE\]/g,' ').replace(/\s+/g,' ').trim()});
+        trimHistory(from); persistState();
+        console.log(`🅰️ نسخة ترحيب ${_variantKey} (${lang}) ← ${from}`);
+        return;
+      }
       // ✅ إصلاح — نحيدو الإيموجي قبل فحص التحية باش "Bonjour ! 😊" تتعرف عليها كتحية بسيطة بحال "Bonjour !"
       const textNoEmojiForGreeting = text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/gu, '').trim();
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(textNoEmojiForGreeting);
