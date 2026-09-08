@@ -2200,7 +2200,8 @@ app.post('/webhook', async (req,res) => {
       const _isFr = isFrenchText(text);
       const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
       // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة وحدة من 3 نسخ ثابتة لرسالة الترحيب بدل ما نخلي Claude يولدها، باش نقدرو نتتبعو أي نسخة (A/B/C) كتأدي لأكثر تأكيدات لاحقاً
-      if (conversationHistory[from].length === 1 && !openingVariant[from]) {
+      // ✅ إصلاح — حيدنا شرط !openingVariant[from] — كان كيمنع الشورت-كت يخدم مرة ثانية لنفس الرقم إلا كانت conversationHistory تصفات (محادثة جديدة مع زبون سبق تواصل)، فكان كيخلي كلود يولد رد STATE_0/1 القديم بلا قصد (بالإيموجي، بلا تقنية الساندويتش) بدل النسخة الثابتة الجديدة
+      if (conversationHistory[from].length === 1) {
         const _variantKey = getNextOpeningVariant();
         openingVariant[from] = _variantKey;
         const _openingText = (lang === 'french') ? OPENING_VARIANTS_FR[_variantKey] : OPENING_VARIANTS[_variantKey];
