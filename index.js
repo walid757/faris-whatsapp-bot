@@ -2360,6 +2360,22 @@ app.post('/get-lang', (req, res) => {
   res.json({ lang: userLangPref[waPhone] || 'darija' });
 });
 
+// ✅ إضافة جديدة — endpoint إداري لإرسال رسالة يدوية مباشرة لزبون (مثلاً متابعة تنبيه Ozon "لم نتمكن من الاتصال") — كتسجل فـconversationHistory باش أي رد ديال الزبون يدخل للسياق العادي ديال البوت
+app.post('/admin-send', async (req, res) => {
+  try {
+    const { secret, phone, message } = req.body || {};
+    if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+    if (!phone || !message) return res.status(400).json({ error: 'phone و message ضروريين' });
+    const waPhone = formatPhone(phone);
+    await sendText(waPhone, message);
+    if (!conversationHistory[waPhone]) conversationHistory[waPhone] = [];
+    conversationHistory[waPhone].push({ role: 'assistant', content: message });
+    trimHistory(waPhone); persistState();
+    console.log(`📤 admin-send ← ${waPhone}`);
+    res.json({ success: true });
+  } catch(e) { console.error('❌ /admin-send:', e.message); res.status(500).json({ error: e.message }); }
+});
+
 app.post('/new-website-order', async (req, res) => {
   try {
     const { secret, orderId, name, phone, city, address, product, price, color, size } = req.body;
