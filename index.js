@@ -259,9 +259,6 @@ const trackingInquiryState = _state.trackingInquiryState || {};
 const customerDeliveredAt = _state.customerDeliveredAt || {};
 // ✅ إضافة جديدة — حالة حوار التغيير بعد التسليم (مقاس/مشكل فالحذاء)
 const postDeliveryIssueState = _state.postDeliveryIssueState || {};
-// ✅ إضافة جديدة — تتبع أي نسخة (A/B/C) من رسالة الترحيب الأولى تلقاها كل زبون + عداد التناوب، لخدمة اختبار A/B ديال STATE_0/1
-const openingVariant = _state.openingVariant || {};
-let openingVariantCounter = _state.openingVariantCounter || 0;
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -282,8 +279,6 @@ const persistState = () => saveState({
   trackingInquiryState,
   customerDeliveredAt,
   postDeliveryIssueState,
-  openingVariant,
-  openingVariantCounter,
 });
 
 const userQueues = {}, userLocks = {};
@@ -947,21 +942,9 @@ const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
 
-// ✅ إضافة جديدة — اختبار A/B/C لرسالة الترحيب الأولى (STATE_0/1): 3 نسخ ثابتة نصيفطوهم بالتناوب بدل ما نخليو Claude يولد الرد فأول رسالة — هدفها نتتبعو أي نسخة كتأدي لأكثر تأكيدات، وزيادة على هذا كتوفر تكلفة استدعاء Claude لأول رسالة (غالباً كليك إعلان بلا محتوى حقيقي)
-const OPENING_VARIANTS = {
-  A: "مرحبا بيك عندنا 😊 [PAUSE] Bottine cuir Stéphano 🔥 السعر: 370 درهم ~490 درهم~ فقط، جلد طبيعي، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
-  B: "أهلا وسهلا 🌹 [PAUSE] Bottine cuir Stéphano — من الموديلات الأكثر طلباً هاد الأسبوع 🔥 السعر: 370 درهم ~490 درهم~ فقط (عرض لمدة محدودة)، جلد طبيعي 100%، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
-  // ✅ تعديل — بدلنا محتوى C بعد نتائج اختبار A/B/C الحقيقي (C كانت 0% تأكيد) — دبا C كتستعمل "تقنية الساندويتش" (Sandwich Technique): سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي (لون+مقاس+صور). الصيغة بالضبط اللي عطاها لينا، بلا إيموجي
-  C: "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي",
-};
-const OPENING_VARIANTS_FR = {
-  A: "Bonjour et bienvenue 😊 [PAUSE] Bottine cuir Stéphano 🔥 Prix: 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
-  B: "Bienvenue 🌹 [PAUSE] Bottine cuir Stéphano — un des modèles les plus demandés cette semaine 🔥 Prix: 370 dhs ~490 dhs~ seulement (offre limitée), cuir véritable 100%, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
-  // ✅ تعديل — نفس الصيغة بالضبط بالفرنسية، بلا إيموجي، بنفس أوقات التوقف
-  C: "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris",
-};
-// ✅ تعديل — دبا كلشي كياخد نسخة C فقط (تقنية الساندويتش) — وقفنا A وB (خليت تعريفهم فالكود بلا حذف، تحسباً لاختبار مستقبلي)
-const getNextOpeningVariant = () => { openingVariantCounter++; return 'C'; };
+// ✅ تعديل — حذفنا نسخ A/B/C واختبار التناوب باش ماتبقاش عرضة للالتباس — دبا رسالة الترحيب الأولى (STATE_0/1) وحدة ثابتة فقط: تقنية الساندويتش (سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي)، بلا إيموجي، نصيفطوها مباشرة بدل ما نخليو Claude يولدها
+const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
+const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
@@ -2199,16 +2182,13 @@ app.post('/webhook', async (req,res) => {
       const _detectedLang = detectLanguage(text);
       const _isFr = isFrenchText(text);
       const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
-      // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة وحدة من 3 نسخ ثابتة لرسالة الترحيب بدل ما نخلي Claude يولدها، باش نقدرو نتتبعو أي نسخة (A/B/C) كتأدي لأكثر تأكيدات لاحقاً
-      // ✅ إصلاح — حيدنا شرط !openingVariant[from] — كان كيمنع الشورت-كت يخدم مرة ثانية لنفس الرقم إلا كانت conversationHistory تصفات (محادثة جديدة مع زبون سبق تواصل)، فكان كيخلي كلود يولد رد STATE_0/1 القديم بلا قصد (بالإيموجي، بلا تقنية الساندويتش) بدل النسخة الثابتة الجديدة
+      // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة رسالة الترحيب الثابتة (تقنية الساندويتش) بدل ما نخلي Claude يولدها
       if (conversationHistory[from].length === 1) {
-        const _variantKey = getNextOpeningVariant();
-        openingVariant[from] = _variantKey;
-        const _openingText = (lang === 'french') ? OPENING_VARIANTS_FR[_variantKey] : OPENING_VARIANTS[_variantKey];
+        const _openingText = (lang === 'french') ? OPENING_MESSAGE_FR : OPENING_MESSAGE_AR;
         await sendHumanLike(from, _openingText);
         conversationHistory[from].push({role:'assistant',content:_openingText.replace(/\[PAUSE(?::\d+)?\]/g,' ').replace(/\s+/g,' ').trim()});
         trimHistory(from); persistState();
-        console.log(`🅰️ نسخة ترحيب ${_variantKey} (${lang}) ← ${from}`);
+        console.log(`🅰️ رسالة ترحيب (${lang}) ← ${from}`);
         return;
       }
       // ✅ إصلاح — نحيدو الإيموجي قبل فحص التحية باش "Bonjour ! 😊" تتعرف عليها كتحية بسيطة بحال "Bonjour !"
