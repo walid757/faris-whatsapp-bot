@@ -947,8 +947,8 @@ const OPENING_VARIANTS_FR = {
   // ✅ تعديل — نفس الصيغة بالضبط بالفرنسية
   C: "Salam et bienvenue 🌟 [PAUSE] Ce modèle est fabriqué 100% en cuir véritable, léger à la marche grâce à sa semelle EVA confortable [PAUSE] 🔥 Prix de l'offre actuelle: 370 dhs ~490 dhs~, livraison gratuite jusqu'à la porte partout au Maroc, tu payes seulement après avoir vérifié la qualité toi-même [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
 };
-// ✅ تعديل — وقفنا A بعد نتائج اختبار A/B/C الحقيقي (202 زبون): B كانت الأحسن بنسبة تأكيد 7.4% مقابل 6.0% لـA و0.0% لـC القديمة — دبا كنتناوبو بين B وC الجديدة (تقنية الساندويتش) 50/50 (خليت تعريف A فالكود بلا حذف، تحسباً لاختبار مستقبلي)
-const getNextOpeningVariant = () => { const keys = ['B','C']; const key = keys[openingVariantCounter % keys.length]; openingVariantCounter++; return key; };
+// ✅ تعديل — دبا كلشي كياخد نسخة C فقط (تقنية الساندويتش) — وقفنا A وB (خليت تعريفهم فالكود بلا حذف، تحسباً لاختبار مستقبلي)
+const getNextOpeningVariant = () => { openingVariantCounter++; return 'C'; };
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
