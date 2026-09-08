@@ -937,14 +937,17 @@ const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await 
 const OPENING_VARIANTS = {
   A: "مرحبا بيك عندنا 😊 [PAUSE] Bottine cuir Stéphano 🔥 السعر: 370 درهم ~490 درهم~ فقط، جلد طبيعي، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
   B: "أهلا وسهلا 🌹 [PAUSE] Bottine cuir Stéphano — من الموديلات الأكثر طلباً هاد الأسبوع 🔥 السعر: 370 درهم ~490 درهم~ فقط (عرض لمدة محدودة)، جلد طبيعي 100%، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
-  C: "مرحبا بيك 😊 [PAUSE] قبل ما نعطيك التفاصيل، شنو كتبحث فيه بالضبط — لون معين ولا مقاس محدد؟ [PAUSE] هاد Bottine cuir Stéphano ثمنو 370 درهم ~490 درهم~ فقط، جلد طبيعي، والتوصيل مجاني 🚚، متوفر فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
+  // ✅ تعديل — بدلنا محتوى C بعد نتائج اختبار A/B/C الحقيقي (C كانت 0% تأكيد) — دبا C كتستعمل "تقنية الساندويتش" (Sandwich Technique): قيمة/جودة أولاً، بعدها الثمن، بعدها سؤال تفاعلي (Alternative Close) — بدل الصيغة القديمة اللي كانت كتبدا بسؤال قبل الثمن
+  C: "وعليكم السلام 🌟 [PAUSE] Bottine cuir Stéphano مصنوع 100% من جلد طبيعي ممتاز، خفيف فالمشي وفيه سولة مريحة للرجل [PAUSE] 🔥 السعر: 370 درهم ~490 درهم~ فقط، والتوصيل مجاني حتى لباب الدار فجميع المدن، وكتخلص غير كي تقيس وتشوف الجودة بيدك [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
 };
 const OPENING_VARIANTS_FR = {
   A: "Bonjour et bienvenue 😊 [PAUSE] Bottine cuir Stéphano 🔥 Prix: 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
   B: "Bienvenue 🌹 [PAUSE] Bottine cuir Stéphano — un des modèles les plus demandés cette semaine 🔥 Prix: 370 dhs ~490 dhs~ seulement (offre limitée), cuir véritable 100%, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
-  C: "Bonjour 😊 [PAUSE] Avant de te donner les détails, tu cherches quoi exactement — une couleur précise ou une pointure particulière ? [PAUSE] Cette Bottine cuir Stéphano coûte 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚, disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
+  // ✅ تعديل — نفس تقنية الساندويتش بالفرنسية
+  C: "Salam 🌟 [PAUSE] Bottine cuir Stéphano fabriquée 100% en cuir véritable, légère à la marche avec une semelle confortable [PAUSE] 🔥 Prix: 370 dhs ~490 dhs~ seulement, livraison gratuite jusqu'à la porte partout au Maroc, tu payes seulement après avoir vérifié la qualité toi-même [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
 };
-const getNextOpeningVariant = () => { const keys = Object.keys(OPENING_VARIANTS); const key = keys[openingVariantCounter % keys.length]; openingVariantCounter++; return key; };
+// ✅ تعديل — وقفنا A بعد نتائج اختبار A/B/C الحقيقي (202 زبون): B كانت الأحسن بنسبة تأكيد 7.4% مقابل 6.0% لـA و0.0% لـC القديمة — دبا كنتناوبو بين B وC الجديدة (تقنية الساندويتش) 50/50 (خليت تعريف A فالكود بلا حذف، تحسباً لاختبار مستقبلي)
+const getNextOpeningVariant = () => { const keys = ['B','C']; const key = keys[openingVariantCounter % keys.length]; openingVariantCounter++; return key; };
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
