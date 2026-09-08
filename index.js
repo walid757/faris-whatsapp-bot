@@ -927,7 +927,21 @@ const markAsRead = async (messageId) => { try { await axios.post(`https://graph.
 const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 // ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
-const sendHumanLike = async (to, fullReply) => { const parts = fullReply.split('[PAUSE]').map(p=>p.trim()).filter(p=>p.length>0); for (let i=0;i<parts.length;i++) { const t=Math.min(Math.max(parts[i].length*60,1500),4500); await sleep(t); await sendText(to,parts[i]); if(i<parts.length-1) await sleep(900); } };
+// ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
+const sendHumanLike = async (to, fullReply) => {
+  const segs = fullReply.split(/\[PAUSE(?::(\d+))?\]/);
+  const parts = [];
+  for (let i = 0; i < segs.length; i += 2) {
+    const text = (segs[i]||'').trim();
+    if (text) parts.push({ text, customSec: segs[i+1] ? parseInt(segs[i+1],10) : null });
+  }
+  for (let i = 0; i < parts.length; i++) {
+    const t = Math.min(Math.max(parts[i].text.length*60,1500),4500);
+    await sleep(t);
+    await sendText(to, parts[i].text);
+    if (i < parts.length - 1) await sleep(parts[i].customSec ? parts[i].customSec*1000 : 900);
+  }
+};
 
 const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 370 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
@@ -937,15 +951,14 @@ const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await 
 const OPENING_VARIANTS = {
   A: "مرحبا بيك عندنا 😊 [PAUSE] Bottine cuir Stéphano 🔥 السعر: 370 درهم ~490 درهم~ فقط، جلد طبيعي، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
   B: "أهلا وسهلا 🌹 [PAUSE] Bottine cuir Stéphano — من الموديلات الأكثر طلباً هاد الأسبوع 🔥 السعر: 370 درهم ~490 درهم~ فقط (عرض لمدة محدودة)، جلد طبيعي 100%، التوصيل مجاني 🚚 [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
-  // ✅ تعديل — بدلنا محتوى C بعد نتائج اختبار A/B/C الحقيقي (C كانت 0% تأكيد) — دبا C كتستعمل "تقنية الساندويتش" (Sandwich Technique): قيمة/جودة أولاً، بعدها الثمن، بعدها سؤال تفاعلي (Alternative Close) — بدل الصيغة القديمة اللي كانت كتبدا بسؤال قبل الثمن
-  // ✅ تعديل — الصيغة بالضبط اللي عطاها لينا (تقنية الساندويتش): سلام → قيمة/جودة (سوميلة EVA) [PAUSE] → الثمن مساندوتش بين التوصيل والدفع عند الاستلام [PAUSE] → إغلاق تفاعلي (لون + صور)
-  C: "عليكم السلام ورحمة الله 🌟 [PAUSE] بالنسبة لهاد الموديل، فهو مصنوع 100% من الجلد الطبيعي الممتاز، خفيف في المشي حيت عندو سوميلة EVA مريحة للرجل [PAUSE] 🔥 الثمن فالعرض الحالي: 370 درهم ~490 درهم~، والتوصيل فابور حتى لباب البيت فجميع المدن، والدفع حتى تقيس وتشوف الجودة بيدك [PAUSE] متوفرة فـ: 🖤 الأسود | 🤎 البني | 🩶 الرمادي [PAUSE] شنو اللون اللي عجبك؟\nواش تشوف التصاور ديال الصباط",
+  // ✅ تعديل — بدلنا محتوى C بعد نتائج اختبار A/B/C الحقيقي (C كانت 0% تأكيد) — دبا C كتستعمل "تقنية الساندويتش" (Sandwich Technique): سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي (لون+مقاس+صور). الصيغة بالضبط اللي عطاها لينا، بلا إيموجي
+  C: "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي",
 };
 const OPENING_VARIANTS_FR = {
   A: "Bonjour et bienvenue 😊 [PAUSE] Bottine cuir Stéphano 🔥 Prix: 370 dhs ~490 dhs~ seulement, cuir véritable, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
   B: "Bienvenue 🌹 [PAUSE] Bottine cuir Stéphano — un des modèles les plus demandés cette semaine 🔥 Prix: 370 dhs ~490 dhs~ seulement (offre limitée), cuir véritable 100%, livraison gratuite 🚚 [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
-  // ✅ تعديل — نفس الصيغة بالضبط بالفرنسية
-  C: "Salam et bienvenue 🌟 [PAUSE] Ce modèle est fabriqué 100% en cuir véritable, léger à la marche grâce à sa semelle EVA confortable [PAUSE] 🔥 Prix de l'offre actuelle: 370 dhs ~490 dhs~, livraison gratuite jusqu'à la porte partout au Maroc, tu payes seulement après avoir vérifié la qualité toi-même [PAUSE] Disponible en: 🖤 Noir | 🤎 Marron | 🩶 Gris [PAUSE] Quelle couleur te plaît ?\nTu veux voir les photos de la bottine ?",
+  // ✅ تعديل — نفس الصيغة بالضبط بالفرنسية، بلا إيموجي، بنفس أوقات التوقف
+  C: "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris",
 };
 // ✅ تعديل — دبا كلشي كياخد نسخة C فقط (تقنية الساندويتش) — وقفنا A وB (خليت تعريفهم فالكود بلا حذف، تحسباً لاختبار مستقبلي)
 const getNextOpeningVariant = () => { openingVariantCounter++; return 'C'; };
@@ -2192,7 +2205,7 @@ app.post('/webhook', async (req,res) => {
         openingVariant[from] = _variantKey;
         const _openingText = (lang === 'french') ? OPENING_VARIANTS_FR[_variantKey] : OPENING_VARIANTS[_variantKey];
         await sendHumanLike(from, _openingText);
-        conversationHistory[from].push({role:'assistant',content:_openingText.replace(/\[PAUSE\]/g,' ').replace(/\s+/g,' ').trim()});
+        conversationHistory[from].push({role:'assistant',content:_openingText.replace(/\[PAUSE(?::\d+)?\]/g,' ').replace(/\s+/g,' ').trim()});
         trimHistory(from); persistState();
         console.log(`🅰️ نسخة ترحيب ${_variantKey} (${lang}) ← ${from}`);
         return;
