@@ -983,6 +983,12 @@ const isInvalidSize = (sizeStr) => {
   if (!nums || nums.length === 0) return false; // ما كاينش رقم باين — نخليو الفحوصات الأخرى (المدينة/العنوان) تتكلف بيه
   return nums.some(n => !['39','40','41','42','43','44'].includes(n));
 };
+// ✅ إضافة جديدة — زبون عندو تتبع نشط (طلبية مازال ما توصلتش، أو توصلت من أقل من 48 ساعة) — كنستعملوها باش: (1) ما نمسحوش تاريخ المحادثة ونعتبرو الزبون "جديد" ملي يرد بعد أكثر من ساعة، و(2) أي سؤال ديالو خلال هاد الفترة يتحول للفريق الإداري بدل ما يجاوبو كلود بشكل عام
+const hasActiveTracking = (phone) => {
+  if (!customerTracking[phone]) return false;
+  if (customerDeliveredAt[phone] && (Date.now() - customerDeliveredAt[phone] > 48 * 60 * 60 * 1000)) return false;
+  return true;
+};
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
 const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
@@ -2140,9 +2146,10 @@ app.post('/webhook', async (req,res) => {
   }
 
   // ✅ إضافة جديدة — بمجرد ما يتأكد الطلب، أي سؤال آخر بعدو (ما كاين ليه معالج خاص فوق: ندم/تتبع/PDR/Refuse/مشكل بعد التسليم) يتبعث مباشرة للفريق الإداري بدل ما يجاوب البوت بشكل عام، حيت المحادثة كتعتبر متوقفة من بعد التأكيد
+  // ✅ تعديل — زدنا شرط hasActiveTracking(from): طول ما الطلبية مازال فالطريق (أو توصلت من أقل من 48 ساعة)، أي سؤال ديال الزبون يتحول للفريق الإداري (0644151359) بدل ما يدخل لمحادثة كلود العامة — البوت كيبقى غير كيخبر بحالة الطلبية أوتوماتيكياً، ماكيجاوبش على أسئلة بنفسه فهاد الفترة
   if (orderConfirmed.has(from)) {
     const _timeSinceConfirmForAdmin = Date.now() - (orderConfirmTimes[from] || 0);
-    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000) {
+    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) {
       const _oiForAdmin = customerOrderInfo[from] || {};
       try {
         await sendText('212644151359', `📩 سؤال من زبون أتم طلبه\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 "${text}"\n\n(الزبون سبق وأكد طلبه، يرجى الرد عليه مباشرة)`);
@@ -2157,9 +2164,10 @@ app.post('/webhook', async (req,res) => {
 
   enqueue(from, async () => {
     // ✅ إضافة جديدة — منع إعادة معالجة طلب مؤكد مسبقاً (يمنع التأكيد المزدوج)
+    // ✅ إصلاح — زدنا شرط !hasActiveTracking(from): ما نمسحوش تاريخ المحادثة ونعتبرو الزبون "جديد" طول ما الطلبية ديالو مازال فالطريق (أو توصلت من أقل من 48 ساعة) — حالة حقيقية: زبون رد بـ"شكرا" بعد 41 ساعة من التأكيد، وكان معرض لمسح تاريخو بالكامل واعتباره زبون جديد
     if (orderConfirmed.has(from)) {
       const timeSinceConfirm = Date.now() - (orderConfirmTimes[from] || 0);
-      if (timeSinceConfirm > 60 * 60 * 1000) {
+      if (timeSinceConfirm > 60 * 60 * 1000 && !hasActiveTracking(from)) {
         orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); delete userLangPref[from]; persistState();
         console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
       }
