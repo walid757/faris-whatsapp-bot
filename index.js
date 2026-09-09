@@ -2505,6 +2505,11 @@ const checkOzonStatusChanges = async () => {
         console.log(`⏭️ تخطي إشعار "Nouveau Colis" ← ${phone} | ${trackingNum}`);
         continue;
       }
+      // ✅ إضافة جديدة — "Reçu" (وصل لوكالة المدينة، مرحلة داخلية) ما نخبروش بيها الزبون — غير مرحلة وسيطة بلا فائدة له، والرسالة كانت كتبين "Reçu" خام بلا ترجمة حيت ماعندهاش رد مخصص
+      if (statusLowerForLivreur.includes('reçu') || statusLowerForLivreur.includes('recu')) {
+        console.log(`⏭️ تخطي إشعار "Reçu" ← ${phone} | ${trackingNum}`);
+        continue;
+      }
       const isPdrStatus = statusLowerForLivreur.includes('pas de r') || statusLowerForLivreur.includes('sans r') || statusLowerForLivreur.includes('injoignable');
       const isRefuseStatus = statusLowerForLivreur.includes('refus') || statusLowerForLivreur.includes('retour');
       const livreurForMsg = (statusLowerForLivreur.includes('distribution') || isPdrStatus) ? await getLivreurFromOzon(trackingNum) : null;
