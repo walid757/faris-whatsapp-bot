@@ -989,6 +989,12 @@ const hasActiveTracking = (phone) => {
   if (customerDeliveredAt[phone] && (Date.now() - customerDeliveredAt[phone] > 48 * 60 * 60 * 1000)) return false;
   return true;
 };
+// ✅ إضافة جديدة — رسالة شكر/تأكيد بسيطة (بلا سؤال حقيقي) — كنستعملوها باش ما نبعثوش هاد النوع ديال الرسائل للفريق الإداري (0644151359)، حيت ماكتحتاجش تدخل بشري
+const isSimpleAcknowledgment = (text) => {
+  const noEmoji = (text||'').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/gu, '').trim().toLowerCase();
+  if (!noEmoji) return true; // غير إيموجي (بحال 🙏🏽🙏🏽)
+  return /^(شكرا|شكراً|شكرا لك|شكرا بزاف|يعطيك الصحة|بارك الله فيك|merci|merci beaucoup|thanks|thank you|thx|ok|okay|d'accord|واخا|صافي|نعم|oui|👍)[\s!.،]*$/i.test(noEmoji);
+};
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
 const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
@@ -2149,6 +2155,10 @@ app.post('/webhook', async (req,res) => {
   // ✅ تعديل — زدنا شرط hasActiveTracking(from): طول ما الطلبية مازال فالطريق (أو توصلت من أقل من 48 ساعة)، أي سؤال ديال الزبون يتحول للفريق الإداري (0644151359) بدل ما يدخل لمحادثة كلود العامة — البوت كيبقى غير كيخبر بحالة الطلبية أوتوماتيكياً، ماكيجاوبش على أسئلة بنفسه فهاد الفترة
   if (orderConfirmed.has(from)) {
     const _timeSinceConfirmForAdmin = Date.now() - (orderConfirmTimes[from] || 0);
+    if ((_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) && isSimpleAcknowledgment(text)) {
+      // ✅ إضافة جديدة — رسالة شكر/تأكيد بسيطة ما محتاجاش تتحول للفريق الإداري — ما ندير والو، نخليو الزبون بلا إزعاج
+      return;
+    }
     if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) {
       const _oiForAdmin = customerOrderInfo[from] || {};
       try {
