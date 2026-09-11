@@ -1016,6 +1016,11 @@ const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment i
 // ✅ إضافة جديدة — نفس تقنية الساندويتش، خاصة بـGS081 (كي كيكون مصدر الإعلان (referral) واضح أنو GS081)
 const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ350 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
 const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 350 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
+// ✅ إضافة جديدة — معلومات كل منتج (الاسم، الثمن، الألوان) — مركزية باش كي نزيدو منتج جديد فالمستقبل نزيدو غير سطر هنا وتخدم معاه كل قاعدة تركيز الإعلان أوتوماتيكياً
+const PRODUCT_INFO = {
+  stephano: { nameAr: 'Stéphano', price: '370', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
+  gs081:    { nameAr: 'GS081',    price: '350', colorsAr: 'أسود فقط',      colorsFr: 'noir uniquement' },
+};
 // ✅ إضافة جديدة — نستخرجو المنتج المعلن عليه من referral ديال الإعلان (أول رسالة من كليك واتساب) — نص الإعلان أولاً (سريع بلا API)، ثم صورة الإعلان المصغرة عبر تحليل الصور إلا لزم
 const detectAdProduct = async (referral) => {
   if (!referral) return null;
@@ -2331,9 +2336,13 @@ app.post('/webhook', async (req,res) => {
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(textNoEmojiForGreeting);
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
       const _postConfirmNote = orderConfirmed.has(from) ? (lang === 'french' ? '\n[Commande déjà confirmée — réponds normalement — si le client veut ajouter un produit ou modifier sa commande, collecte toutes les infos (nom, ville, adresse, couleur, pointure, prix) et crée une NOUVELLE commande complète indépendante comme si c\'était la première]' : '\n[الطلبية مؤكدة مسبقاً — تحدث معه بشكل طبيعي — إذا طلب منتج إضافي أو تعديل على الطلبية، اجمع كل البيانات (اسم، مدينة، عنوان، لون، مقاس، سعر) وسجّلها كطلبية جديدة كاملة مستقلة]') : '';
-      // ✅ إضافة جديدة — إلا الزبون جا من إعلان GS081، نذكّرو كلود يبقى مركز عليه فكل الأجوبة، بلا ما يرجع لـStéphano بالغلط، إلا طلب الزبون صراحة يشوف موديلات أخرى
-      const _adProductNote = customerAdProduct[from] === 'gs081'
-        ? (lang === 'french' ? '\n[Ce client vient d\'une pub GS081 — reste focalisé sur GS081 dans toutes tes réponses (350 dhs, noir uniquement) sauf s\'il demande explicitement à voir d\'autres modèles ou mentionne Stéphano par son nom]' : '\n[هاد الزبون جا من إعلان GS081 — ركز على GS081 فكل الأجوبة (الثمن 350 درهم، أسود فقط) إلا طلب صراحة يشوف موديلات أخرى أو سول عن Stéphano بالاسم]')
+      // ✅ إضافة جديدة — إلا الزبون جا من إعلان منتج معين (أي منتج، من PRODUCT_INFO)، نذكّرو كلود يبقى مركز عليه فكل الأجوبة، إلا طلب الزبون صراحة يشوف موديلات أخرى — مركزية باش تخدم مع أي منتج نزيدوه فالمستقبل بلا تعديل هنا
+      const _adProductKey = customerAdProduct[from];
+      const _adProductInfo = _adProductKey && PRODUCT_INFO[_adProductKey];
+      const _adProductNote = _adProductInfo
+        ? (lang === 'french'
+            ? `\n[Ce client vient d'une pub ${_adProductInfo.nameAr} — reste focalisé sur ${_adProductInfo.nameAr} dans toutes tes réponses (${_adProductInfo.price} dhs, ${_adProductInfo.colorsFr}) sauf s'il demande explicitement à voir d'autres modèles]`
+            : `\n[هاد الزبون جا من إعلان ${_adProductInfo.nameAr} — ركز عليه فكل الأجوبة (الثمن ${_adProductInfo.price} درهم، ${_adProductInfo.colorsAr}) إلا طلب صراحة يشوف موديلات أخرى]`)
         : '';
       const langNote = lang === 'french'
         ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote
