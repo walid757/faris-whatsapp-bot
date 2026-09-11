@@ -305,8 +305,10 @@ const SYSTEM_PROMPT = `# GREATSHOES AI SALES AGENT
 
 ## IMAGES
 الصور أُرسلت تلقائياً. لا تقل أنك لا تستطيع إرسالها.
-لون معين → [SEND_IMAGE:noir] أو [SEND_IMAGE:marron] أو [SEND_IMAGE:gris]
-كل الصور بإلحاح → [RESEND_IMAGES]
+Stéphano — لون معين → [SEND_IMAGE:noir] أو [SEND_IMAGE:marron] أو [SEND_IMAGE:gris]
+Stéphano — كل الصور بإلحاح → [RESEND_IMAGES]
+GS081 — صورة واحدة → [SEND_IMAGE:gs081]
+GS081 — كل الصور (3 زوايا) بإلحاح → [RESEND_IMAGES_GS081]
 
 ## BRAND
 GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاستلام | معاينة قبل الدفع | استبدال المقاس
@@ -951,6 +953,15 @@ const sendHumanLike = async (to, fullReply) => {
 const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 370 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
+
+// ✅ إضافة جديدة — صور Bottine cuir GS081 (لون واحد: أسود، 3 زوايا مختلفة)
+const GS081_IMAGES = [
+  'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gs081_1.jpg',
+  'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gs081_2.jpg',
+  'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gs081_3.jpg'
+];
+const sendGS081Image = async (to) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:GS081_IMAGES[0], caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendAllGS081Images = async (to) => { for (const url of GS081_IMAGES) { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:url, caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); await sleep(800); } };
 
 // ✅ تعديل — حذفنا نسخ A/B/C واختبار التناوب باش ماتبقاش عرضة للالتباس — دبا رسالة الترحيب الأولى (STATE_0/1) وحدة ثابتة فقط: تقنية الساندويتش (سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي)، بلا إيموجي، نصيفطوها مباشرة بدل ما نخليو Claude يولدها
 const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
@@ -2303,8 +2314,11 @@ app.post('/webhook', async (req,res) => {
         // Extract color for image preview
         const previewJson = extractOrderJSON(reply);
         let colorFrPreview = 'noir';
-        try { if (previewJson) { const pd = JSON.parse(previewJson); colorFrPreview = pd.product_data?.color_fr || detectColor(pd.product_data?.color_ar||'') || 'noir'; } } catch(e){}
-        if (PRODUCT_IMAGES[colorFrPreview]) { try { await sendWhatsAppImage(from, colorFrPreview); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
+        let _isGS081Preview = false;
+        try { if (previewJson) { const pd = JSON.parse(previewJson); colorFrPreview = pd.product_data?.color_fr || detectColor(pd.product_data?.color_ar||'') || 'noir'; _isGS081Preview = /gs ?081/i.test(pd.product_data?.product_name||''); } } catch(e){}
+        // ✅ إضافة جديدة — إلا كان الطلب GS081، نصيفطو صورة GS081 (ماشي صورة Stéphano ديال نفس اللون "noir")
+        if (_isGS081Preview) { try { await sendGS081Image(from); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد (GS081):', e.message); } }
+        else if (PRODUCT_IMAGES[colorFrPreview]) { try { await sendWhatsAppImage(from, colorFrPreview); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         // Store pending and send interactive buttons
         const _btnIsFr = (userLangPref[from] === 'french');
         pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija' };
@@ -2324,11 +2338,13 @@ app.post('/webhook', async (req,res) => {
       }
 
       // ✅ إصلاح — كنقراو *كل* الماركرات [SEND_IMAGE:x] فالرد (ماشي غير أول وحدة)، باش ما يبقاش كلام خام كي الزبون يطلب بزاف ألوان مرة وحدة (مثلاً "Kolhom")
-      const colorMatches = [...reply.matchAll(/\[SEND_IMAGE:(noir|marron|gris)\]/g)];
+      // ✅ إضافة جديدة — زدنا "gs081" كقيمة مقبولة (المنتج الثاني، لون واحد)
+      const colorMatches = [...reply.matchAll(/\[SEND_IMAGE:(noir|marron|gris|gs081)\]/g)];
       if (colorMatches.length > 0) {
-        reply = reply.replace(/\[SEND_IMAGE:(noir|marron|gris)\]/g, '').trim();
-        for (const m of colorMatches) { try{await sendWhatsAppImage(from,m[1]);await sleep(500);}catch(e){} }
+        reply = reply.replace(/\[SEND_IMAGE:(noir|marron|gris|gs081)\]/g, '').trim();
+        for (const m of colorMatches) { try{ if(m[1]==='gs081') await sendGS081Image(from); else await sendWhatsAppImage(from,m[1]); await sleep(500);}catch(e){} }
       }
+      else if (reply.includes('[RESEND_IMAGES_GS081]')) { reply=reply.replace('[RESEND_IMAGES_GS081]','').trim(); try{await sendAllGS081Images(from);await sleep(500);}catch(e){} }
       else if (reply.includes('[RESEND_IMAGES]')||isInsistingOnImages(text)) { reply=reply.replace('[RESEND_IMAGES]','').trim(); try{await sendAllImages(from);await sleep(500);}catch(e){} }
       else { const color=detectColor(text); const wantsImage=text.toLowerCase().includes('صورة')||text.toLowerCase().includes('شوف')||text.toLowerCase().includes('image'); if(color&&wantsImage){try{await sendWhatsAppImage(from,color);await sleep(500);}catch(e){}} }
 
