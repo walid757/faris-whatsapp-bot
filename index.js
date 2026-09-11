@@ -2398,6 +2398,8 @@ app.post('/webhook', async (req,res) => {
             })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
+            // ✅ إضافة جديدة — إلا كان الزبون معروف أنو مهتم بـGS081 (من إعلان ولا من المحادثة)، لكن CONFIRMED_ORDER خرج بمنتج آخر (غالباً كلود كيرجع لـStéphano بالغلط كـfallback افتراضي)، ما نأكدوش — حالة حقيقية: زبون شاف صورة GS081 وأكد المقاس، لكن ملخص التأكيد خرج بـStéphano/370
+            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && customerAdProduct[from] === 'gs081' && !/gs\s?081/i.test(_pdCheck.product_name||'')) _missingField = 'product';
           }
         } catch(e){}
         if (_missingField) {
@@ -2414,6 +2416,8 @@ app.post('/webhook', async (req,res) => {
             ? (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟")
             : _missingField === 'variant'
             ? (_isFrMissing ? "Pardon, peux-tu me confirmer les 2 couleurs et les 2 pointures pour les deux bottines ? 😊" : "سمح ليا، بغيت نتأكد من اللونين والمقاسين ديال الحذاءين بجوج — قوليا مثلاً 'اسود 42 وبني 40' 😊")
+            : _missingField === 'product'
+            ? (_isFrMissing ? "Pardon, je confirme bien que c'est Bottine cuir GS081 (350 dhs) que tu veux, pas Stéphano ? 😊" : "سمح ليا، بغيت نتأكد أنك بغيتي Bottine cuir GS081 (350 درهم)، ماشي Stéphano؟ 😊")
             : (_isFrMissing ? "Pardon, peux-tu me confirmer les infos de ta commande ? 😊" : "سمح ليا، بغيت نتأكد من معلومات الطلبية ديالك 😊");
           await sendHumanLike(from, _askMsg);
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
