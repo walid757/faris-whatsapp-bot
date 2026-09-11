@@ -259,6 +259,8 @@ const trackingInquiryState = _state.trackingInquiryState || {};
 const customerDeliveredAt = _state.customerDeliveredAt || {};
 // ✅ إضافة جديدة — حالة حوار التغيير بعد التسليم (مقاس/مشكل فالحذاء)
 const postDeliveryIssueState = _state.postDeliveryIssueState || {};
+// ✅ إضافة جديدة — المنتج اللي جا منو الزبون (من referral ديال الإعلان) — كنستعملوها باش نخليو كلود يركز على نفس المنتج فكل الأجوبة، ماشي يرجع لـStéphano بالغلط
+const customerAdProduct = _state.customerAdProduct || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 
@@ -279,6 +281,7 @@ const persistState = () => saveState({
   trackingInquiryState,
   customerDeliveredAt,
   postDeliveryIssueState,
+  customerAdProduct,
 });
 
 const userQueues = {}, userLocks = {};
@@ -2313,6 +2316,7 @@ app.post('/webhook', async (req,res) => {
         // ✅ إضافة جديدة — نحاولو نعرفو المنتج من referral ديال الإعلان (نص أو صورة الإعلان) باش نصيفطو الترحيب المناسب (Stéphano أو GS081) من أول رسالة
         let _adProduct = null;
         try { _adProduct = await detectAdProduct(message.referral); } catch(e){}
+        if (_adProduct) { customerAdProduct[from] = _adProduct; } // ✅ إضافة جديدة — نخزنو المنتج باش نبقاو نركزو عليه فباقي المحادثة
         const _openingText = _adProduct === 'gs081'
           ? ((lang === 'french') ? OPENING_MESSAGE_GS081_FR : OPENING_MESSAGE_GS081_AR)
           : ((lang === 'french') ? OPENING_MESSAGE_FR : OPENING_MESSAGE_AR);
@@ -2327,11 +2331,15 @@ app.post('/webhook', async (req,res) => {
       const isGreeting = /^(slm|salam|sala|labas|la bas|bikhir|bkhir|hi|hey|bonjour|bnjr|مرحبا|سلام|لاباس|هلا|صباح الخير|مساء الخير)[\s!،.]*$/i.test(textNoEmojiForGreeting);
       const greetingHint = isGreeting ? '\n[تحية فقط — رد بتحية قصيرة طبيعية مثل "لاباس وأنت 😊" أو "bikhir wnta" حسب اللغة — جملة واحدة فقط]' : '';
       const _postConfirmNote = orderConfirmed.has(from) ? (lang === 'french' ? '\n[Commande déjà confirmée — réponds normalement — si le client veut ajouter un produit ou modifier sa commande, collecte toutes les infos (nom, ville, adresse, couleur, pointure, prix) et crée une NOUVELLE commande complète indépendante comme si c\'était la première]' : '\n[الطلبية مؤكدة مسبقاً — تحدث معه بشكل طبيعي — إذا طلب منتج إضافي أو تعديل على الطلبية، اجمع كل البيانات (اسم، مدينة، عنوان، لون، مقاس، سعر) وسجّلها كطلبية جديدة كاملة مستقلة]') : '';
+      // ✅ إضافة جديدة — إلا الزبون جا من إعلان GS081، نذكّرو كلود يبقى مركز عليه فكل الأجوبة، بلا ما يرجع لـStéphano بالغلط، إلا طلب الزبون صراحة يشوف موديلات أخرى
+      const _adProductNote = customerAdProduct[from] === 'gs081'
+        ? (lang === 'french' ? '\n[Ce client vient d\'une pub GS081 — reste focalisé sur GS081 dans toutes tes réponses (350 dhs, noir uniquement) sauf s\'il demande explicitement à voir d\'autres modèles ou mentionne Stéphano par son nom]' : '\n[هاد الزبون جا من إعلان GS081 — ركز على GS081 فكل الأجوبة (الثمن 350 درهم، أسود فقط) إلا طلب صراحة يشوف موديلات أخرى أو سول عن Stéphano بالاسم]')
+        : '';
       const langNote = lang === 'french'
-        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote
+        ? '\n\n[الزبون يتكلم بالفرنسية — رد بالفرنسية فقط من الآن حتى نهاية المحادثة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote
         : lang === 'fusha'
-        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote
-        : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote;
+        ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote
+        : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
       let reply = claudeRes.data.content[0].text;
