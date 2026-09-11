@@ -368,7 +368,7 @@ Bottine cuir Stéphano | أسود/بني/رمادي | مقاسات 39-44
 - نفس الجودة بالضبط ديال Stéphano: جلد طبيعي 100% من الداخل والخارج، سوميلة EVA — الفرق غير فالشكل والثمن
 - ⚠️ متوفر فـ**لون واحد فقط: الأسود** (ماشي بني ولا رمادي)
 - مقاسات 39-44 (نفس Stéphano)
-- ⚠️⚠️ قاعدة صارمة للسعر — الثمن الحالي = 390 درهم. الثمن الأصلي = 490 درهم. استعمل نفس القالب: "🔥 السعر: 390 درهم ~490 درهم~ فقط"
+- ⚠️⚠️ قاعدة صارمة للسعر — الثمن الحالي = 350 درهم. الثمن الأصلي = 490 درهم. استعمل نفس القالب: "🔥 السعر: 350 درهم ~490 درهم~ فقط"
 - ⚠️⚠️ إجباري — فـCONFIRMED_ORDER، اكتب "product_name":"Bottine cuir GS081" بالضبط (ماشي فارغ ولا Stéphano) — هذا أهم شرط باش يتسجل الطلب صح فالشيت
 - ⚠️ الزبون ماعندوش وسيلة يبعث صورة والبوت يفهمها — إلا بعث صورة ولا وصف غامض، اسأله بوضوح "أي موديل بغيتي بالضبط — Stéphano ولا GS081؟" قبل ما تكمل
 
@@ -552,8 +552,8 @@ ORDER_CONFIRM_MSG_END
 
 ### إذا سأل الزبون سؤال عام عن الموديلات المتوفرة (مثلاً "شنو المودیلات لي عندكم؟"، "chno modelat 3ndkom")، بلا ما يحدد اسم موديل معين
 ⚠️ إجباري — اذكر الجوج المنتجات فنفس الرد، ماشي Stéphano وحدو:
-"عندنا موديلين 😊 [PAUSE] Bottine cuir Stéphano — 370 درهم، متوفرة فـ: أسود/بني/رمادي [PAUSE] Bottine cuir GS081 — 390 درهم، متوفرة فـ: أسود فقط [PAUSE] أي واحد يعجبك، ولا تبغي تشوف الصور ديال الجوج؟"
-بالفرنسية: "On a deux modèles 😊 [PAUSE] Bottine cuir Stéphano — 370 dhs, disponible en noir/marron/gris [PAUSE] Bottine cuir GS081 — 390 dhs, disponible en noir uniquement [PAUSE] Lequel te plaît, ou tu veux voir les photos des deux ?"
+"عندنا موديلين 😊 [PAUSE] Bottine cuir Stéphano — 370 درهم، متوفرة فـ: أسود/بني/رمادي [PAUSE] Bottine cuir GS081 — 350 درهم، متوفرة فـ: أسود فقط [PAUSE] أي واحد يعجبك، ولا تبغي تشوف الصور ديال الجوج؟"
+بالفرنسية: "On a deux modèles 😊 [PAUSE] Bottine cuir Stéphano — 370 dhs, disponible en noir/marron/gris [PAUSE] Bottine cuir GS081 — 350 dhs, disponible en noir uniquement [PAUSE] Lequel te plaît, ou tu veux voir les photos des deux ?"
 
 ### إذا طلب الزبون تخفيضاً على حذاء واحد أو ذكر رقم معين (مثلاً "300"، "خليه ب300"، "نقص شوية")
 ⚠️ لا تخفض ثمن الحذاء الواحد أبداً (370 ثابت) — لكن ما ترفضش بلا حل: إلا الرقم اللي طلبه الزبون قريب من نصف عرض الجوج (600÷2=300)، رد عليه بـ"نعم" وأعطيه الحل مباشرة بدل التكرار:
@@ -966,8 +966,8 @@ const GS081_IMAGES = [
   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gs081_2.jpg',
   'https://raw.githubusercontent.com/walid757/faris-whatsapp-bot/main/gs081_3.jpg'
 ];
-const sendGS081Image = async (to) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:GS081_IMAGES[0], caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
-const sendAllGS081Images = async (to) => { for (const url of GS081_IMAGES) { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:url, caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); await sleep(800); } };
+const sendGS081Image = async (to) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:GS081_IMAGES[0], caption:'Bottine cuir GS081 - أسود - 350 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendAllGS081Images = async (to) => { for (const url of GS081_IMAGES) { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:url, caption:'Bottine cuir GS081 - أسود - 350 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); await sleep(800); } };
 
 // ✅ إضافة جديدة — تحميل صورة بعتها الزبون عبر واتساب (media API) وتحويلها لـ base64 باش تصيفط لكلود (تحليل صور)
 const downloadWhatsAppMedia = async (mediaId) => {
@@ -997,8 +997,8 @@ const identifyProductFromImage = async (base64, mimeType) => {
 const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
 const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
 // ✅ إضافة جديدة — نفس تقنية الساندويتش، خاصة بـGS081 (كي كيكون مصدر الإعلان (referral) واضح أنو GS081)
-const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ390 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
-const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 390 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
+const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ350 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
+const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 350 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
 // ✅ إضافة جديدة — نستخرجو المنتج المعلن عليه من referral ديال الإعلان (أول رسالة من كليك واتساب) — نص الإعلان أولاً (سريع بلا API)، ثم صورة الإعلان المصغرة عبر تحليل الصور إلا لزم
 const detectAdProduct = async (referral) => {
   if (!referral) return null;
@@ -2357,8 +2357,14 @@ app.post('/webhook', async (req,res) => {
             else if (/casablanca|الدار البيضاء/i.test(_cdCheck.city || '') && !/[–\-]/.test(_cdCheck.city || '')) _missingField = 'district';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
-            // ✅ إضافة جديدة — الثمن خاصو يكون بالضبط 370 (Stéphano وحدة) أو 390 (GS081 وحدة) أو 600 (عرض الجوج بأي تركيبة) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
-            else if (_pdCheck.unit_price_mad && !['370','390','600'].includes(String(_pdCheck.unit_price_mad).trim())) _missingField = 'price';
+            // ✅ إضافة جديدة — الثمن خاصو يكون بالضبط 370 (Stéphano وحدة) أو 350 (GS081 وحدة) أو 600 (عرض الجوج بأي تركيبة) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
+            // ✅ إصلاح — فحص حسب المنتج بدل قائمة موحدة، حيت 350 دبا ثمن GS081 الحقيقي لكن يبقى رقم تفاوض محتمل لزبون Stéphano — ما نقبلوش 350 لطلب Stéphano
+            else if (_pdCheck.unit_price_mad && (() => {
+              const _priceVal = String(_pdCheck.unit_price_mad).trim();
+              if (_priceVal === '600') return false; // عرض الجوج، صالح لكل التركيبات
+              const _isGS081Check = /gs\s?081/i.test(_pdCheck.product_name||'');
+              return _isGS081Check ? _priceVal !== '350' : _priceVal !== '370';
+            })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
           }
@@ -2370,7 +2376,7 @@ app.post('/webhook', async (req,res) => {
             : _missingField === 'address'
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
             : _missingField === 'price'
-            ? (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 370 dhs (Stéphano), 390 dhs (GS081), ou 600 dhs pour deux paires ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 370 درهم (Stéphano)، 390 درهم (GS081)، ولا 600 درهم لجوج؟ 😊")
+            ? (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 370 dhs (Stéphano), 350 dhs (GS081), ou 600 dhs pour deux paires ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 370 درهم (Stéphano)، 350 درهم (GS081)، ولا 600 درهم لجوج؟ 😊")
             : _missingField === 'district'
             ? (_isFrMissing ? "Pardon, peux-tu me préciser ton arrondissement à Casablanca (Maarif, Sbata, Hay Hassani...) pour finaliser la commande 📍" : "سمح ليا، بغيت نتأكد من المقاطعة ديالك فالدار البيضاء (مثلاً المعاريف، سباتة، الحي الحسني...) باش نكملو الطلب 📍")
             : _missingField === 'size'
