@@ -2398,8 +2398,9 @@ app.post('/webhook', async (req,res) => {
             })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
-            // ✅ إضافة جديدة — إلا كان الزبون معروف أنو مهتم بـGS081 (من إعلان ولا من المحادثة)، لكن CONFIRMED_ORDER خرج بمنتج آخر (غالباً كلود كيرجع لـStéphano بالغلط كـfallback افتراضي)، ما نأكدوش — حالة حقيقية: زبون شاف صورة GS081 وأكد المقاس، لكن ملخص التأكيد خرج بـStéphano/370
-            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && customerAdProduct[from] === 'gs081' && !/gs\s?081/i.test(_pdCheck.product_name||'')) _missingField = 'product';
+            // ✅ إضافة جديدة — إلا كان الزبون معروف أنو مهتم بمنتج معين (من إعلان ولا من المحادثة)، لكن CONFIRMED_ORDER خرج بمنتج آخر (غالباً كلود كيرجع لـStéphano بالغلط كـfallback افتراضي)، ما نأكدوش — حالة حقيقية: زبون شاف صورة GS081 وأكد المقاس، لكن ملخص التأكيد خرج بـStéphano/370
+            // ✅ تعديل — عام لأي منتج فـPRODUCT_INFO (ماشي غير GS081) — Stéphano مستثنى حيت هو الـfallback الافتراضي فالكود، فخانة فارغة ليه سلوك صحيح أصلاً
+            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && customerAdProduct[from] && customerAdProduct[from] !== 'stephano' && PRODUCT_INFO[customerAdProduct[from]] && !new RegExp(PRODUCT_INFO[customerAdProduct[from]].nameAr, 'i').test(_pdCheck.product_name||'')) _missingField = 'product';
           }
         } catch(e){}
         if (_missingField) {
@@ -2417,7 +2418,9 @@ app.post('/webhook', async (req,res) => {
             : _missingField === 'variant'
             ? (_isFrMissing ? "Pardon, peux-tu me confirmer les 2 couleurs et les 2 pointures pour les deux bottines ? 😊" : "سمح ليا، بغيت نتأكد من اللونين والمقاسين ديال الحذاءين بجوج — قوليا مثلاً 'اسود 42 وبني 40' 😊")
             : _missingField === 'product'
-            ? (_isFrMissing ? "Pardon, je confirme bien que c'est Bottine cuir GS081 (350 dhs) que tu veux, pas Stéphano ? 😊" : "سمح ليا، بغيت نتأكد أنك بغيتي Bottine cuir GS081 (350 درهم)، ماشي Stéphano؟ 😊")
+            ? (() => { const _pinInfo = PRODUCT_INFO[customerAdProduct[from]] || {}; return _isFrMissing
+                ? `Pardon, je confirme bien que c'est Bottine cuir ${_pinInfo.nameAr} (${_pinInfo.price} dhs) que tu veux ? 😊`
+                : `سمح ليا، بغيت نتأكد أنك بغيتي Bottine cuir ${_pinInfo.nameAr} (${_pinInfo.price} درهم)؟ 😊`; })()
             : (_isFrMissing ? "Pardon, peux-tu me confirmer les infos de ta commande ? 😊" : "سمح ليا، بغيت نتأكد من معلومات الطلبية ديالك 😊");
           await sendHumanLike(from, _askMsg);
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
