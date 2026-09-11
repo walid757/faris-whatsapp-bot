@@ -2254,6 +2254,8 @@ app.post('/webhook', async (req,res) => {
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
+            // ✅ إضافة جديدة — الدار البيضاء خاصها تحتوي على المقاطعة (بحال "Casablanca – Maarif") حيت مدينة كبيرة والتوصيل بلا مقاطعة صعيب — حالة حقيقية: طلب اتسجل بـ"Casablanca" فقط بلا مقاطعة
+            else if (/casablanca|الدار البيضاء/i.test(_cdCheck.city || '') && !/[–\-]/.test(_cdCheck.city || '')) _missingField = 'district';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إضافة جديدة — الثمن ديال Stéphano خاصو يكون بالضبط 370 (وحدة) أو 600 (عرض الجوج) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
@@ -2268,6 +2270,8 @@ app.post('/webhook', async (req,res) => {
             ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
             : _missingField === 'address'
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
+            : _missingField === 'district'
+            ? (_isFrMissing ? "Pardon, peux-tu me préciser ton arrondissement à Casablanca (Maarif, Sbata, Hay Hassani...) pour finaliser la commande 📍" : "سمح ليا، بغيت نتأكد من المقاطعة ديالك فالدار البيضاء (مثلاً المعاريف، سباتة، الحي الحسني...) باش نكملو الطلب 📍")
             : _missingField === 'size'
             ? (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟")
             : _missingField === 'variant'
