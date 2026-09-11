@@ -1898,13 +1898,17 @@ app.post('/webhook', async (req,res) => {
     // template Quick Reply buttons come as type 'button'
     text = message.button?.text;
   } else {
-    // ✅ إضافة جديدة — البوت ماقادرش يقرا صورة كيبعتها الزبون (لا تحليل صور) — إلا بعث صورة بالضبط، نسولوه مباشرة عن اسم الموديل بدل رسالة عامة غير مفيدة، حيت دبا عندنا موديلين (Stéphano وGS081) والصورة وحدها ماكافياش نعرفو أيهم
+    // ✅ إضافة جديدة — البوت ماقادرش يقرا صورة كيبعتها الزبون (لا تحليل صور) — إلا بعث صورة بالضبط، نصيفطو ليه صور الموديلين بجوج (بالاسم والثمن مكتوبين فالتسمية توضيحية) باش يعرف يميز ويقوليا شكون بغى، بدل غير رسالة نصية
     if (!websiteOrders[from]) {
       try {
         await sleep(800);
-        await sendText(from, message.type === 'image'
-          ? 'ما قدرتش نشوف الصورة اللي بعتيها 😊 قوليا بغيتي أي موديل بالضبط — Stéphano ولا GS081؟'
-          : 'أرسل رسالة نصية باش نقدر نساعدك 😊');
+        if (message.type === 'image') {
+          await sendText(from, 'ما قدرتش نشوف الصورة اللي بعتيها 😊 هاهوما الموديلين لي عندنا، قوليا أي واحد بغيتي:');
+          try { await sendWhatsAppImage(from, 'noir'); await sleep(800); } catch(e){}
+          try { await sendGS081Image(from); } catch(e){}
+        } else {
+          await sendText(from, 'أرسل رسالة نصية باش نقدر نساعدك 😊');
+        }
       } catch(e) {}
     }
     return res.sendStatus(200);
