@@ -969,6 +969,30 @@ const GS081_IMAGES = [
 const sendGS081Image = async (to) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:GS081_IMAGES[0], caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 const sendAllGS081Images = async (to) => { for (const url of GS081_IMAGES) { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:url, caption:'Bottine cuir GS081 - أسود - 390 درهم (عرض محدود المدة)'} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); await sleep(800); } };
 
+// ✅ إضافة جديدة — تحميل صورة بعتها الزبون عبر واتساب (media API) وتحويلها لـ base64 باش تصيفط لكلود (تحليل صور)
+const downloadWhatsAppMedia = async (mediaId) => {
+  const metaRes = await axios.get(`https://graph.facebook.com/v25.0/${mediaId}`, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
+  const { url, mime_type } = metaRes.data;
+  const fileRes = await axios.get(url, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }, responseType: 'arraybuffer' });
+  return { base64: Buffer.from(fileRes.data).toString('base64'), mimeType: mime_type || 'image/jpeg' };
+};
+// ✅ إضافة جديدة — نبعتو الصورة لكلود (قدرة تحليل الصور) باش يميز واش هي Stéphano ولا GS081 — جواب كلمة وحدة فقط
+const identifyProductFromImage = async (base64, mimeType) => {
+  try {
+    const res = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001', max_tokens: 10,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+        { type: 'text', text: 'هاد الصورة كتبين صباط (بوطية) جلد؟ عندنا موديلين: "stephano" (بوطية كلاسيكية بسيطة، ألوان أسود/بني/رمادي) و"gs081" (Chelsea boot بسولة سميكة عالية، أسود فقط، أحياناً باين شعار GREAT SHOES). جاوب بكلمة وحدة فقط بلا شرح: stephano أو gs081 أو unclear (إلا الصورة ماشي ديال صباط أو ماوضحاش).' }
+      ] }]
+    }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+    const ans = (res.data.content[0].text || '').toLowerCase().trim();
+    if (ans.includes('gs081')) return 'gs081';
+    if (ans.includes('stephano')) return 'stephano';
+    return 'unclear';
+  } catch(e) { console.error('❌ identifyProductFromImage:', e.message); return 'unclear'; }
+};
+
 // ✅ تعديل — حذفنا نسخ A/B/C واختبار التناوب باش ماتبقاش عرضة للالتباس — دبا رسالة الترحيب الأولى (STATE_0/1) وحدة ثابتة فقط: تقنية الساندويتش (سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي)، بلا إيموجي، نصيفطوها مباشرة بدل ما نخليو Claude يولدها
 const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
 const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
@@ -1897,20 +1921,30 @@ app.post('/webhook', async (req,res) => {
   } else if (message.type === 'button') {
     // template Quick Reply buttons come as type 'button'
     text = message.button?.text;
-  } else {
-    // ✅ إضافة جديدة — البوت ماقادرش يقرا صورة كيبعتها الزبون (لا تحليل صور) — إلا بعث صورة بالضبط، نصيفطو ليه صور الموديلين بجوج (بالاسم والثمن مكتوبين فالتسمية توضيحية) باش يعرف يميز ويقوليا شكون بغى، بدل غير رسالة نصية
-    if (!websiteOrders[from]) {
-      try {
-        await sleep(800);
-        if (message.type === 'image') {
-          await sendText(from, 'ما قدرتش نشوف الصورة اللي بعتيها 😊 هاهوما الموديلين لي عندنا، قوليا أي واحد بغيتي:');
+  } else if (message.type === 'image' && message.image?.id) {
+    // ✅ إضافة جديدة — نحاولو نميزو المنتج من الصورة اللي بعتها الزبون عبر كلود (تحليل صور)، قبل ما نرجعو للحل الاحتياطي (صور الجوج)
+    let _imageProduct = 'unclear';
+    try {
+      const { base64, mimeType } = await downloadWhatsAppMedia(message.image.id);
+      _imageProduct = await identifyProductFromImage(base64, mimeType);
+    } catch(e) { console.error('❌ تحليل صورة الزبون:', e.message); }
+    if (_imageProduct === 'stephano') {
+      text = 'بغيت Bottine cuir Stéphano';
+    } else if (_imageProduct === 'gs081') {
+      text = 'بغيت Bottine cuir GS081';
+    } else {
+      if (!websiteOrders[from]) {
+        try {
+          await sleep(800);
+          await sendText(from, 'ما قدرتش نميز الصورة اللي بعتيها بالضبط 😊 هاهوما الموديلين لي عندنا، قوليا أي واحد بغيتي:');
           try { await sendWhatsAppImage(from, 'noir'); await sleep(800); } catch(e){}
           try { await sendGS081Image(from); } catch(e){}
-        } else {
-          await sendText(from, 'أرسل رسالة نصية باش نقدر نساعدك 😊');
-        }
-      } catch(e) {}
+        } catch(e) {}
+      }
+      return res.sendStatus(200);
     }
+  } else {
+    if (!websiteOrders[from]) { try { await sleep(800); await sendText(from,'أرسل رسالة نصية باش نقدر نساعدك 😊'); } catch(e){} }
     return res.sendStatus(200);
   }
   console.log(`--- رسالة من [${from}]: ${text}`);
