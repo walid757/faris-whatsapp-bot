@@ -996,6 +996,27 @@ const identifyProductFromImage = async (base64, mimeType) => {
 // ✅ تعديل — حذفنا نسخ A/B/C واختبار التناوب باش ماتبقاش عرضة للالتباس — دبا رسالة الترحيب الأولى (STATE_0/1) وحدة ثابتة فقط: تقنية الساندويتش (سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي)، بلا إيموجي، نصيفطوها مباشرة بدل ما نخليو Claude يولدها
 const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ370 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
 const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 370 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
+// ✅ إضافة جديدة — نفس تقنية الساندويتش، خاصة بـGS081 (كي كيكون مصدر الإعلان (referral) واضح أنو GS081)
+const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ390 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
+const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 390 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
+// ✅ إضافة جديدة — نستخرجو المنتج المعلن عليه من referral ديال الإعلان (أول رسالة من كليك واتساب) — نص الإعلان أولاً (سريع بلا API)، ثم صورة الإعلان المصغرة عبر تحليل الصور إلا لزم
+const detectAdProduct = async (referral) => {
+  if (!referral) return null;
+  const adText = `${referral.headline||''} ${referral.body||''}`.toLowerCase();
+  if (/gs\s?081/.test(adText)) return 'gs081';
+  if (/st[ée]phano/.test(adText)) return 'stephano';
+  const imgUrl = referral.image_url || referral.thumbnail_url;
+  if (imgUrl) {
+    try {
+      const imgRes = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 8000 });
+      const base64 = Buffer.from(imgRes.data).toString('base64');
+      const mimeType = imgRes.headers['content-type'] || 'image/jpeg';
+      const result = await identifyProductFromImage(base64, mimeType);
+      if (result === 'gs081' || result === 'stephano') return result;
+    } catch(e) { console.error('❌ detectAdProduct:', e.message); }
+  }
+  return null;
+};
 
 const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 
@@ -2275,11 +2296,16 @@ app.post('/webhook', async (req,res) => {
       const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
       // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة رسالة الترحيب الثابتة (تقنية الساندويتش) بدل ما نخلي Claude يولدها
       if (conversationHistory[from].length === 1) {
-        const _openingText = (lang === 'french') ? OPENING_MESSAGE_FR : OPENING_MESSAGE_AR;
+        // ✅ إضافة جديدة — نحاولو نعرفو المنتج من referral ديال الإعلان (نص أو صورة الإعلان) باش نصيفطو الترحيب المناسب (Stéphano أو GS081) من أول رسالة
+        let _adProduct = null;
+        try { _adProduct = await detectAdProduct(message.referral); } catch(e){}
+        const _openingText = _adProduct === 'gs081'
+          ? ((lang === 'french') ? OPENING_MESSAGE_GS081_FR : OPENING_MESSAGE_GS081_AR)
+          : ((lang === 'french') ? OPENING_MESSAGE_FR : OPENING_MESSAGE_AR);
         await sendHumanLike(from, _openingText);
         conversationHistory[from].push({role:'assistant',content:_openingText.replace(/\[PAUSE(?::\d+)?\]/g,' ').replace(/\s+/g,' ').trim()});
         trimHistory(from); persistState();
-        console.log(`🅰️ رسالة ترحيب (${lang}) ← ${from}`);
+        console.log(`🅰️ رسالة ترحيب (${lang}${_adProduct ? ', إعلان: '+_adProduct : ''}) ← ${from}`);
         return;
       }
       // ✅ إصلاح — نحيدو الإيموجي قبل فحص التحية باش "Bonjour ! 😊" تتعرف عليها كتحية بسيطة بحال "Bonjour !"
