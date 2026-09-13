@@ -2663,7 +2663,8 @@ app.post('/admin-send', async (req, res) => {
     const waPhone = formatPhone(phone);
     // ✅ إصلاح — كانت sendText العادية كتفشل بصمت (success ظاهري بلا توصيل حقيقي) إلا الرقم ماكتبش للبوت من كثر من 24 ساعة —
     // دبا كنستعملو sendSmart: رسالة حرة إلا كان داخل النافذة، وإلا قالب "message_equipe" المعتمد لي كيوصل فأي وقت
-    await sendSmart(waPhone, message, 'message_equipe', [customerName || (customerOrderInfo[waPhone]||{}).name || 'صديقنا', message]);
+    // ✅ إصلاح — "خويا" بدل "صديقنا" باش يبقى موحّد مع نبرة البوت فكل مكان آخر
+    await sendSmart(waPhone, message, 'message_equipe', [customerName || (customerOrderInfo[waPhone]||{}).name || 'خويا', message]);
     if (!conversationHistory[waPhone]) conversationHistory[waPhone] = [];
     conversationHistory[waPhone].push({ role: 'assistant', content: message });
     trimHistory(waPhone); persistState();
