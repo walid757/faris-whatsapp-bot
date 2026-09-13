@@ -1106,6 +1106,15 @@ const isSimpleAcknowledgment = (text) => {
   if (!noEmoji) return true; // غير إيموجي (بحال 🙏🏽🙏🏽)
   return /^(شكرا|شكراً|شكرا لك|شكرا بزاف|يعطيك الصحة|بارك الله فيك|merci|merci beaucoup|thanks|thank you|thx|ok|okay|d'accord|واخا|صافي|نعم|oui|👍)[\s!.،]*$/i.test(noEmoji);
 };
+// ✅ إضافة جديدة — كشف سؤال عام عن الجودة أو التوصيل (بعد التأكيد) — هاد النوع من الأسئلة البوت يقدر يجاوب عليه مباشرة
+// (عندو الجواب جاهز فالـSYSTEM_PROMPT)، بخلاف أسئلة أخرى بعد التأكيد لي خاصها تتصرد للأدمين بلا جواب أوتوماتيكي
+const isQualityOrDeliveryQuestion = (text) => {
+  const t = (text || '').toLowerCase();
+  const qualityWords = ['جلد','جودة','طبيعي','أصلي','صناعي','متين','سوميلة','eva','cuir','qualité','matière','authentique'];
+  const deliveryWords = ['توصيل','يوصل','وصل','livraison','livrer','délai','delai','مدة','شحال.*نهار','كم.*يوم'];
+  return qualityWords.some(w => t.includes(w)) || deliveryWords.some(w => new RegExp(w).test(t));
+};
+
 // ✅ إضافة جديدة — كشف ندم فوري بعد تأكيد الطلب (مثلاً "غير كنضحك مبغيتش نشري") باش نميزوه عن أي رسالة عادية أخرى
 const looksLikeOrderRegret = (text) => { const t=(text||'').toLowerCase(); return /كنضحك|كنهزر|بالغلط|غلطة|مبغيتش نشري|ما بغيتش نشري|بغيتش الطلب|الغيت الطلب|إلغاء الطلب|الغاء الطلب|annule ma commande|annuler ma commande|je ne veux plus|je ne veux pas|changed my mind|pas envie/.test(t); };
 
@@ -2306,12 +2315,34 @@ app.post('/webhook', async (req,res) => {
     if (detectFrenchRequest(text)) { userLangPref[from] = 'french'; persistState(); }
     else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
     const _timeSinceConfirmForAdmin = Date.now() - (orderConfirmTimes[from] || 0);
-    if ((_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) && isSimpleAcknowledgment(text)) {
+    // ✅ إضافة جديدة — نفس حماية الـ48 ساعة للزبناء بلا رقم تتبع (شحن فاشل بصمت) — أسئلتهم تبقى تتصرد للأدمين بدل ما تدخل لمحادثة كلود العامة
+    const _confirmedNoTrackingGraceAdmin = !customerTracking[from] && _timeSinceConfirmForAdmin <= 48 * 60 * 60 * 1000;
+    if ((_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from) || _confirmedNoTrackingGraceAdmin) && isSimpleAcknowledgment(text)) {
       // ✅ إضافة جديدة — رسالة شكر/تأكيد بسيطة ما محتاجاش تتحول للفريق الإداري — ما ندير والو، نخليو الزبون بلا إزعاج
       return;
     }
-    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) {
+    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from) || _confirmedNoTrackingGraceAdmin) {
       const _oiForAdmin = customerOrderInfo[from] || {};
+      // ✅ إضافة جديدة — أسئلة عامة عن الجودة أو التوصيل بعد التأكيد: البوت يجاوب عليها مباشرة (عندو الجواب جاهز)
+      // بدل الرد الجاهز الفارغ، والشرط ان المحادثة (سؤال الزبون + جواب البوت) تتصرد للأدمين فالحين باش يبقى متبع
+      if (isQualityOrDeliveryQuestion(text)) {
+        let _qdReply = '';
+        try {
+          const _qdIsFr = (userLangPref[from] === 'french');
+          const _qdRes = await axios.post('https://api.anthropic.com/v1/messages', {
+            model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+            system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+            messages: [{ role: 'user', content: text + (_qdIsFr ? '\n\n[جاوب بالفرنسية فقط، جواب قصير مباشر بلا تكرار سؤال، جملتان فقط]' : '\n\n[جاوب بالدارجة المغربية فقط، جواب قصير مباشر بلا تكرار سؤال، جملتان فقط]') }]
+          }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
+          _qdReply = _qdRes.data.content[0].text.trim();
+        } catch (_qdErr) { console.error('❌ سؤال جودة/توصيل بعد التأكيد:', _qdErr.message); }
+        if (_qdReply) {
+          try { await sendHumanLike(from, _qdReply); } catch (_qdSendErr) {}
+          try { await sendText('212644151359', `📩 سؤال جودة/توصيل من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${_qdReply}"`); } catch (_adminForwardErr2) { console.error('❌ تحويل سؤال جودة/توصيل:', _adminForwardErr2.message); }
+          return;
+        }
+        // إلا فشل الرد الأوتوماتيكي، نكملو للمسار العادي (تحويل للأدمين + رد جاهز) تحت
+      }
       try {
         await sendText('212644151359', `📩 سؤال من زبون أتم طلبه\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 "${text}"\n\n(الزبون سبق وأكد طلبه، يرجى الرد عليه مباشرة)`);
       } catch(_adminForwardErr) { console.error('❌ تحويل سؤال بعد التأكيد:', _adminForwardErr.message); }
@@ -2328,7 +2359,10 @@ app.post('/webhook', async (req,res) => {
     // ✅ إصلاح — زدنا شرط !hasActiveTracking(from): ما نمسحوش تاريخ المحادثة ونعتبرو الزبون "جديد" طول ما الطلبية ديالو مازال فالطريق (أو توصلت من أقل من 48 ساعة) — حالة حقيقية: زبون رد بـ"شكرا" بعد 41 ساعة من التأكيد، وكان معرض لمسح تاريخو بالكامل واعتباره زبون جديد
     if (orderConfirmed.has(from)) {
       const timeSinceConfirm = Date.now() - (orderConfirmTimes[from] || 0);
-      if (timeSinceConfirm > 60 * 60 * 1000 && !hasActiveTracking(from)) {
+      // ✅ إضافة جديدة — حماية إضافية 48 ساعة للزبناء لي أكدو الطلب ولكن مازال ما عندهمش رقم تتبع (فشل الشحن بصمت مثلاً) —
+      // حالة حقيقية: زبناء أكدو الطلب وطلبيتهم فشلت تشحن بلا ما يعلم حد، وكانوا معرضين يتنسو ويتعاملو كزبناء جدد بعد غير 60 دقيقة
+      const _confirmedNoTrackingGrace = !customerTracking[from] && timeSinceConfirm <= 48 * 60 * 60 * 1000;
+      if (timeSinceConfirm > 60 * 60 * 1000 && !hasActiveTracking(from) && !_confirmedNoTrackingGrace) {
         orderConfirmed.delete(from); conversationHistory[from] = []; followUpCount[from] = 0; sentImages.delete(from); delete userLangPref[from]; persistState();
         console.log(`🔄 طلبية جديدة من ${from} — إعادة تعيين`);
       }
