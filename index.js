@@ -2375,13 +2375,15 @@ app.post('/webhook', async (req,res) => {
     if (detectFrenchRequest(text)) { userLangPref[from] = 'french'; persistState(); }
     else if (detectDarijaRequest(text)) { delete userLangPref[from]; persistState(); }
     const _timeSinceConfirmForAdmin = Date.now() - (orderConfirmTimes[from] || 0);
-    // ✅ إضافة جديدة — نفس حماية الـ48 ساعة للزبناء بلا رقم تتبع (شحن فاشل بصمت) — أسئلتهم تبقى تتصرد للأدمين بدل ما تدخل لمحادثة كلود العامة
-    const _confirmedNoTrackingGraceAdmin = !customerTracking[from] && _timeSinceConfirmForAdmin <= 48 * 60 * 60 * 1000;
-    if ((_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from) || _confirmedNoTrackingGraceAdmin) && isSimpleAcknowledgment(text)) {
+    // ✅ إصلاح — رجعنا الشرط لحالو الأصلي (بلا حماية الـ48 ساعة هنا) — حالة حقيقية: زبون عندو orderConfirmed قديم (طلبية سابقة
+    // فشلت بصمت ومازال ماتصلحاتش)، وبغى يبدا محادثة جديدة كليا على منتج آخر — كان كيبقى محبوس فحلقة "طلبك سبق تأكد" لمدة
+    // 48 ساعة بلا ما البوت يجاوبو أبداً، وكيضيع بيع حقيقي. حماية الـ48 ساعة تبقى غير فمنطق عدم-مسح-الذاكرة (تحت فـenqueue)،
+    // والحارس الأمان (checkStalledConfirmedOrders) كافي لتنبيه الأدمين على الطلبيات العالقة بلا ما نحبسو المحادثة كاملة
+    if ((_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) && isSimpleAcknowledgment(text)) {
       // ✅ إضافة جديدة — رسالة شكر/تأكيد بسيطة ما محتاجاش تتحول للفريق الإداري — ما ندير والو، نخليو الزبون بلا إزعاج
       return;
     }
-    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from) || _confirmedNoTrackingGraceAdmin) {
+    if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) {
       const _oiForAdmin = customerOrderInfo[from] || {};
       // ✅ إضافة جديدة — أسئلة عامة عن الجودة أو التوصيل بعد التأكيد: البوت يجاوب عليها مباشرة (عندو الجواب جاهز)
       // بدل الرد الجاهز الفارغ، والشرط ان المحادثة (سؤال الزبون + جواب البوت) تتصرد للأدمين فالحين باش يبقى متبع
