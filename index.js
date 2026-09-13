@@ -263,6 +263,8 @@ const postDeliveryIssueState = _state.postDeliveryIssueState || {};
 const customerAdProduct = _state.customerAdProduct || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
+// ✅ إضافة جديدة — تتبع الزبناء لي سبق تنبه الأدمين عليهم بسبب "طلبية مؤكدة بلا شحن" (باش ما نكرروش نفس التنبيه فكل دورة)
+const stalledOrderAlerted = new Set(_state.stalledOrderAlerted || []);
 
 const persistState = () => saveState({
   sentImages:[...sentImages],
@@ -282,6 +284,7 @@ const persistState = () => saveState({
   customerDeliveredAt,
   postDeliveryIssueState,
   customerAdProduct,
+  stalledOrderAlerted:[...stalledOrderAlerted],
 });
 
 const userQueues = {}, userLocks = {};
@@ -2795,3 +2798,21 @@ const checkOzonStatusChanges = async () => {
   }
 };
 setInterval(() => { checkOzonStatusChanges().catch(e => console.error('❌ checkOzonStatusChanges interval:', e.message)); }, 10 * 60 * 1000);
+
+// ✅ إضافة جديدة — حارس أمان: تنبيه فوري للأدمين إلا زبون أكد الطلب ولكن مازال ما عندوش رقم تتبع بعد 15 دقيقة —
+// هادشي كيكشف حالات "الطلب اتأكد ولكن الشحن فشل بصمت" (بحال Zakaria/Abdelhak/Abo Fayca) فالحين بدل ما نكتشفوها بعد أيام بتدقيق يدوي
+const checkStalledConfirmedOrders = () => {
+  try {
+    for (const phone of orderConfirmed) {
+      if (customerTracking[phone]) continue; // عندو رقم تتبع، ماشي عالق
+      if (stalledOrderAlerted.has(phone)) continue; // سبق تنبهنا عليه
+      const since = Date.now() - (orderConfirmTimes[phone] || 0);
+      if (since < 15 * 60 * 1000) continue; // مازال بكري، عطيوه وقت
+      const oi = customerOrderInfo[phone] || {};
+      stalledOrderAlerted.add(phone); persistState();
+      sendText('212644151359', `🚨 GreatShoes — طلبية مؤكدة بلا شحن!\n👤 ${oi.name || ''} | 📞 ${formatPhone(phone)}\n📦 ${oi.product || ''}\nمرت أكثر من 15 دقيقة من التأكيد وما كاين حتى رقم تتبع — يرجى التحقق فوراً (شحن يدوي إلا لزم)`).catch(e => console.error('❌ stalledOrderAlert:', e.message));
+      console.log(`🚨 تنبيه طلبية عالقة بلا شحن ← ${phone}`);
+    }
+  } catch(e) { console.error('❌ checkStalledConfirmedOrders:', e.message); }
+};
+setInterval(checkStalledConfirmedOrders, 5 * 60 * 1000);
