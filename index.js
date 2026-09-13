@@ -995,10 +995,13 @@ const sendTemplateMessage = async (to, templateName, bodyParams) => {
   const components = (bodyParams && bodyParams.length)
     ? [{ type: 'body', parameters: bodyParams.map(p => ({ type: 'text', text: String(p == null ? '' : p) })) }]
     : [];
-  return axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+  const res = await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
     messaging_product: 'whatsapp', to: waTo, type: 'template',
     template: { name: templateName, language: { code: WA_TEMPLATE_LANG }, components }
   }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' }, timeout: 15000 });
+  // ✅ إضافة جديدة — تسجيل رد Meta كامل (كان ماكاين حتى تسجيل، فما كناش نقدرو نعرفو واش وصلت الرسالة فعلياً أو غير قبلت API بلا توصيل حقيقي)
+  console.log(`📨 sendTemplateMessage (${templateName}) → ${waTo}:`, JSON.stringify(res.data));
+  return res;
 };
 
 // ✅ إضافة جديدة — دالة ذكية: رسالة حرة عادية إلا الرقم كتب للبوت فأقل من 24 ساعة، وإلا قالب معتمد (يوصل فأي وقت)
@@ -2035,6 +2038,15 @@ app.get('/webhook', (req,res) => { if(req.query['hub.verify_token']===VERIFY_TOK
 app.post('/webhook', async (req,res) => {
   if (!verifySignature(req)) { console.warn('⚠️ Signature غير صحيح'); return res.sendStatus(401); }
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  // ✅ إضافة جديدة — تسجيل تحديثات حالة التوصيل (sent/delivered/read/failed) — كانت ماكاين حتى تسجيل، فما كناش نقدرو نعرفو واش رسالة (خصوصاً القوالب) وصلت فعلياً أو فشلت بصمت
+  const statusUpdate = req.body?.entry?.[0]?.changes?.[0]?.value?.statuses?.[0];
+  if (statusUpdate) {
+    if (statusUpdate.status === 'failed') {
+      console.error(`❌ فشل توصيل رسالة ← ${statusUpdate.recipient_id} | ${JSON.stringify(statusUpdate.errors || [])}`);
+    } else {
+      console.log(`📬 حالة رسالة ← ${statusUpdate.recipient_id} | ${statusUpdate.status}`);
+    }
+  }
   if (!message) return res.sendStatus(200);
   // ✅ إصلاح — أحياناً message.from كيوصل فارغ (رسائل نادرة/متزامنة)، نرجعو للرقم من contacts[0].wa_id كـ fallback
   const from = message.from || req.body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.wa_id;
