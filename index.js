@@ -2385,7 +2385,8 @@ app.post('/webhook', async (req,res) => {
         ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote
         : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'} });
+      // ✅ إصلاح — زدنا timeout (كان بلا حدود، فحالة تعلق الاتصال بـClaude API كان الزبون كيبقى بلا رد نهائياً بلا حتى خطأ مسجل — حالة حقيقية: زبون عطى العنوان الكامل وبقي بلا جواب)
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
@@ -2507,7 +2508,16 @@ app.post('/webhook', async (req,res) => {
 
       await sendHumanLike(from, reply);
       console.log('✅ تم الإرسال');
-    } catch(e) { console.error('❌ خطأ:', e.response?JSON.stringify(e.response.data):e.message); }
+    } catch(e) {
+      console.error('❌ خطأ:', e.response?JSON.stringify(e.response.data):e.message);
+      // ✅ إضافة جديدة — بدل الصمت التام للزبون فحالة خطأ/تعلق فالاتصال بـClaude API، نصيفطو ليه رسالة تعتذر وتطلب منه يعاود
+      try {
+        const _errIsFr = (userLangPref[from] === 'french');
+        await sendText(from, _errIsFr
+          ? "Désolé, on a peut-être un petit souci technique 🙏 Peux-tu redire ce que tu m'as dit s'il te plaît ?"
+          : 'سمح ليا، يمكن عندنا مشكل تقني صغير، عاود قل لي شنو قلتي لي عفاك 🙏');
+      } catch(_errReplyErr) {}
+    }
   });
 });
 
