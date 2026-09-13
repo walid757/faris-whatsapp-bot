@@ -285,6 +285,7 @@ const persistState = () => saveState({
   postDeliveryIssueState,
   customerAdProduct,
   stalledOrderAlerted:[...stalledOrderAlerted],
+  lastCustomerMsgAt,
 });
 
 const userQueues = {}, userLocks = {};
@@ -976,6 +977,45 @@ const markAsRead = async (messageId) => { try { await axios.post(`https://graph.
 
 const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
+// ✅ إضافة جديدة — WhatsApp Message Templates (معتمدين من Meta): كيقدرو يوصلو لأي رقم فأي وقت، حتى برا نافذة الـ24 ساعة
+// (بخلاف sendText العادية لي كتفشل بصمت — success ظاهرياً بلا توصيل حقيقي — إلا الرقم ماكتبش للبوت من كثر من 24 ساعة)
+const WA_TEMPLATE_LANG = 'ar_MA'; // اللغة لي تسجلو بيها القوالب الأربعة فـMeta WhatsApp Manager (Arabic (MAR))
+
+// ✅ إضافة جديدة — تتبع آخر مرة كتب فيها أي رقم (زبون ولا ليفرور) للبوت — كنستعملوها باش نحددو واش داخل نافذة الـ24 ساعة
+const lastCustomerMsgAt = _state.lastCustomerMsgAt || {};
+const isWithin24h = (phone) => {
+  const t = lastCustomerMsgAt[formatPhone(phone)];
+  if (!t) return false;
+  return (Date.now() - t) < 24 * 60 * 60 * 1000;
+};
+
+// ✅ إضافة جديدة — إرسال قالب WhatsApp معتمد مباشرة
+const sendTemplateMessage = async (to, templateName, bodyParams) => {
+  const waTo = formatPhone(to);
+  const components = (bodyParams && bodyParams.length)
+    ? [{ type: 'body', parameters: bodyParams.map(p => ({ type: 'text', text: String(p == null ? '' : p) })) }]
+    : [];
+  return axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp', to: waTo, type: 'template',
+    template: { name: templateName, language: { code: WA_TEMPLATE_LANG }, components }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' }, timeout: 15000 });
+};
+
+// ✅ إضافة جديدة — دالة ذكية: رسالة حرة عادية إلا الرقم كتب للبوت فأقل من 24 ساعة، وإلا قالب معتمد (يوصل فأي وقت)
+// templateParams: [قيمة {{1}}, قيمة {{2}}] — حسب القالب المستعمل
+const sendSmart = async (to, freeformText, templateName, templateParams) => {
+  const waTo = formatPhone(to);
+  if (isWithin24h(waTo) || !templateName) {
+    return sendText(waTo, freeformText);
+  }
+  try {
+    return await sendTemplateMessage(waTo, templateName, templateParams);
+  } catch (e) {
+    console.error(`❌ sendTemplateMessage (${templateName}):`, e.response ? JSON.stringify(e.response.data) : e.message);
+    try { return await sendText(waTo, freeformText); } catch (e2) { console.error('❌ sendSmart fallback sendText:', e2.message); }
+  }
+};
+
 // ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
 // ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
 const sendHumanLike = async (to, fullReply) => {
@@ -1331,10 +1371,10 @@ const handlePasDeReponse = async (from, text) => {
     case 1:
     case 7:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone),
-          "📦 GreatShoes — معلومة مهمة\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 رد الزبون: " + text + "\n\n" +
-          (detectedCase === 1 ? "✅ الزبون حدد وقت مناسب — يرجى التواصل معه 🙏" : "📱 الهاتف كان مطفأ — يرجى إعادة الاتصال 🙏")
-        );
+        const _m1 = "📦 GreatShoes — معلومة مهمة\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 رد الزبون: " + text + "\n\n" +
+          (detectedCase === 1 ? "✅ الزبون حدد وقت مناسب — يرجى التواصل معه 🙏" : "📱 الهاتف كان مطفأ — يرجى إعادة الاتصال 🙏");
+        // ✅ إصلاح — sendSmart بدل sendText: قالب "alerte_livreur" المعتمد إلا الليفرور ماكتبش للبوت من كثر من 24 ساعة
+        await sendSmart(formatPhone(livreur.phone), _m1, 'alerte_livreur', [livreur.name || 'خويا', _m1]);
       }
       delete pasDeReponseActive[from]; persistState(); break;
     case 2: schedulePdrFollowup(from); break;
@@ -1342,9 +1382,8 @@ const handlePasDeReponse = async (from, text) => {
     case 3: pasDeReponseActive[from].waitingForAddress = true; persistState(); break;
     case 4:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone),
-          "⚠️ GreatShoes — إعادة اتصال مطلوبة\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون يقول أنك ما اتصلت به — يرجى الاتصال فوراً 🙏"
-        );
+        const _m4 = "⚠️ GreatShoes — إعادة اتصال مطلوبة\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون يقول أنك ما اتصلت به — يرجى الاتصال فوراً 🙏";
+        await sendSmart(formatPhone(livreur.phone), _m4, 'alerte_livreur', [livreur.name || 'خويا', _m4]);
       }
       delete pasDeReponseActive[from]; persistState(); break;
     case 5: schedulePdrFollowup(from); break;
@@ -1353,14 +1392,16 @@ const handlePasDeReponse = async (from, text) => {
       break;
     case 9:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone), "⏳ GreatShoes — تأجيل التسليم\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 رد الزبون: " + text);
+        const _m9 = "⏳ GreatShoes — تأجيل التسليم\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 رد الزبون: " + text;
+        await sendSmart(formatPhone(livreur.phone), _m9, 'alerte_livreur', [livreur.name || 'خويا', _m9]);
       }
       break;
     case 10: delete pasDeReponseActive[from]; persistState(); break;
     case 11: schedulePdrFollowup(from); break;
     case 12:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone), "⚠️ GreatShoes — شكوى زبون\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون: " + text + "\n\nيرجى التواصل معه بأدب 🙏");
+        const _m12 = "⚠️ GreatShoes — شكوى زبون\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون: " + text + "\n\nيرجى التواصل معه بأدب 🙏";
+        await sendSmart(formatPhone(livreur.phone), _m12, 'alerte_livreur', [livreur.name || 'خويا', _m12]);
       }
       break;
     case 13: pasDeReponseActive[from].waitingForSize = true; persistState(); break;
@@ -1413,14 +1454,16 @@ const handleRefuse = async (from, text) => {
     case 3: refuseActive[from].waitingForSize = true; persistState(); break;
     case 4:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone), "⚠️ GreatShoes — شكوى زبون رفض\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون: " + text);
+        const _rm4 = "⚠️ GreatShoes — شكوى زبون رفض\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n💬 الزبون: " + text;
+        await sendSmart(formatPhone(livreur.phone), _rm4, 'alerte_livreur', [livreur.name || 'خويا', _rm4]);
       }
       scheduleRefuseFollowup(from); break;
     case 5: scheduleRefuseFollowup(from); break;
     case 6: scheduleRefuseFollowup(from); break;
     case 7:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone), "📱 GreatShoes — إعادة توصيل\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n✅ الزبون متاح الآن 🙏");
+        const _rm7 = "📱 GreatShoes — إعادة توصيل\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n✅ الزبون متاح الآن 🙏";
+        await sendSmart(formatPhone(livreur.phone), _rm7, 'alerte_livreur', [livreur.name || 'خويا', _rm7]);
       }
       delete refuseActive[from]; persistState(); break;
     case 8:
@@ -1428,7 +1471,8 @@ const handleRefuse = async (from, text) => {
       break;
     case 9:
       if (livreur.phone) {
-        await sendText(formatPhone(livreur.phone), "⏳ GreatShoes — تأجيل\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 " + text);
+        const _rm9 = "⏳ GreatShoes — تأجيل\n\n👤 " + customerName + " | 📞 " + customerPhone + "\n📦 " + trackingNum + "\n🕐 " + text;
+        await sendSmart(formatPhone(livreur.phone), _rm9, 'alerte_livreur', [livreur.name || 'خويا', _rm9]);
       }
       delete refuseActive[from]; persistState(); break;
     case 10: delete refuseActive[from]; persistState(); break;
@@ -2031,6 +2075,8 @@ app.post('/webhook', async (req,res) => {
     return res.sendStatus(200);
   }
   console.log(`--- رسالة من [${from}]: ${text}`);
+  // ✅ إضافة جديدة — تسجيل آخر وقت كتب فيه هاد الرقم للبوت — كنستعملوها لتحديد نافذة الـ24 ساعة (WhatsApp Templates)
+  lastCustomerMsgAt[from] = Date.now(); persistState();
   // ✅ إضافة جديدة — منع معالجة نفس الرسالة مرتين (webhook retry)
   if (processedMessages.has(message.id)) { console.warn('⚠️ رسالة مكررة تجاهلها:', message.id); return res.sendStatus(200); }
   processedMessages.add(message.id);
@@ -2258,9 +2304,8 @@ app.post('/webhook', async (req,res) => {
         try {
           const addrLivreur = await getLivreurFromOzon(pdrAddrInfo.trackingNum);
           if (addrLivreur?.phone) {
-            await sendText(formatPhone(addrLivreur.phone),
-              "📍 GreatShoes — عنوان جديد\n\n👤 " + pdrAddrInfo.name + " | 📞 " + formatPhone(from) + "\n📦 " + pdrAddrInfo.trackingNum + "\n🏠 العنوان الجديد: " + text + "\n\nيرجى التوصيل للعنوان الجديد 🙏"
-            );
+            const _addrMsg = "📍 GreatShoes — عنوان جديد\n\n👤 " + pdrAddrInfo.name + " | 📞 " + formatPhone(from) + "\n📦 " + pdrAddrInfo.trackingNum + "\n🏠 العنوان الجديد: " + text + "\n\nيرجى التوصيل للعنوان الجديد 🙏";
+            await sendSmart(formatPhone(addrLivreur.phone), _addrMsg, 'alerte_livreur', [addrLivreur.name || 'خويا', _addrMsg]);
           }
         } catch(ae) { console.error('❌ إرسال العنوان الجديد لليفرور:', ae.message); }
         await sendText(from, "✅ تسجل العنوان الجديد، وصيفطناه لليفرور 🙏\nشكراً على التوضيح 🤎");
@@ -2598,16 +2643,18 @@ app.post('/get-lang', (req, res) => {
 // ✅ إضافة جديدة — endpoint إداري لإرسال رسالة يدوية مباشرة لزبون (مثلاً متابعة تنبيه Ozon "لم نتمكن من الاتصال") — كتسجل فـconversationHistory باش أي رد ديال الزبون يدخل للسياق العادي ديال البوت
 app.post('/admin-send', async (req, res) => {
   try {
-    const { secret, phone, message } = req.body || {};
+    const { secret, phone, message, customerName } = req.body || {};
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     if (!phone || !message) return res.status(400).json({ error: 'phone و message ضروريين' });
     const waPhone = formatPhone(phone);
-    await sendText(waPhone, message);
+    // ✅ إصلاح — كانت sendText العادية كتفشل بصمت (success ظاهري بلا توصيل حقيقي) إلا الرقم ماكتبش للبوت من كثر من 24 ساعة —
+    // دبا كنستعملو sendSmart: رسالة حرة إلا كان داخل النافذة، وإلا قالب "message_equipe" المعتمد لي كيوصل فأي وقت
+    await sendSmart(waPhone, message, 'message_equipe', [customerName || (customerOrderInfo[waPhone]||{}).name || 'صديقنا', message]);
     if (!conversationHistory[waPhone]) conversationHistory[waPhone] = [];
     conversationHistory[waPhone].push({ role: 'assistant', content: message });
     trimHistory(waPhone); persistState();
-    console.log(`📤 admin-send ← ${waPhone}`);
-    res.json({ success: true });
+    console.log(`📤 admin-send ← ${waPhone} | ${isWithin24h(waPhone) ? 'رسالة حرة' : 'قالب message_equipe'}`);
+    res.json({ success: true, viaTemplate: !isWithin24h(waPhone) });
   } catch(e) { console.error('❌ /admin-send:', e.message); res.status(500).json({ error: e.message }); }
 });
 
@@ -2762,7 +2809,8 @@ const checkOzonStatusChanges = async () => {
       if (isPdrStatus) {
         const oi = customerOrderInfo[phone] || {};
         const pdrMsg = await generatePdrInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
-        await sendText(phone, pdrMsg);
+        // ✅ إصلاح — sendSmart بدل sendText: قالب "contact_manque" المعتمد إلا الزبون ماكتبش للبوت من كثر من 24 ساعة
+        await sendSmart(phone, pdrMsg, 'contact_manque', [oi.name || 'خويا', trackingNum]);
         if (livreurForMsg && livreurForMsg.phone) {
           await sleep(1000);
           await sendText(phone, isFr ? `📞 Tél livreur: ${livreurForMsg.phone}\nTu peux le contacter directement 🙏` : `📞 رقم الليفرور: ${livreurForMsg.phone}\nتقدر تتصل بيه مباشرة 🙏`);
@@ -2782,7 +2830,14 @@ const checkOzonStatusChanges = async () => {
       } else {
         if (statusLowerForLivreur.includes('livr')) { customerDeliveredAt[phone] = Date.now(); persistState(); }
         const autoTrackingMsgText = formatTrackingStatusMsg(status.statut, isFr, trackingNum, livreurForMsg, (customerOrderInfo[phone] || {}).name);
-        await sendText(phone, autoTrackingMsgText);
+        // ✅ إصلاح — حالة "التوصيل جاري" (distribution/transit) تحديداً كتستعمل sendSmart مع قالب "livraison_en_cours" المعتمد
+        // (باقي الحالات الأخرى — تسليم/رفض... — عندها صياغة مختلفة كل مرة، ماكاينش قالب مطابق ليها، فكنخليوها sendText عادية بحالها)
+        const _isDistribLike = statusLowerForLivreur.includes('distribution') || statusLowerForLivreur.includes('transit') || statusLowerForLivreur.includes('expédi') || statusLowerForLivreur.includes('expedi');
+        if (_isDistribLike) {
+          await sendSmart(phone, autoTrackingMsgText, 'livraison_en_cours', [(customerOrderInfo[phone] || {}).name || 'خويا', trackingNum]);
+        } else {
+          await sendText(phone, autoTrackingMsgText);
+        }
         // ✅ إضافة جديدة — نسجلو رسالة التتبع التلقائية فذاكرة المحادثة، باش Claude يبقى عندو السياق إلا الزبون رد عليها
         if (!conversationHistory[phone]) conversationHistory[phone] = [];
         conversationHistory[phone].push({ role: 'assistant', content: autoTrackingMsgText });
