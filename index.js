@@ -2657,14 +2657,20 @@ app.post('/get-lang', (req, res) => {
 // ✅ إضافة جديدة — endpoint إداري لإرسال رسالة يدوية مباشرة لزبون (مثلاً متابعة تنبيه Ozon "لم نتمكن من الاتصال") — كتسجل فـconversationHistory باش أي رد ديال الزبون يدخل للسياق العادي ديال البوت
 app.post('/admin-send', async (req, res) => {
   try {
-    const { secret, phone, message, customerName } = req.body || {};
+    const { secret, phone, message, customerName, template, trackingNum } = req.body || {};
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     if (!phone || !message) return res.status(400).json({ error: 'phone و message ضروريين' });
     const waPhone = formatPhone(phone);
+    const _adminSendName = customerName || (customerOrderInfo[waPhone]||{}).name || 'خويا';
     // ✅ إصلاح — كانت sendText العادية كتفشل بصمت (success ظاهري بلا توصيل حقيقي) إلا الرقم ماكتبش للبوت من كثر من 24 ساعة —
-    // دبا كنستعملو sendSmart: رسالة حرة إلا كان داخل النافذة، وإلا قالب "message_equipe" المعتمد لي كيوصل فأي وقت
-    // ✅ إصلاح — "خويا" بدل "صديقنا" باش يبقى موحّد مع نبرة البوت فكل مكان آخر
-    await sendSmart(waPhone, message, 'message_equipe', [customerName || (customerOrderInfo[waPhone]||{}).name || 'خويا', message]);
+    // دبا كنستعملو sendSmart: رسالة حرة إلا كان داخل النافذة، وإلا قالب معتمد كيوصل فأي وقت
+    // ✅ إضافة جديدة — دعم اختياري لقالب "contact_manque" (بدل message_equipe الافتراضي) عبر body.template === 'contact_manque'،
+    // يفيد فحالة التواصل مجدداً مع زبون طلبيتو وصلت لحالة "Pas de réponse" — يحتاج trackingNum فالـbody
+    if (template === 'contact_manque' && trackingNum) {
+      await sendSmart(waPhone, message, 'contact_manque', [_adminSendName, trackingNum]);
+    } else {
+      await sendSmart(waPhone, message, 'message_equipe', [_adminSendName, message]);
+    }
     if (!conversationHistory[waPhone]) conversationHistory[waPhone] = [];
     conversationHistory[waPhone].push({ role: 'assistant', content: message });
     trimHistory(waPhone); persistState();
