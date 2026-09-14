@@ -288,6 +288,9 @@ const persistState = () => saveState({
   lastCustomerMsgAt,
 });
 
+// ✅ إضافة جديدة — قفل تسلسلي عام لكل رقم هاتف (Promise chain) — كيضمن أن معالجة رسالة ديال زبون معين ما تبداش
+// قبل ما لي قبلها تكمل بالكامل، حتى لأقسام الحالة (pendingConfirmations، deliveryTimeStates...) لي ماكانتش محمية من قبل
+const messageLocks = {};
 const userQueues = {}, userLocks = {};
 const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from] = []; userQueues[from].push(fn); if (!userLocks[from]) processQueue(from); };
 const processQueue = async (from) => { if (userLocks[from]) return; userLocks[from] = true; while (userQueues[from]?.length > 0) { const fn = userQueues[from].shift(); try { await fn(); } catch (e) { console.error('❌ Queue:', e.message); } } userLocks[from] = false; };
@@ -2134,6 +2137,16 @@ app.post('/webhook', async (req,res) => {
   res.sendStatus(200);
   await markAsRead(message.id);
 
+  // ✅ إصلاح — قفل تسلسلي: كان القسم التحتاني كاملو (pendingConfirmations، deliveryTimeStates، refuseActive، pasDeReponseActive...)
+  // بلا حماية من التزامن — إلا وصلات جوج رسائل ديال نفس الزبون قريب من بعضهم (حالة حقيقية: طلبية Abdelhak ضاعت بهاد السبب
+  // بالضبط)، Node كان يقدر يبدا معالجة الرسالة الثانية قبل ما تكمل الأولى، فتتخبط الحالة المشتركة. دبا كل معالجة ديال نفس
+  // الرقم كتنسلسل بإجبار (رسالة ما تبداش قبل ما لي قبلها تكمل بالكامل)
+  const _msgLockPrev = messageLocks[from] || Promise.resolve();
+  let _msgLockRelease;
+  messageLocks[from] = new Promise(_r => { _msgLockRelease = _r; });
+  await _msgLockPrev;
+  try {
+
   // ===== WEBSITE ORDER FLOW =====
   if (websiteOrders[from]) {
     try { await handleWebsiteOrder(from, text); } catch(e) { console.error('❌ handleWebsiteOrder:', e.message); }
@@ -2673,6 +2686,8 @@ app.post('/webhook', async (req,res) => {
       } catch(_errReplyErr) {}
     }
   });
+
+  } finally { _msgLockRelease(); }
 });
 
 // ✅ إضافة جديدة — Endpoint pas de réponse
