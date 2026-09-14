@@ -1824,11 +1824,30 @@ const resetFollowUpTimer = (from) => { if(followUpTimers[from]){clearTimeout(fol
 
 // ✅ إضافة جديدة — تذكير للزبون لي وصل لمرحلة "ملخص الطلبية + الأزرار" (pendingConfirmations، step awaiting_button) وما ضغطش على أي زر بعد فترة
 const clearPendingConfirmTimer = (from) => { if(pendingConfirmTimers[from]){clearTimeout(pendingConfirmTimers[from]);delete pendingConfirmTimers[from];} };
+// ✅ إصلاح — كانت هاد الدالة كتخدم غير لمرحلة "awaiting_button" وكترجع بصمت لأي مرحلة أخرى — يعني زبون سكت
+// فمرحلة "awaiting_delivery_time" (طلبنا منو الوقت) أو "awaiting_final_confirm" (آخر تأكيد) كان يبقى بلا أي تذكير للأبد.
+// دبا كتخدم فالـ3 مراحل، كل وحدة بالرسالة المناسبة ليها
 const sendPendingConfirmReminder = async (from) => {
   try {
     delete pendingConfirmTimers[from];
-    if (!pendingConfirmations[from] || pendingConfirmations[from].step !== 'awaiting_button') return;
+    if (!pendingConfirmations[from]) return;
+    const _pcStep = pendingConfirmations[from].step;
     const _prIsFr = (pendingConfirmations[from].lang === 'french');
+    if (_pcStep === 'awaiting_delivery_time') {
+      await sendText(from, _prIsFr
+        ? "Toujours là ? 😊 J'ai juste besoin de l'horaire idéal pour finaliser ta commande 🕐"
+        : 'مازلتي هنا؟ 😊 بقى ليا غير الوقت المناسب ليك باش نأكدو الطلبية 🕐');
+      return;
+    }
+    if (_pcStep === 'awaiting_final_confirm') {
+      const _time = pendingConfirmations[from].deliveryTime || '';
+      await sendText(from, _prIsFr
+        ? "Toujours là ? 😊 Ta commande t'attend — confirme pour qu'on te livre 👇"
+        : 'مازلتي هنا؟ 😊 طلبيتك ديما مستنياك — أكد باش نوصلوك 👇');
+      await sendInteractiveButtons(from, _prIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊', _prIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']);
+      return;
+    }
+    if (_pcStep !== 'awaiting_button') return;
     await sendText(from, _prIsFr
       ? "Toujours là ? 😊 Ta commande t'attend juste ici — clique pour confirmer 👇"
       : 'مازلتي هنا؟ 😊 طلبيتك ديما مستنياك — غير اضغط باش تأكد 👇');
@@ -2072,6 +2091,25 @@ app.post('/webhook', async (req,res) => {
     } else if (_imageProduct === 'gs081') {
       text = 'بغيت Bottine cuir GS081';
     } else {
+      // ✅ إصلاح — زبون فمرحلة "ملخص الطلبية + الأزرار" (pendingConfirmations) لي بعث صورة غير واضحة كان كيتلقى رد
+      // "ما قدرتش نميز الصورة، هاهوما الموديلين" بلا أي علاقة بالطلبية المعلقة ديالو — نرجعوه لمرحلتو بدل ما نضيعو السياق
+      if (pendingConfirmations[from]) {
+        try {
+          await sleep(800);
+          const _picIsFr = (pendingConfirmations[from].lang === 'french');
+          await sendText(from, _picIsFr
+            ? "J'ai reçu la photo 😊 Mais d'abord, confirme ta commande en cours 👇"
+            : 'توصلتني الصورة 😊 ولكن أولا، أكد الطلبية الجارية 👇');
+          const _picHasTime = !!deliveryTimes[from];
+          await sendInteractiveButtons(from,
+            _picIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
+            pendingConfirmations[from].step === 'awaiting_final_confirm'
+              ? (_picIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء'])
+              : (_picHasTime ? (_picIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']) : (_picIsFr ? ['Confirmer', 'Fixer horaire', 'Annuler'] : ['تأكيد الطلب', 'تحديد وقت التوصيل', 'إلغاء']))
+          );
+        } catch(e) {}
+        return res.sendStatus(200);
+      }
       if (!websiteOrders[from]) {
         try {
           await sleep(800);
@@ -2180,6 +2218,8 @@ app.post('/webhook', async (req,res) => {
           pending.step = 'awaiting_delivery_time';
           const _dtIsFr = (pending.lang === 'french');
           await sendText(from, _dtIsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
+          // ✅ إصلاح — كان التذكير التلقائي (pendingConfirmTimers) ماكيتبرمجش هنا — زبون سكت فهاد المرحلة كان يبقى بلا أي متابعة للأبد
+          pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         } else {
           // ✅ إضافة جديدة — الزبون كتب نص حر (سؤال مثلاً) بدل ما يضغط زر — بدل الصمت التام، نعاودو نوريو ليه الأزرار بوضوح
           const _abIsFr = (pending.lang === 'french');
@@ -2208,6 +2248,8 @@ app.post('/webhook', async (req,res) => {
           `سيتم إضافة الوقت "${text.trim()}" مع عنوان التوصيل 🕐\nهل تؤكد الطلب؟`,
           ['تأكيد الطلب', 'إلغاء']
         );
+        // ✅ إصلاح — نفس الشيء: التذكير كان ماكيتبرمجش هنا
+        pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
       } else if (pending.step === 'awaiting_final_confirm') {
         if (text === 'تأكيد الطلب') {
           const time = pending.deliveryTime || '';
@@ -2235,6 +2277,16 @@ app.post('/webhook', async (req,res) => {
           try { await saveOrderToSheet(pending.reply, from); await markWebsiteOrderStatus(from, '', 'pas de réponse'); } catch(ce) { console.error('❌ cancel sheet:', ce.message); }
           delete pendingConfirmations[from];
           orderConfirmed.delete(from);
+        } else {
+          // ✅ إصلاح — أخطر ثغرة كانت هنا: أي نص ماشي "تأكيد الطلب" ولا "إلغاء" بالضبط (سؤال، رسالتين متزامنتين، خطأ كتابة،
+          // إيموجي، "نعم"...) كان كيتبلع بصمت تام بلا أي رد — حالة حقيقية: طلبية Abdelhak ضاعت بالضبط بهاد الشكل.
+          // دبا كنعاودو نوريو الأزرار بوضوح بدل الصمت
+          const _fcIsFr = (pending.lang === 'french');
+          await sendText(from, _fcIsFr
+            ? "Pour finaliser, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
+            : 'باش نأكدو الطلبية، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          await sendInteractiveButtons(from, _fcIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊', _fcIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']);
+          pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         }
       }
     } catch(e) { console.error('❌ pendingConfirmations handler:', e.message); }
