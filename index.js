@@ -2907,7 +2907,9 @@ const checkOzonStatusChanges = async () => {
         await sendSmart(phone, pdrMsg, 'contact_manque', [oi.name || 'خويا', trackingNum]);
         if (livreurForMsg && livreurForMsg.phone) {
           await sleep(1000);
-          await sendText(phone, isFr ? `📞 Tél livreur: ${livreurForMsg.phone}\nTu peux le contacter directement 🙏` : `📞 رقم الليفرور: ${livreurForMsg.phone}\nتقدر تتصل بيه مباشرة 🙏`);
+          const _livreurPhoneMsg = isFr ? `📞 Tél livreur: ${livreurForMsg.phone}\nTu peux le contacter directement 🙏` : `📞 رقم الليفرور: ${livreurForMsg.phone}\nتقدر تتصل بيه مباشرة 🙏`;
+          // ✅ إصلاح — sendSmart بدل sendText: قالب "message_equipe" كحل احتياطي إلا الزبون برا نافذة 24 ساعة
+          await sendSmart(phone, _livreurPhoneMsg, 'message_equipe', [oi.name || 'خويا', _livreurPhoneMsg]);
         }
         pasDeReponseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', phone };
         persistState();
@@ -2916,7 +2918,8 @@ const checkOzonStatusChanges = async () => {
       } else if (isRefuseStatus) {
         const oi = customerOrderInfo[phone] || {};
         const refuseMsg = await generateRefuseInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
-        await sendText(phone, refuseMsg);
+        // ✅ إصلاح — sendSmart بدل sendText: قالب "message_equipe" كحل احتياطي إلا الزبون برا نافذة 24 ساعة
+        await sendSmart(phone, refuseMsg, 'message_equipe', [oi.name || 'خويا', refuseMsg]);
         refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '370', phone };
         persistState();
         scheduleRefuseFollowup(phone);
@@ -2930,7 +2933,10 @@ const checkOzonStatusChanges = async () => {
         if (_isDistribLike) {
           await sendSmart(phone, autoTrackingMsgText, 'livraison_en_cours', [(customerOrderInfo[phone] || {}).name || 'خويا', trackingNum]);
         } else {
-          await sendText(phone, autoTrackingMsgText);
+          // ✅ إصلاح — كانت sendText العادية هنا كتفشل بصمت (حالة حقيقية لقيناها مباشرة: إشعار "Reporté" لـAbdelhak فشل
+          // برمز 131047 "Re-engagement message" لأنو فات 24 ساعة) — دبا sendSmart مع قالب "message_equipe" كحل احتياطي شامل
+          // لأي حالة ماعندهاش قالب مخصص، باش أي إشعار توصيل يوصل فعلياً بدل ما يفشل بصمت
+          await sendSmart(phone, autoTrackingMsgText, 'message_equipe', [(customerOrderInfo[phone] || {}).name || 'خويا', autoTrackingMsgText]);
         }
         // ✅ إضافة جديدة — نسجلو رسالة التتبع التلقائية فذاكرة المحادثة، باش Claude يبقى عندو السياق إلا الزبون رد عليها
         if (!conversationHistory[phone]) conversationHistory[phone] = [];
