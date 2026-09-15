@@ -1730,6 +1730,33 @@ const formatTrackingStatusMsg = (statut, isFr, trackingNum, livreur, name) => {
 };
 
 // ✅ إضافة جديدة — معالج سؤال "فين طلبي" — كيرد بحالة حقيقية من Ozon Express
+// ✅ إضافة جديدة — دالة مشتركة: جواب حقيقي (بلا صمت وبلا رد جاهز فارغ) على أي سؤال ديال زبون أكد طلبو، معتمد على تاريخ
+// المحادثة + معلومات الطلبية المحفوظة. تترجع true إلا نجحت (صيفطات جواب)، false إلا فشلت (باش المتصل يقرر البديل)
+const answerAnyConfirmedQuestion = async (from, text) => {
+  try {
+    const oi = customerOrderInfo[from] || {};
+    const isFr = (userLangPref[from] === 'french');
+    const ocDetails = [oi.name && `الاسم: ${oi.name}`, oi.address && `العنوان: ${oi.address}`, oi.product && `المنتج: ${oi.product}`, oi.size && `المقاس: ${oi.size}`, oi.price && `الثمن: ${oi.price}`].filter(Boolean).join(' | ');
+    const note = isFr
+      ? `\n\n[Commande déjà confirmée${ocDetails ? ' — infos déjà connues: ' + ocDetails : ''} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande — jamais de PAUSE — 2 phrases max]`
+      : `\n\n[الطلبية مؤكدة مسبقاً${ocDetails ? ' — معلومات الزبون المعروفة: ' + ocDetails : ''} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة — بلا [PAUSE] — جملتان بحد أقصى]`;
+    const history = (conversationHistory[from] || []).slice(-8).filter(m => m.role === 'user' || m.role === 'assistant');
+    const res = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages: [...history, { role: 'user', content: text + note }]
+    }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
+    const reply = res.data.content[0].text.trim().replace(/CONFIRMED_ORDER:[\s\S]*/,'').trim();
+    if (!reply) return false;
+    await sendText(from, reply);
+    if (!conversationHistory[from]) conversationHistory[from] = [];
+    conversationHistory[from].push({ role: 'user', content: text }, { role: 'assistant', content: reply });
+    trimHistory(from); persistState();
+    try { await sendText('212644151359', `📩 سؤال من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${oi.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${reply}"`); } catch(e) {}
+    return true;
+  } catch(e) { console.error('❌ answerAnyConfirmedQuestion:', e.message); return false; }
+};
+
 const handleTrackingInquiry = async (from, text) => {
   const typedTracking = extractTrackingNumberFromText(text);
   const trackingNum = typedTracking || customerTracking[from] || findTrackingByPhoneInText(text);
@@ -1745,6 +1772,11 @@ const handleTrackingInquiry = async (from, text) => {
   if (typedTracking && typedTracking !== customerTracking[from]) { customerTracking[from] = typedTracking; persistState(); }
   const status = await getOrderStatusFromOzon(trackingNum);
   if (!status) {
+    // ✅ إصلاح — كان هاد الرد الجاهز نهاية مسدودة: إلا فشل البحث عند Ozon (timeout مثلاً)، الزبون كان يبقى بلا أي جواب
+    // حقيقي على سؤالو الفعلي (حالة حقيقية: "واش نقدر نقيس قبل" فهمات كسؤال تتبع وطاحت هنا). دبا كنجربو جواب حقيقي
+    // كـfallback قبل ما نرجعو للرسالة الجاهزة
+    const _answered = await answerAnyConfirmedQuestion(from, text);
+    if (_answered) return;
     await sendText(from, isFr
       ? `Je vérifie ton colis (${trackingNum}) mais je n'arrive pas à avoir l'info maintenant. Réessaie dans un moment 🙏`
       : `كنشوف الطرد ديالك (${trackingNum}) ولكن ما قدرتش نجيب المعلومة دابا 🙏 عاود جرب من بعد شوية`);
