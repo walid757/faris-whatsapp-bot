@@ -2456,26 +2456,33 @@ app.post('/webhook', async (req,res) => {
     }
     if (_timeSinceConfirmForAdmin <= 20 * 60 * 1000 || hasActiveTracking(from)) {
       const _oiForAdmin = customerOrderInfo[from] || {};
-      // ✅ إضافة جديدة — أسئلة عامة عن الجودة أو التوصيل بعد التأكيد: البوت يجاوب عليها مباشرة (عندو الجواب جاهز)
-      // بدل الرد الجاهز الفارغ، والشرط ان المحادثة (سؤال الزبون + جواب البوت) تتصرد للأدمين فالحين باش يبقى متبع
-      if (isQualityOrDeliveryQuestion(text)) {
-        let _qdReply = '';
-        try {
-          const _qdIsFr = (userLangPref[from] === 'french');
-          const _qdRes = await axios.post('https://api.anthropic.com/v1/messages', {
-            model: 'claude-haiku-4-5-20251001', max_tokens: 300,
-            system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-            messages: [{ role: 'user', content: text + (_qdIsFr ? '\n\n[جاوب بالفرنسية فقط، جواب قصير مباشر بلا تكرار سؤال، جملتان فقط]' : '\n\n[جاوب بالدارجة المغربية فقط، جواب قصير مباشر بلا تكرار سؤال، جملتان فقط]') }]
-          }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
-          _qdReply = _qdRes.data.content[0].text.trim();
-        } catch (_qdErr) { console.error('❌ سؤال جودة/توصيل بعد التأكيد:', _qdErr.message); }
-        if (_qdReply) {
-          try { await sendHumanLike(from, _qdReply); } catch (_qdSendErr) {}
-          try { await sendText('212644151359', `📩 سؤال جودة/توصيل من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${_qdReply}"`); } catch (_adminForwardErr2) { console.error('❌ تحويل سؤال جودة/توصيل:', _adminForwardErr2.message); }
-          return;
-        }
-        // إلا فشل الرد الأوتوماتيكي، نكملو للمسار العادي (تحويل للأدمين + رد جاهز) تحت
+      // ✅ إصلاح — كان البوت كيجاوب بشكل حقيقي غير على أسئلة الجودة/التوصيل، وأي سؤال آخر بعد التأكيد كان كيتلقى
+      // رد جاهز فارغ ("فريقنا غايجاوبك") بدل جواب حقيقي — حسب الاتفاق: أي سؤال ديال زبون أكد طلبو خاصو يتجاوب عليه
+      // البوت بشكل طبيعي (بلا ما يعاود يسول المعلومات لي عندو ديجا)، والمحادثة كاملة (سؤال+جواب) تتصرد للأدمين غير للعلم
+      let _pcReply = '';
+      try {
+        const _pcIsFr = (userLangPref[from] === 'french');
+        const _pcOcDetails = [_oiForAdmin.name && `الاسم: ${_oiForAdmin.name}`, _oiForAdmin.address && `العنوان: ${_oiForAdmin.address}`, _oiForAdmin.product && `المنتج: ${_oiForAdmin.product}`, _oiForAdmin.size && `المقاس: ${_oiForAdmin.size}`, _oiForAdmin.price && `الثمن: ${_oiForAdmin.price}`].filter(Boolean).join(' | ');
+        const _pcNote = _pcIsFr
+          ? `\n\n[Commande déjà confirmée${_pcOcDetails ? ' — infos déjà connues: ' + _pcOcDetails : ''} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande — jamais de PAUSE — 2 phrases max]`
+          : `\n\n[الطلبية مؤكدة مسبقاً${_pcOcDetails ? ' — معلومات الزبون المعروفة: ' + _pcOcDetails : ''} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة — بلا [PAUSE] — جملتان بحد أقصى]`;
+        const _pcHistory = (conversationHistory[from] || []).slice(-8);
+        const _pcRes = await axios.post('https://api.anthropic.com/v1/messages', {
+          model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          messages: [...(_pcHistory.filter(m => m.role === 'user' || m.role === 'assistant')), { role: 'user', content: text + _pcNote }]
+        }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
+        _pcReply = _pcRes.data.content[0].text.trim().replace(/CONFIRMED_ORDER:[\s\S]*/,'').trim();
+      } catch (_pcErr) { console.error('❌ رد بعد التأكيد:', _pcErr.message); }
+      if (_pcReply) {
+        try { await sendText(from, _pcReply); } catch (_pcSendErr) {}
+        if (!conversationHistory[from]) conversationHistory[from] = [];
+        conversationHistory[from].push({ role: 'user', content: text }, { role: 'assistant', content: _pcReply });
+        trimHistory(from); persistState();
+        try { await sendText('212644151359', `📩 سؤال من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${_pcReply}"`); } catch (_adminForwardErr2) { console.error('❌ تحويل سؤال بعد التأكيد:', _adminForwardErr2.message); }
+        return;
       }
+      // إلا فشل الرد الأوتوماتيكي لأي سبب، نكملو للمسار الاحتياطي (تحويل للأدمين + رد جاهز) بدل الصمت التام
       try {
         await sendText('212644151359', `📩 سؤال من زبون أتم طلبه\n👤 ${_oiForAdmin.name || ''} | 📞 ${formatPhone(from)}\n💬 "${text}"\n\n(الزبون سبق وأكد طلبه، يرجى الرد عليه مباشرة)`);
       } catch(_adminForwardErr) { console.error('❌ تحويل سؤال بعد التأكيد:', _adminForwardErr.message); }
