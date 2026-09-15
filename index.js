@@ -722,6 +722,8 @@ ORDER_CONFIRM_MSG_END
 | كده / كدا | هكاك / هاكدا |
 | إيه ده | شنو هادا |
 | تمام / حلو (كإقرار مصري) | واخا / مزيان |
+| على طول (بمعنى "مباشرة/فالحين") | دغيا / فالحين / مباشرة |
+| البوطية (كلمة مختلقة ماكاينش فالدارجة — حالة حقيقية: البوت قالها لزبون بدل "الصباط") | الصباط (أو اسم المنتج بالضبط: Bottine cuir Stéphano/GS081) |
 
 ⚠️ إذا استعمل الزبون نفسه كلمات مصرية أو خليجية، لا تقلده — رد دائماً بالدارجة المغربية الصحيحة (أو الفصحى/الفرنسية/الإنجليزية حسب لغته الأصلية إذا لم تكن مصرية/خليجية).
 
@@ -1642,6 +1644,10 @@ const isTrackingInquiry = (t) => {
   if (/\b(wach\s*wslat|mzal\s*ma\s*tw?slt|fin\s*commande)\b/.test(s)) return true;
   if (/\b(fin|fen|win|wach|3lash)\b[\s\S]{0,20}\b(waslat|weslat|wslat|toslo|touslou|colis?|coli)\b/.test(s)) return true;
   if (/\bcoli\b[\s\S]{0,20}\b(fin|fen|win)\b/.test(s)) return true;
+  // ✅ إصلاح — حالة حقيقية: "Lahouma ysiir Yalah khrjat mazal mawslat" ماكانتش كتتعرف كسؤال تتبع (الصياغة مختلفة عن الأنماط
+  // المكتوبة فوق) وكانت كتتحول للأدمين بلا جواب حقيقي — دبا نمطين أعم: "mazal/mzal" + أي كلمة فيها جذر "wsl" (mawslat، twslt...)، وكلمة "khrjat" (خرجات = هل غادرت)
+  if (/\b(mazal|mzal)\b[\s\S]{0,15}\bma?\w*wsl\w*/.test(s)) return true;
+  if (/\bkhrjat\b/.test(s)) return true;
   if (extractTrackingNumberFromText(t)) return true;
   return false;
 };
