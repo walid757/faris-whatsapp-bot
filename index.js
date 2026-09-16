@@ -998,8 +998,12 @@ const isWithin24h = (phone) => {
 // ✅ إضافة جديدة — إرسال قالب WhatsApp معتمد مباشرة
 const sendTemplateMessage = async (to, templateName, bodyParams) => {
   const waTo = formatPhone(to);
+  // ✅ إصلاح — حالة حقيقية مؤكدة: Meta كترفض أي parameter فيه سطر جديد (newline/tab) أو أكثر من 4 مسافات متتالية
+  // (خطأ 132018 "issue with the parameters") — وهادشي كان كيوقع ملي نصيفطو نص متعدد الأسطر (بحال رسالة الرفض) كـparameter.
+  // دبا كنبدلو أي سطر جديد بمسافة، ونقلصو المسافات المتتالية، قبل ما نصيفطو أي parameter لقالب
+  const _sanitizeParam = (p) => String(p == null ? '' : p).replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
   const components = (bodyParams && bodyParams.length)
-    ? [{ type: 'body', parameters: bodyParams.map(p => ({ type: 'text', text: String(p == null ? '' : p) })) }]
+    ? [{ type: 'body', parameters: bodyParams.map(p => ({ type: 'text', text: _sanitizeParam(p) })) }]
     : [];
   const res = await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, {
     messaging_product: 'whatsapp', to: waTo, type: 'template',
@@ -1028,6 +1032,15 @@ const sendSmart = async (to, freeformText, templateName, templateParams) => {
 // ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
 // ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
 const sendHumanLike = async (to, fullReply) => {
+  // ✅ إصلاح — حالة حقيقية مؤكدة فالإنتاج: رسائل المتابعة المؤجلة (PDR/Refuse followup) كانت كتفشل بصمت مرات عديدة
+  // (كود 131047 Re-engagement message) لأن sendHumanLike كتصيفط كل جزء [PAUSE] بـsendText عادية بلا حماية القوالب —
+  // وملي الرقم برا نافذة 24 ساعة، كل الأجزاء كتفشل واحدة واحدة. دبا إلا كان الرقم برا النافذة، نصيفطو الرسالة كاملة
+  // كواحدة (بلا تقسيم [PAUSE]) عبر قالب "message_equipe" بدل التقسيم العادي
+  if (!isWithin24h(to)) {
+    const _combined = fullReply.replace(/\[PAUSE(?::\d+)?\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (_combined) await sendSmart(to, _combined, 'message_equipe', [(customerOrderInfo[to]||{}).name || 'خويا', _combined]);
+    return;
+  }
   const segs = fullReply.split(/\[PAUSE(?::(\d+))?\]/);
   const parts = [];
   for (let i = 0; i < segs.length; i += 2) {
@@ -1944,6 +1957,9 @@ const toMoroccanPhone = (phone) => {
   return phone;
 };
 
+// ✅ إضافة جديدة — نحيدو علامات النطق (accents: é، ï، à...) باش "Aït Amira" تتطابق مع "Ait Amira" — حالة حقيقية: طلبية Moussa
+// فشلت تشحن لأن "Aït Amira" (بالعلامة) ماتطابقتش مع "Ait Amira-Agadir" (بلا علامة) فـ CITY_ID_MAP
+const stripAccents = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
 const getCityId = (cityFr) => {
   // ✅ إصلاح — كان كيرجع 2174 (الدار البيضاء) بصمت منين ما تلقاش المدينة، فكانت طلبيات تتشحن لمدينة غلط بلا أي تنبيه (حالة حقيقية: "Tindouf" شحنات للدار البيضاء). دابا كنرجعو null باش الشحن يتوقف ويتنبه الأدمين بدل ما يشحن لمكان غلط
   if (!cityFr) return null;
@@ -1951,6 +1967,12 @@ const getCityId = (cityFr) => {
   if (CITY_ID_MAP[k]) return CITY_ID_MAP[k];
   for (const key in CITY_ID_MAP) {
     if (k.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(k.toLowerCase())) return CITY_ID_MAP[key];
+  }
+  // ✅ إضافة جديدة — محاولة أخيرة بلا علامات النطق قبل ما نستسلمو
+  const kNoAccent = stripAccents(k).toLowerCase();
+  for (const key in CITY_ID_MAP) {
+    const keyNoAccent = stripAccents(key).toLowerCase();
+    if (kNoAccent.includes(keyNoAccent) || keyNoAccent.includes(kNoAccent)) return CITY_ID_MAP[key];
   }
   return null;
 };
