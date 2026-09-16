@@ -1762,9 +1762,13 @@ const answerAnyConfirmedQuestion = async (from, text) => {
     const oi = customerOrderInfo[from] || {};
     const isFr = (userLangPref[from] === 'french');
     const ocDetails = [oi.name && `الاسم: ${oi.name}`, oi.address && `العنوان: ${oi.address}`, oi.product && `المنتج: ${oi.product}`, oi.size && `المقاس: ${oi.size}`, oi.price && `الثمن: ${oi.price}`].filter(Boolean).join(' | ');
+    // ✅ إصلاح — حالة حقيقية خطيرة: زبون سول بعد التأكيد، والبوت "اختلق" جواب محدد ("راه توصلك غدا مساء") رغم أن
+    // الحالة الحقيقية عند Ozon كانت مازال "Nouveau Colis" (ماخرجتش حتى للشحن بعد) — كلود كان كيخمن بثقة بدل ما يقول
+    // المعلومة الحقيقية أو يبقى عام. دبا كنعطيوه آخر حالة حقيقية معروفة (من إشعارات Ozon)، ونمنعوه صراحة من اختلاق مواعيد محددة
+    const lastStatus = customerLastStatus[from] || '';
     const note = isFr
-      ? `\n\n[Commande déjà confirmée${ocDetails ? ' — infos déjà connues: ' + ocDetails : ''} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande — jamais de PAUSE — 2 phrases max]`
-      : `\n\n[الطلبية مؤكدة مسبقاً${ocDetails ? ' — معلومات الزبون المعروفة: ' + ocDetails : ''} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة — بلا [PAUSE] — جملتان بحد أقصى]`;
+      ? `\n\n[Commande déjà confirmée${ocDetails ? ' — infos déjà connues: ' + ocDetails : ''}${lastStatus ? ' — dernier statut réel connu (Ozon): ' + lastStatus : ' — aucun statut de suivi connu pour l\'instant'} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — ⚠️ N'INVENTE JAMAIS une heure/jour de livraison précis (ex: "demain soir") si ce n'est pas dans le statut réel ci-dessus — reste général (24-48h) si tu ne sais pas — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande — jamais de PAUSE — 2 phrases max]`
+      : `\n\n[الطلبية مؤكدة مسبقاً${ocDetails ? ' — معلومات الزبون المعروفة: ' + ocDetails : ''}${lastStatus ? ' — آخر حالة حقيقية معروفة (Ozon): ' + lastStatus : ' — ماكاين حتى حالة تتبع معروفة حالياً'} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ⚠️ ممنوع نهائياً تختلق وقت/يوم توصيل محدد (مثلاً "غدا مساء") إلا كان مذكور بالضبط فالحالة الحقيقية فوق — إلا ماعندكش معلومة دقيقة، ابقى عام (24-48 ساعة) وقول الحقيقة — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة — بلا [PAUSE] — جملتان بحد أقصى]`;
     const history = (conversationHistory[from] || []).slice(-8).filter(m => m.role === 'user' || m.role === 'assistant');
     const res = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-haiku-4-5-20251001', max_tokens: 300,
