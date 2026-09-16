@@ -1118,6 +1118,17 @@ const getTodayNote = () => {
   const iso = d.toISOString().slice(0,10);
   return { type: "text", text: `اليوم هو ${dayName}، ${iso} (بتوقيت المغرب تقريباً). استعمل هاد المعلومة باش تفهم أي تاريخ نسبي (السبت الجاي، بعد أسبوع، بعد 15 يوم...) وتحسبو بالضبط بصيغة YYYY-MM-DD.` };
 };
+// ✅ إضافة جديدة — استخراج تاريخ محدد (YYYY-MM-DD) من رسالة حرة ديال الزبون (خدمة مسار "تأجيل" فالطلبيات المؤجلة) — استدعاء Claude خفيف بلا SYSTEM_PROMPT الكبير
+const extractDateFromText = async (text) => {
+  try {
+    const d = new Date();
+    const iso = d.toISOString().slice(0,10);
+    const prompt = `اليوم هو ${iso}. الزبون كتب: "${text}". استخرج التاريخ المقصود وحسبو بصيغة YYYY-MM-DD بالضبط. رد فقط بالتاريخ بلا أي نص إضافي. إلا ماكانش فالرسالة أي إشارة لتاريخ واضح، رد بكلمة NONE فقط.`;
+    const res = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:20, messages:[{role:'user',content:prompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','content-type':'application/json'}, timeout: 15000 });
+    const out = (res.data.content[0].text || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null;
+  } catch(e) { console.error('❌ extractDateFromText:', e.message); return null; }
+};
 // ✅ إضافة جديدة — معلومات كل منتج (الاسم، الثمن، الألوان) — مركزية باش كي نزيدو منتج جديد فالمستقبل نزيدو غير سطر هنا وتخدم معاه كل قاعدة تركيز الإعلان أوتوماتيكياً
 const PRODUCT_INFO = {
   stephano: { nameAr: 'Stéphano', price: '370', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
@@ -1710,6 +1721,33 @@ const saveDeferredOrderToSheet = async (from, replyText, phoneDisplay, cityFr, d
     persistState();
     return { success:true };
   } catch(e) { console.error('❌ saveDeferredOrderToSheet:', e.message); return { success:false }; }
+};
+
+// ✅ إضافة جديدة — الزبون أكد فمرحلة إعادة التأكيد (يوم قبل التوصيل): نشحن الطلبية المؤجلة عند Ozon الآن ونحدّث الصف بالضبط فالشيت (data.row)
+const shipDeferredOrderNow = async (from, drs) => {
+  try {
+    const order = { name: drs.name, phone: drs.phone, city: drs.city, product: drs.product, size: '', color: drs.variant, price: drs.price || '370' };
+    const result = await addParcelDirect(order, drs.address || '');
+    if (result.success) {
+      customerTracking[from] = result.tracking;
+      customerOrderInfo[from] = { name: drs.name, product: [drs.product, drs.variant].filter(Boolean).join(' - '), address: drs.address, size: '', price: drs.price || '370' };
+      orderConfirmed.add(from);
+      orderConfirmTimes[from] = Date.now();
+      persistState();
+      try {
+        await axios.post(SHEET_API_URL, JSON.stringify({ secret: SHEET_SECRET, action: 'deferred_confirm_ship', row: drs.row, tracking: result.tracking }), { headers:{'Content-Type':'application/json'}, timeout:10000 });
+      } catch(se) { console.error('❌ deferred_confirm_ship:', se.message); }
+      const _isFr = (drs.lang === 'french');
+      await sendSmart(from, _isFr
+        ? `✅ Parfait! Ta commande est confirmée 🎉\n📦 Numéro de suivi: *${result.tracking}*\n🚚 Livraison sous 24 à 48h`
+        : `✅ تمام! طلبيتك مؤكدة 🎉\n📦 رقم التتبع: *${result.tracking}*\n🚚 التوصيل ما بين 24 و48 ساعة`,
+        'message_equipe', [drs.name || 'خويا', _isFr ? `Numéro de suivi: ${result.tracking}` : `رقم التتبع: ${result.tracking}`]);
+      console.log(`✅ شحن طلبية مؤجلة ← ${from} | تتبع: ${result.tracking}`);
+    } else {
+      console.error('❌ Ozon فشل (طلبية مؤجلة):', result.ozonResponse);
+      try { await sendText(ADMIN_PHONE, `⚠️ Ozon فشل — طلبية مؤجلة\n👤 ${drs.name} | 📞 ${drs.phone}\n📍 ${drs.city}\n\n${result.ozonResponse}`); } catch(ae) {}
+    }
+  } catch(e) { console.error('❌ shipDeferredOrderNow:', e.message); }
 };
 
 // ✅ إضافة جديدة — كشف سؤال الزبون عن حالة/تتبع طلبه
@@ -2475,6 +2513,43 @@ app.post('/webhook', async (req,res) => {
     return;
   }
 
+  // ===== DEFERRED ORDER RECONFIRMATION FLOW (يوم قبل التوصيل) =====
+  if (deferredReconfirmStates[from]) {
+    const drs = deferredReconfirmStates[from];
+    const _dIsFr = (drs.lang === 'french');
+    try {
+      if (drs.step === 'awaiting_choice') {
+        const _t = text.trim();
+        const _isConfirm = /^(1️⃣|1|نعم|أكد|اكد|ايوا|أيوا|واخا|ok|okay|oui|yes)\b/i.test(_t) || /أكد الطلب|confirme/i.test(_t);
+        const _isCancel = /^(3️⃣|3)\b/.test(_t) || /إلغاء|الغاء|annul|cancel/i.test(_t);
+        const _isPostpone = !_isCancel && (/^(2️⃣|2)\b/.test(_t) || /أجل|اجل|تأجيل|تاجيل|report/i.test(_t));
+        if (_isConfirm) {
+          await shipDeferredOrderNow(from, drs);
+          delete deferredReconfirmStates[from]; persistState();
+        } else if (_isCancel) {
+          try { await axios.post(SHEET_API_URL, JSON.stringify({ secret: SHEET_SECRET, action: 'deferred_cancel', row: drs.row }), { headers:{'Content-Type':'application/json'}, timeout:10000 }); } catch(se) { console.error('❌ deferred_cancel:', se.message); }
+          await sendText(from, _dIsFr ? 'Commande annulée 😊 Tu peux recommencer quand tu veux.' : 'تم إلغاء الطلب 😊 يمكنك البدء من جديد فأي وقت.');
+          delete deferredReconfirmStates[from]; orderConfirmed.delete(from); persistState();
+        } else if (_isPostpone) {
+          drs.step = 'awaiting_new_date'; persistState();
+          await sendText(from, _dIsFr ? "D'accord 😊 Écris-moi la nouvelle date qui te convient (ex: samedi prochain, dans 10 jours...)" : 'مزيان 😊 عطيني التاريخ الجديد لي كيناسبك (مثلاً: السبت الجاي، بعد 10 أيام...)');
+        } else {
+          await sendText(from, _dIsFr ? "Choisis une option 👇\n1️⃣ Confirmer\n2️⃣ Reporter\n3️⃣ Annuler" : 'اختار من هاد الخيارات 👇\n1️⃣ أكد الطلب\n2️⃣ أجّل\n3️⃣ إلغاء');
+        }
+      } else if (drs.step === 'awaiting_new_date') {
+        const newDate = await extractDateFromText(text);
+        if (newDate && isDeferredDateFarEnough(newDate)) {
+          try { await axios.post(SHEET_API_URL, JSON.stringify({ secret: SHEET_SECRET, action: 'deferred_postpone', row: drs.row, newDate }), { headers:{'Content-Type':'application/json'}, timeout:10000 }); } catch(se) { console.error('❌ deferred_postpone:', se.message); }
+          await sendText(from, _dIsFr ? `C'est noté, nouvelle date: ${newDate} 👍 On te recontacte la veille.` : `تم تسجيل التاريخ الجديد: ${newDate} 👍 غادي نتواصلو معاك يوم قبل التوصيل.`);
+          delete deferredReconfirmStates[from]; persistState();
+        } else {
+          await sendText(from, _dIsFr ? "Je n'ai pas compris la date, tu peux réécrire? (ex: 25 septembre, dans une semaine...)" : 'ماشي واضح ليا التاريخ، تقدر تعاود تكتبو؟ (مثلاً: 25 شتنبر، بعد أسبوع...)');
+        }
+      }
+    } catch(e) { console.error('❌ deferredReconfirmStates handler:', e.message); }
+    return;
+  }
+
   // ✅ إضافة جديدة — ندم فوري بعد تأكيد/شحن الطلب (مثلاً "غير كنضحك مبغيتش نشري") — تنبيه فوري للأدمين + رد واضح للزبون بدل ما يفوتها البوت أو يرد برسالة تلقائية بلا علاقة
   if (orderConfirmed.has(from) && looksLikeOrderRegret(text)) {
     try {
@@ -2977,6 +3052,37 @@ app.post('/register-order-tracking', async (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error('❌ /register-order-tracking:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ✅ إضافة جديدة — الطلبيات المؤجلة (Deferred Orders): Apps Script (تريغر checkDeferredOrders اليومي الساعة 11) كيتصل بهاد الـendpoint
+// يوم قبل تاريخ التوصيل المطلوب، باش البوت يعاود يتأكد مع الزبون قبل ما نشحنو الطلبية فعلياً عند Ozon
+app.post('/deferred-reminder', async (req, res) => {
+  try {
+    const { secret, row, phone, full_name, address, price, city, product, variant, deferred_date } = req.body || {};
+    if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+    if (!phone || !row) return res.status(400).json({ error: 'phone و row ضروريين' });
+    const waPhone = formatPhone(phone);
+    const lang = userLangPref[waPhone] || 'darija';
+    const name = full_name || 'خويا';
+    const productDisplay = [product, variant].filter(Boolean).join(' - ') || 'الحذاء';
+    const msg = (lang === 'french')
+      ? `Salam khouya/khti ${name}, j'espère que tu vas bien! 🌿 Je te contacte au sujet de ta commande GreatShoes (${productDisplay}). Tu avais fixé la livraison pour bientôt. Est-ce qu'on te l'envoie? On compte sur toi 🙏\n1️⃣ Oui, je confirme\n2️⃣ Reporter à un autre jour\n3️⃣ Annuler la commande`
+      : `سلام خويا/اختي ${name}، نتمنى تكون بخير! 🌿 تنسولك بخصوص الطلبية ديالك من GreatShoes (${productDisplay}). كنتِ حددتي معاها تخرج قريب. واش نرسلوها ليك توكّلو على الله؟\n1️⃣ نعم، أكد الطلب\n2️⃣ أجّلها ليوم آخر\n3️⃣ إلغاء الطلب`;
+    await sendSmart(waPhone, msg, 'message_equipe', [name, msg]);
+    deferredReconfirmStates[waPhone] = {
+      row: Number(row), name, phone: waPhone, address: address || '', price: price || '370',
+      city: city || '', product: product || 'Bottine cuir Stéphano', variant: variant || '',
+      deferred_date: deferred_date || '', lang, step: 'awaiting_choice'
+    };
+    if (!conversationHistory[waPhone]) conversationHistory[waPhone] = [];
+    conversationHistory[waPhone].push({ role: 'assistant', content: msg });
+    trimHistory(waPhone); persistState();
+    console.log(`📅 تذكير طلبية مؤجلة ← ${waPhone} | صف ${row} | تاريخ ${deferred_date}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('❌ /deferred-reminder:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
