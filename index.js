@@ -513,12 +513,20 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 "370 درهم — عرض لمدة محدودة (الثمن الأصلي 490 درهم) [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
 ⏰ من حين لآخر (ماشي فكل رسالة)، ذكّر الزبون يغتنم الفرصة قبل ما يرجع الثمن الأصلي 490 درهم — مثلاً: "استفد من العرض دابا قبل ما يرجع الثمن لـ490 درهم" — استعملها خاصة كي يتردد الزبون أو يفكر بزاف
 
+⚠️⚠️⚠️ قاعدة صارمة وإجبارية — الفصال على الثمن (مشكلة حقيقية متكررة: زبناء قالوا "واش تمشي بـ300" أو "250" والبوت سجل الطلب بـ370 بلا ما يوضح، وزبون بغى حذاءين بـ400 والبوت أكد الطلب بـ600 بلا ما يتفق معاه، فنفى الزبون الثمن عند التوصيل):
+إذا اقترح الزبون رقماً مختلفاً عن الثمن الصحيح (370 للواحد، 350 لـGS081، 600 للجوج بأي تركيبة) — ممنوع نهائياً:
+1) تسجيل/قبول الرقم لي اقترحو الزبون
+2) الانتقال لجمع أي معلومة أخرى (الاسم/المدينة/العنوان/الهاتف)
+3) عرض ملخص الطلب أو إخراج CONFIRMED_ORDER
+قبل ما يوافق الزبون صراحة على الثمن الصحيح. الواجب: رد فوري وواضح بالثمن الصحيح وسؤاله مباشرة، مثلاً: "أعتذر منك أخي، الثمن النهائي هو 370 درهم شامل التوصيل، هل يناسبك هذا الثمن؟" (أو "600 درهم لجوج الحذاءين" إذا طلب 2). استنى جواب واضح (نعم/موافق/واخا) قبل ما تكمل جمع المعلومات الباقية.
+
 ## CONFIRMATION
 ⚠️⚠️ قبل ما تعرض الملخص، تأكد أن الزبون فاهم وموافق بوضوح على **الثمن النهائي الصحيح** (370 للواحد، 600 للجوج بأي تركيبة، 350 لـGS081 وحدو) — حالة حقيقية: زبون فاوض على رقم غلط (400 مثلاً) وما تصححلوش الثمن بوضوح قبل التأكيد، فبقى معتقد أن الثمن هو الرقم الغلط. إلا كان أي غموض على الثمن، وضحو فرسالة مخصصة أولاً قبل الملخص، بلا ضغط ولا إلحاح
 ⚠️ ملي تسول على المعلومات الناقصة (الاسم/العنوان/الهاتف)، سول بلطف ولباقة بلا ضغط — واقبل المعلومات كيفما جات: دفعة وحدة (كلها فرسالة وحدة) أو بالتدريج (رسالة برسالة) — بلا ما تفرض ترتيب معين
-بعد تأكيد رقم الهاتف، اعرض الملخص مباشرة بهذا الشكل ثم أخرج CONFIRMED_ORDER: في نفس الرسالة (لا تسأل "واش تأكد الطلب؟"):
-خلينا نتأكدو:
+بعد تأكيد رقم الهاتف، اعرض الملخص مباشرة بهذا الشكل ثم أخرج CONFIRMED_ORDER: في نفس الرسالة (لا تسأل "واش تأكد الطلب؟" — هذا السؤال غادي يتسول تلقائياً بأزرار حقيقية من الكود بعد الملخص، ما داعي تكتبو نتا):
+خلينا نتأكدو من تفاصيل الطلب قبل التأكيد النهائي:
 👟 Bottine cuir Stéphano | 🎨 [اللون] | 📏 [المقاس] | 💰 370 درهم | 🚚 مجاني-دفع عند الاستلام | 👤 [الاسم] | 📍 [المقاطعة إن وجدت]-[العنوان التفصيلي]
+⚠️ المرجو التأكد من الثمن والمعلومات أعلاه قبل التأكيد
 ⚠️ اكتب المقاطعة بالاسم الذي قاله الزبون بالضبط (مثال: *الدار البيضاء - معاريف* | حي البرج)
 
 ## ORDER CONFIRMATION
@@ -1170,6 +1178,15 @@ const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.in
 // ✅ إصلاح — بدل لائحة كلمات محدودة (كانت كتفوت صيغ جداد كل مرة كـ"شرح لي")، كنفحصو بالعكس: واش النص فيه أي مؤشر وقت حقيقي (رقم، ساعة، فترة يوم...). إلا ما كانش، كنعتبروه ماشي وقت (سؤال/حيرة/كلام آخر) — أشمل وأضمن من محاولة تخمين كل صيغة ممكنة
 const looksLikeTimeExpression = (text) => { const t=(text||'').trim(); if(!t) return false; return /\d/.test(t) || /ساعة|صباح|مساء|الزوال|الظهر|العصر|المغرب|العشية|العشاء|الليل|الفجر|دابا|الآن|الان|غدا|غدوة|بكري|قريب|حوالي|تقريبا|بعد|قبل|heure|matin|soir|après|avant|maintenant|demain|now|tonight|morning|evening/i.test(t); };
 const looksLikeQuestionNotTime = (text) => { const t=(text||'').trim(); if(!t) return false; return !looksLikeTimeExpression(t); };
+// ✅ إضافة جديدة — كشف اعتراض/فصال على الثمن فمرحلة ملخص الطلب (pendingConfirmations) — حالة حقيقية: زبناء كتبو "300" أو "قلت ليك 250" بدل ما يضغطو زر، والبوت كان كيتجاهل المحتوى وكيعاود يوري الأزرار بلا ما يوضح الثمن الصحيح
+const isPriceObjection = (text) => {
+  const t = (text || '').trim();
+  if (!t) return false;
+  const hasNumber = /\b\d{2,4}\b/.test(t);
+  if (!hasNumber) return false;
+  const priceWords = /ثمن|السعر|الثمن|رخص|رخيص|غالي|تنقص|نقصلي|تخفيض|فصال|نتافقو|واش تقدر|walo|prix|cher|moins|r[ée]duction|baisse|dh|درهم/i.test(t);
+  return priceWords || t.split(/\s+/).length <= 4;
+};
 // ✅ إضافة جديدة — إلا الزبون سول سؤال حقيقي بدل ما يعطي وقت التوصيل، نجاوبو عليه بذكاء (Claude) بدل رسالة جاهزة ثابتة، ومن بعد نعاودو نطلبو منه الوقت فنفس الرسالة
 const answerTimeQuestionThenAsk = async (from, text, isFr) => {
   try {
@@ -2436,9 +2453,18 @@ app.post('/webhook', async (req,res) => {
         } else {
           // ✅ إضافة جديدة — الزبون كتب نص حر (سؤال مثلاً) بدل ما يضغط زر — بدل الصمت التام، نعاودو نوريو ليه الأزرار بوضوح
           const _abIsFr = (pending.lang === 'french');
-          await sendText(from, _abIsFr
-            ? "Pour continuer, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
-            : 'باش نكملو، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          // ✅ إضافة جديدة — حالة حقيقية: زبناء كتبو اعتراض/رقم مختلف على الثمن ("300"، "قلت ليك 250") فهاد المرحلة، والبوت كان كيتجاهلها وكيعاود يوري الأزرار بلا ما يوضح — دبا نوضحو الثمن الصحيح مباشرة قبل ما نعاودو نوريو الأزرار
+          if (isPriceObjection(text)) {
+            let _pcPrice = '370';
+            try { const _pj = extractOrderJSON(pending.reply); if (_pj) _pcPrice = (JSON.parse(_pj).product_data||{}).unit_price_mad || '370'; } catch(e) {}
+            await sendText(from, _abIsFr
+              ? `Désolé, le prix final est bien *${_pcPrice} dhs* (livraison incluse) — c'est le prix confirmé, il n'est pas modifiable 😊 Est-ce que ça te convient? Si oui, clique sur "Confirmer" ci-dessous.`
+              : `سمح ليا، الثمن النهائي هو *${_pcPrice} درهم* شامل التوصيل — هذا هو الثمن المعتمد 😊 واش يناسبك؟ إلا موافق، ضغط "تأكيد الطلب" تحت.`);
+          } else {
+            await sendText(from, _abIsFr
+              ? "Pour continuer, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
+              : 'باش نكملو، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          }
           const _abHasTime = !!deliveryTimes[from];
           await sendInteractiveButtons(from,
             _abIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊',
@@ -2502,9 +2528,18 @@ app.post('/webhook', async (req,res) => {
           // إيموجي، "نعم"...) كان كيتبلع بصمت تام بلا أي رد — حالة حقيقية: طلبية Abdelhak ضاعت بالضبط بهاد الشكل.
           // دبا كنعاودو نوريو الأزرار بوضوح بدل الصمت
           const _fcIsFr = (pending.lang === 'french');
-          await sendText(from, _fcIsFr
-            ? "Pour finaliser, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
-            : 'باش نأكدو الطلبية، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          // ✅ إضافة جديدة — نفس إصلاح اعتراض الثمن (انظر فرع awaiting_button أعلاه)
+          if (isPriceObjection(text)) {
+            let _pcPrice2 = '370';
+            try { const _pj2 = extractOrderJSON(pending.reply); if (_pj2) _pcPrice2 = (JSON.parse(_pj2).product_data||{}).unit_price_mad || '370'; } catch(e) {}
+            await sendText(from, _fcIsFr
+              ? `Désolé, le prix final est bien *${_pcPrice2} dhs* (livraison incluse) — c'est le prix confirmé, il n'est pas modifiable 😊 Est-ce que ça te convient? Si oui, clique sur "Confirmer" ci-dessous.`
+              : `سمح ليا، الثمن النهائي هو *${_pcPrice2} درهم* شامل التوصيل — هذا هو الثمن المعتمد 😊 واش يناسبك؟ إلا موافق، ضغط "تأكيد الطلب" تحت.`);
+          } else {
+            await sendText(from, _fcIsFr
+              ? "Pour finaliser, choisis une option ci-dessous 👇 (ou écris-moi ta question, je te réponds puis on confirme)"
+              : 'باش نأكدو الطلبية، اختار من الأزرار تحت 👇 (ولا اكتب سؤالك ونجاوبك ومن بعد نأكدو)');
+          }
           await sendInteractiveButtons(from, _fcIsFr ? 'Confirmer la commande? 😊' : 'هل تريد تأكيد الطلب؟ 😊', _fcIsFr ? ['Confirmer', 'Annuler'] : ['تأكيد الطلب', 'إلغاء']);
           pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
         }
