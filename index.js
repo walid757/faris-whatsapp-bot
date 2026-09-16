@@ -1090,11 +1090,21 @@ const PRODUCT_INFO = {
   gs081:    { nameAr: 'GS081',    price: '350', colorsAr: 'أسود فقط',      colorsFr: 'noir uniquement' },
 };
 // ✅ إضافة جديدة — نستخرجو المنتج المعلن عليه من referral ديال الإعلان (أول رسالة من كليك واتساب) — نص الإعلان أولاً (سريع بلا API)، ثم صورة الإعلان المصغرة عبر تحليل الصور إلا لزم
+// ✅ إضافة جديدة — سويتش مؤقت: حالياً غير حملة Stéphano خدامة (حملة GS081 موقوفة) — حالة حقيقية: زبون جا من إعلان
+// Stéphano ولكن تحليل صورة الإعلان (referral thumbnail) غلط وتعرف عليها كـGS081 (الصباطين كيتشابهو بصرياً بالأسود).
+// ملي تبدا حملة GS081 من جديد، بدل هاد المتغير لـfalse
+const ONLY_STEPHANO_CAMPAIGN_ACTIVE = true;
 const detectAdProduct = async (referral) => {
   if (!referral) return null;
+  // ✅ إضافة جديدة — تسجيل البيانات الخام ديال الإعلان (referral) فالـlogs — كانت ماكاينش، فما كناش نقدرو نشوفو علاش
+  // وقع خطأ فالتصنيف. دبا نقدرو نراجعوها فأي حالة مستقبلية
+  console.log('📢 referral خام:', JSON.stringify(referral));
   const adText = `${referral.headline||''} ${referral.body||''}`.toLowerCase();
   if (/gs\s?081/.test(adText)) return 'gs081';
   if (/st[ée]phano/.test(adText)) return 'stephano';
+  // ✅ إضافة جديدة — طول ما حملة GS081 موقوفة، ما نعتمدوش على تحليل الصورة (غير موثوق بزاف بين صباطين متشابهين) —
+  // نفترضو Stéphano مباشرة بدل ما نخاطرو بتصنيف غلط
+  if (ONLY_STEPHANO_CAMPAIGN_ACTIVE) return 'stephano';
   const imgUrl = referral.image_url || referral.thumbnail_url;
   if (imgUrl) {
     try {
