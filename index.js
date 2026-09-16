@@ -261,6 +261,8 @@ const customerDeliveredAt = _state.customerDeliveredAt || {};
 const postDeliveryIssueState = _state.postDeliveryIssueState || {};
 // ✅ إضافة جديدة — المنتج اللي جا منو الزبون (من referral ديال الإعلان) — كنستعملوها باش نخليو كلود يركز على نفس المنتج فكل الأجوبة، ماشي يرجع لـStéphano بالغلط
 const customerAdProduct = _state.customerAdProduct || {};
+// ✅ إضافة جديدة — حالة إعادة التأكيد ليوم واحد قبل التوصيل لطلبيات "الطلبيات المؤجلة" (deferred orders) — phone ← {row, name, phone, address, price, city, product, variant, deferred_date}
+const deferredReconfirmStates = _state.deferredReconfirmStates || {};
 // ✅ إضافة جديدة — منع تكرار webhook
 const processedMessages = new Set();
 // ✅ إضافة جديدة — تتبع الزبناء لي سبق تنبه الأدمين عليهم بسبب "طلبية مؤكدة بلا شحن" (باش ما نكرروش نفس التنبيه فكل دورة)
@@ -286,6 +288,7 @@ const persistState = () => saveState({
   customerAdProduct,
   stalledOrderAlerted:[...stalledOrderAlerted],
   lastCustomerMsgAt,
+  deferredReconfirmStates,
 });
 
 // ✅ إضافة جديدة — قفل تسلسلي عام لكل رقم هاتف (Promise chain) — كيضمن أن معالجة رسالة ديال زبون معين ما تبداش
@@ -532,6 +535,11 @@ ORDER_CONFIRM_MSG_START
 ❤️ ما تنساش قلب قيس، وأهم حاجة حتى يعجبك عاد خلص!
 فريق GreatShoes 🤎
 ORDER_CONFIRM_MSG_END
+
+## DEFERRED ORDER (طلبية مؤجلة)
+⚠️ إلا الزبون حدد صراحة تاريخ أو موعد توصيل مستقبلي بعيد (مثلاً "بغيت توصلني السبت الجاي"، "خصني بعد 15 يوم"، "نهار 25"، "مزال ماشي دبا، الشهر الجاي") — أي تاريخ يفوت يوم واحد (24 ساعة) من تاريخ اليوم المعطى فالسياق — تصرف بشكل طبيعي: كمّل جمع باقي المعلومات (الاسم/المدينة/العنوان/الهاتف) عادي بلا ما تفرض عليه يأكد اليوم بالضبط، ثم أخرج CONFIRMED_ORDER: بنفس الشكل والحقول المعتادة، لكن زيد بداخل customer_data حقل إضافي واحد: "deferred_date":"YYYY-MM-DD" — احسب التاريخ الدقيق اعتماداً على تاريخ اليوم (اليوم/التاريخ المعطى فالسياق) + المدة أو اليوم لي قاله الزبون. إلا التاريخ لي طلب الزبون هو غدا أو اليوم (يعني يوم واحد أو أقل) — اعتبرها طلبية عادية وما تزيدش deferred_date.
+فرسالة ORDER_CONFIRM_MSG، زيد جملة وحدة توضح: "غادي نتواصلو معاك يوم قبل التوصيل باش نأكدو معاك" (أو الفرنسية المقابلة إذا الزبون كيهضر بالفرنسية) — بلا ما تبدل الشكل العام ديال الرسالة.
+لا تسول الزبون "واش متأكد من التاريخ" بإلحاح ولا تكرر السؤال — أخذ التاريخ كيفما قاله وسجلو، وغادي نتأكدو معاه قبل التوصيل بيوم.
 
 ## FOLLOW-UP (عند الصمت)
 نوع1: مزحة دارجة عن الأحذية | نوع2: سؤال يفتح المحادثة | نوع3: معلومة مفاجئة | نوع4: قصة زبون آخر | نوع5: وداع لطيف+عرض أخير
@@ -1101,6 +1109,15 @@ const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment i
 // ✅ إضافة جديدة — نفس تقنية الساندويتش، خاصة بـGS081 (كي كيكون مصدر الإعلان (referral) واضح أنو GS081)
 const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ350 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
 const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 350 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
+// ✅ إضافة جديدة — نص ديناميكي بتاريخ اليوم (اليوم + التاريخ بالأرقام) — كنحقنوه فكل استدعاء لكلود باش يقدر يفهم صحيح
+// تواريخ نسبية ("السبت الجاي"، "بعد 15 يوم") لخدمة الطلبيات المؤجلة — بلا هاد المعلومة، كلود ماعندوش أي فكرة شنو اليوم الحالي
+const getTodayNote = () => {
+  const d = new Date();
+  const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const dayName = days[d.getUTCDay()];
+  const iso = d.toISOString().slice(0,10);
+  return { type: "text", text: `اليوم هو ${dayName}، ${iso} (بتوقيت المغرب تقريباً). استعمل هاد المعلومة باش تفهم أي تاريخ نسبي (السبت الجاي، بعد أسبوع، بعد 15 يوم...) وتحسبو بالضبط بصيغة YYYY-MM-DD.` };
+};
 // ✅ إضافة جديدة — معلومات كل منتج (الاسم، الثمن، الألوان) — مركزية باش كي نزيدو منتج جديد فالمستقبل نزيدو غير سطر هنا وتخدم معاه كل قاعدة تركيز الإعلان أوتوماتيكياً
 const PRODUCT_INFO = {
   stephano: { nameAr: 'Stéphano', price: '370', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
@@ -1656,6 +1673,43 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
       try { await sendText(ADMIN_PHONE, `⚠️ Ozon فشل — طلب محادثة\n👤 ${order.name} | 📞 ${order.phone}\n📍 ${order.city}\n\n${result.ozonResponse}`); } catch(ae) {}
     }
   } catch(e) { console.error('❌ shipChatOrderToOzon:', e.message); }
+};
+
+// ✅ إضافة جديدة — الطلبيات المؤجلة (Deferred Orders): إلا الزبون حدد تاريخ توصيل بعيد (أكثر من يوم واحد)، كنتحققو هنا
+// بدل ما نشحنو مباشرة عند Ozon — كنسجلوها فالشيت بحالة "مؤجلة" وكنستناو التريغر اليومي ديال Apps Script يعاود التواصل مع الزبون قبل التاريخ بيوم
+const isDeferredDateFarEnough = (dateStr) => {
+  try {
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+    const target = new Date(dateStr + 'T00:00:00Z').getTime();
+    const now = Date.now();
+    return (target - now) > (24 * 60 * 60 * 1000);
+  } catch(e) { return false; }
+};
+
+const saveDeferredOrderToSheet = async (from, replyText, phoneDisplay, cityFr, deferredDate) => {
+  try {
+    const jsonStr = extractOrderJSON(replyText);
+    if (!jsonStr) return { success:false };
+    const od = JSON.parse(jsonStr);
+    const cd = od.customer_data || {};
+    const pd = od.product_data  || {};
+    const colorFr = pd.color_fr || detectColor(pd.color_ar||'') || 'noir';
+    const size    = pd.size || '';
+    const variant = size && colorFr ? `${size}/${colorFr}` : '';
+    const payload = {
+      secret: SHEET_SECRET, action: 'save_deferred_order',
+      full_name: cd.full_name || '', phone: phoneDisplay, city: cityFr || normalizeCityFr(cd.city||''),
+      address: cd.shipping_address || '', price: pd.unit_price_mad || '370',
+      product: pd.product_name || 'Bottine cuir Stéphano', color: variant,
+      deferred_date: deferredDate,
+    };
+    console.log('📅 إرسال طلبية مؤجلة للشيت:', JSON.stringify(payload));
+    const response = await axios.post(SHEET_API_URL, JSON.stringify(payload), { headers:{'Content-Type':'application/json'}, timeout:10000 });
+    console.log('📥 رد الشيت (مؤجلة):', response.status, JSON.stringify(response.data));
+    customerOrderInfo[from] = { name: cd.full_name||'', product: [colorFr, size].filter(Boolean).join(' - '), address: cd.shipping_address||'', size, price: pd.unit_price_mad||'370' };
+    persistState();
+    return { success:true };
+  } catch(e) { console.error('❌ saveDeferredOrderToSheet:', e.message); return { success:false }; }
 };
 
 // ✅ إضافة جديدة — كشف سؤال الزبون عن حالة/تتبع طلبه
@@ -2326,7 +2380,14 @@ app.post('/webhook', async (req,res) => {
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
           // ✅ إصلاح — كنبعثو pending.reply الأصلي (بلا "— وقت:" مزيد فيه من قبل) حيت shipChatOrderToOzon كيزيد الوقت بنفسه؛ كنا كنبعثو replyToSave (فيه الوقت مزيد) فكان الوقت كيتكرر مرتين فعنوان أوزون ويرفض الطلبية (Invalid address length)
-          try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, dt); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          // ✅ إضافة جديدة — طلبية مؤجلة (تاريخ توصيل بعيد أكثر من يوم): نسجلوها فالشيت بحالة "مؤجلة" بدل ما نشحنوها مباشرة عند Ozon
+          let _deferredDate1 = null;
+          try { const _dj1 = extractOrderJSON(pending.reply); if (_dj1) _deferredDate1 = (JSON.parse(_dj1).customer_data||{}).deferred_date || null; } catch(e) {}
+          if (_deferredDate1 && isDeferredDateFarEnough(_deferredDate1)) {
+            try { await saveDeferredOrderToSheet(from, pending.reply, phoneDisplay, cityFr, _deferredDate1); } catch(se) { console.error('❌ saveDeferredOrderToSheet:', se.message); }
+          } else {
+            try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, dt); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          }
           delete pendingConfirmations[from];
         } else if (text === 'تحديد وقت التوصيل' || text === 'Fixer horaire') {
           pending.step = 'awaiting_delivery_time';
@@ -2383,7 +2444,14 @@ app.post('/webhook', async (req,res) => {
             await sendText(from, `✅ تم تأكيد طلبك!\n🕐 الوقت المحدد: ${time}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
           }
           // ✅ إصلاح — نفس الإصلاح: pending.reply الأصلي بدل modifiedReply (فيه الوقت مزيد من قبل)، باش ما يتكررش الوقت فعنوان أوزون
-          try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, time); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          // ✅ إضافة جديدة — نفس منطق الطلبية المؤجلة (انظر أعلاه فمسار awaiting_button)
+          let _deferredDate2 = null;
+          try { const _dj2 = extractOrderJSON(pending.reply); if (_dj2) _deferredDate2 = (JSON.parse(_dj2).customer_data||{}).deferred_date || null; } catch(e) {}
+          if (_deferredDate2 && isDeferredDateFarEnough(_deferredDate2)) {
+            try { await saveDeferredOrderToSheet(from, pending.reply, phoneDisplay, cityFr, _deferredDate2); } catch(se) { console.error('❌ saveDeferredOrderToSheet:', se.message); }
+          } else {
+            try { await shipChatOrderToOzon(from, pending.reply, phoneDisplay, cityFr, time); } catch(se) { console.error('❌ shipChatOrderToOzon:', se.message); }
+          }
           delete pendingConfirmations[from];
         } else if (text === 'إلغاء' || text === 'Annuler') {
           const _cancelIsFr = (pending.lang === 'french');
@@ -2639,7 +2707,8 @@ app.post('/webhook', async (req,res) => {
         : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote;
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
       // ✅ إصلاح — زدنا timeout (كان بلا حدود، فحالة تعلق الاتصال بـClaude API كان الزبون كيبقى بلا رد نهائياً بلا حتى خطأ مسجل — حالة حقيقية: زبون عطى العنوان الكامل وبقي بلا جواب)
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
+      // ✅ إضافة جديدة — كنحقنو تاريخ اليوم فـ block منفصل (بلا cache_control) باش كلود يقدر يفهم التواريخ النسبية (الطلبيات المؤجلة) بلا ما يخسر التخزين المؤقت ديال SYSTEM_PROMPT الكبير
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
