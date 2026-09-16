@@ -1766,9 +1766,11 @@ const answerAnyConfirmedQuestion = async (from, text) => {
     // الحالة الحقيقية عند Ozon كانت مازال "Nouveau Colis" (ماخرجتش حتى للشحن بعد) — كلود كان كيخمن بثقة بدل ما يقول
     // المعلومة الحقيقية أو يبقى عام. دبا كنعطيوه آخر حالة حقيقية معروفة (من إشعارات Ozon)، ونمنعوه صراحة من اختلاق مواعيد محددة
     const lastStatus = customerLastStatus[from] || '';
+    // ✅ إصلاح — حالة حقيقية: البوت كان كيبدا كل رد بـ"سيدي حسان" + إيموجي، وهادشي كرر بزاف فنفس المحادثة وبان صناعي/آلي.
+    // كنمنعو التكرار، ونسمحو بـ[PAUSE] ملي الرد طويل (بدل جملة وحدة طويلة كتبان بحال رسالة آلية مكتوبة دفعة وحدة)
     const note = isFr
-      ? `\n\n[Commande déjà confirmée${ocDetails ? ' — infos déjà connues: ' + ocDetails : ''}${lastStatus ? ' — dernier statut réel connu (Ozon): ' + lastStatus : ' — aucun statut de suivi connu pour l\'instant'} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — ⚠️ N'INVENTE JAMAIS une heure/jour de livraison précis (ex: "demain soir") si ce n'est pas dans le statut réel ci-dessus — reste général (24-48h) si tu ne sais pas — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande — jamais de PAUSE — 2 phrases max]`
-      : `\n\n[الطلبية مؤكدة مسبقاً${ocDetails ? ' — معلومات الزبون المعروفة: ' + ocDetails : ''}${lastStatus ? ' — آخر حالة حقيقية معروفة (Ozon): ' + lastStatus : ' — ماكاين حتى حالة تتبع معروفة حالياً'} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ⚠️ ممنوع نهائياً تختلق وقت/يوم توصيل محدد (مثلاً "غدا مساء") إلا كان مذكور بالضبط فالحالة الحقيقية فوق — إلا ماعندكش معلومة دقيقة، ابقى عام (24-48 ساعة) وقول الحقيقة — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة — بلا [PAUSE] — جملتان بحد أقصى]`;
+      ? `\n\n[Commande déjà confirmée${ocDetails ? ' — infos déjà connues: ' + ocDetails : ''}${lastStatus ? ' — dernier statut réel connu (Ozon): ' + lastStatus : ' — aucun statut de suivi connu pour l\'instant'} — réponds normalement, chaleureusement, ne redemande JAMAIS une info déjà donnée — jamais de silence — jamais "notre équipe va répondre", réponds toi-même — ⚠️ N'INVENTE JAMAIS une heure/jour de livraison précis (ex: "demain soir") si ce n'est pas dans le statut réel ci-dessus — reste général (24-48h) si tu ne sais pas — ⚠️ N'utilise PAS le nom du client ni d'emoji à chaque message (juste de temps en temps, pas systématique — ça devient répétitif et robotique) — si la réponse a plusieurs idées, utilise [PAUSE] entre elles comme dans une vraie conversation — jamais de nouveau CONFIRMED_ORDER ici sauf demande explicite de nouvelle commande]`
+      : `\n\n[الطلبية مؤكدة مسبقاً${ocDetails ? ' — معلومات الزبون المعروفة: ' + ocDetails : ''}${lastStatus ? ' — آخر حالة حقيقية معروفة (Ozon): ' + lastStatus : ' — ماكاين حتى حالة تتبع معروفة حالياً'} — جاوب بشكل طبيعي ودافئ، ممنوع نهائياً تعاود تسول على معلومة سبق عطاها — ممنوع الصمت — ممنوع "فريقنا غايجاوبك"، جاوب أنت بنفسك — ⚠️ ممنوع نهائياً تختلق وقت/يوم توصيل محدد (مثلاً "غدا مساء") إلا كان مذكور بالضبط فالحالة الحقيقية فوق — إلا ماعندكش معلومة دقيقة، ابقى عام (24-48 ساعة) وقول الحقيقة — ⚠️ ممنوع تبدا كل رسالة باسم الزبون ("سيدي X") ولا تحط إيموجي فكل رسالة — استعملهم من حين للآخر بس، ماشي بشكل منظم فكل رد (هادشي كيبان صناعي ومكرر) — إلا الرد فيه أكثر من فكرة، استعمل [PAUSE] بيناتها بحال محادثة حقيقية — ممنوع تخرج CONFIRMED_ORDER هنا إلا طلب الزبون صراحة طلبية جديدة]`;
     const history = (conversationHistory[from] || []).slice(-8).filter(m => m.role === 'user' || m.role === 'assistant');
     const res = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-haiku-4-5-20251001', max_tokens: 300,
@@ -1790,11 +1792,13 @@ const answerAnyConfirmedQuestion = async (from, text) => {
       reply = reply.replace('[RESEND_IMAGES]', '').trim();
       try { await sendAllImages(from); await sleep(500); } catch(e) {}
     }
-    if (reply) await sendText(from, reply);
+    if (reply) await sendHumanLike(from, reply);
     if (!conversationHistory[from]) conversationHistory[from] = [];
-    conversationHistory[from].push({ role: 'user', content: text }, { role: 'assistant', content: reply });
+    // ✅ إصلاح — كنمسحو [PAUSE] قبل ما نسجلو فتاريخ المحادثة (بحال replyForHistory فالمسار الرئيسي) باش التاريخ يبقى نظيف
+    const _replyForHistory = reply.replace(/\[PAUSE(?::\d+)?\]/g, ' ').replace(/\s+/g, ' ').trim();
+    conversationHistory[from].push({ role: 'user', content: text }, { role: 'assistant', content: _replyForHistory });
     trimHistory(from); persistState();
-    try { await sendText('212644151359', `📩 سؤال من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${oi.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${reply}"`); } catch(e) {}
+    try { await sendText('212644151359', `📩 سؤال من زبون أتم طلبه (البوت جاوب عليه)\n👤 ${oi.name || ''} | 📞 ${formatPhone(from)}\n💬 الزبون: "${text}"\n🤖 البوت: "${_replyForHistory}"`); } catch(e) {}
     return true;
   } catch(e) { console.error('❌ answerAnyConfirmedQuestion:', e.message); return false; }
 };
