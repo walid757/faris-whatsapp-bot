@@ -551,6 +551,7 @@ ORDER_CONFIRM_MSG_END
 ## COLOR & ADDRESS INTEGRITY (قاعدة صارمة إجبارية)
 ⚠️⚠️⚠️ اللون: ممنوع نهائياً تنسى أو تبدل اللون لي حدده الزبون فأي لحظة فالمحادثة. إلا ماكانش واضح ليك شنو اللون بالضبط (الزبون ما حددش، ولا فهمتيه بشكل غامض) — ممنوع تخمن أو تختار لون بحالك (noir كـfallback افتراضي) — خاصك تسول الزبون صراحة "شنو اللون بالضبط لي بغيتي — أسود، بني، ولا رمادي؟". وملي يتحدد اللون مرة واحدة بوضوح، يبقى هو نفسو من أول المحادثة حتى ملخص التأكيد و CONFIRMED_ORDER — ممنوع تبدلو لحال آخر عند التأكيد النهائي بأي شكل من الأشكال.
 ⚠️⚠️⚠️ العنوان: نفس القاعدة بالضبط — ممنوع تخترع أو تختلق عنوان ماشي مذكور فكلام الزبون، وممنوع تبدل أو تنسى العنوان لي عطاه بمجرد ما يعطيه. استعمل بالضبط الكلام لي كتب الزبون (الحي/الشارع/رقم الدار)، بلا زيادة ولا اختراع.
+⚠️⚠️⚠️ رقم الهاتف: نفس القاعدة — استعمل PHONE_FROM_WHATSAPP إلا الزبون وافق يخلي نفس رقم واتساب، وإلا عطى رقم آخر بالحرف اكتبو بالضبط كيفما عطاه — ممنوع نهائياً تخترع أو تبدل رقم الهاتف.
 ⚠️⚠️⚠️ المدينة: نفس القاعدة — ممنوع نهائياً تبدل المدينة لي قالها الزبون بمدينة أخرى، حتى لو كانت قريبة جغرافياً أو تشبهها فالاسم (مثال حقيقي: زبون قال "من المضيق" وسجلت الطلبية بـ"Tétouan" لأن Tétouan معروفة أكثر — هذا خطأ فادح، المضيق وتطوان مدينتين مختلفتين تماماً رغم القرب). إذا الزبون ذكر اسم مدينة أو بلدة ما تعرفهاش بالضبط، اكتبها كما قالها بالحرف (ماشي أقرب مدينة كبيرة تعرفها) — ممنوع التخمين أو الاستبدال بمدينة "مشهورة" أقرب لعلمك.
 ⚠️⚠️⚠️ التاريخ: ممنوع نهائياً تأكد طلبية (CONFIRMED_ORDER) وتخليها تتشحن وتتكتب "conf/مرسل" عند Ozon إلا كان الزبون حدد أي تاريخ أو موعد توصيل مازال بعيد (أكثر من يوم من تاريخ اليوم المعطى) — فهاد الحالة خاصك تزيد deferred_date فـCONFIRMED_ORDER (شوف ## DEFERRED ORDER تحت) بدل ما تخليها تشحن كطلبية عادية فورية. هذا ينطبق على أي صيغة تاريخ قالها الزبون (بالعربية، الفرنسية، أو الحروف اللاتينية) — ماشي غير الأمثلة المذكورة تحت، أي إشارة واضحة لتاريخ/يوم مستقبلي بعيد.
 
@@ -1254,6 +1255,17 @@ const isSizeFabricated = (size, customerText) => {
   if (nums.length === 0) return false; // الفحوصات الأخرى (isInvalidSize، فحص الأرقام) كتتكلف بهاد الحالة
   const custText = customerText || '';
   return !nums.every(n => custText.includes(n));
+};
+// ✅ إضافة جديدة — نفس مبدأ isAddressFabricated/isCityFabricated/isSizeFabricated، لكن لرقم الهاتف — حماية شاملة لكل الحقول الحساسة (لون/مقاس/مدينة/عنوان/هاتف) —
+// إلا الحقل "phone" فـCONFIRMED_ORDER ماشي "PHONE_FROM_WHATSAPP" (يعني الزبون عطى رقم آخر غير رقم واتساب ديالو)، خاص آخر 7 أرقام منو يكونو فعلاً مذكورين فكلام الزبون، وإلا اعتبرناه رقم مختلق
+const isPhoneFabricated = (phone, customerText) => {
+  const p = (phone || '').trim();
+  if (!p || p === 'PHONE_FROM_WHATSAPP') return false; // الحالة العادية: نفس رقم واتساب
+  const digitsOnly = p.replace(/\D/g, '');
+  if (digitsOnly.length < 7) return false; // فحوصات أخرى (رقم ناقص) كتتكلف بهاد الحالة
+  const tail = digitsOnly.slice(-7);
+  const custDigits = (customerText || '').replace(/\D/g, '');
+  return !custDigits.includes(tail);
 };
 // ✅ إضافة جديدة — حالة حقيقية: زبون قال صراحة "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما فهمهاش كطلبية مؤجلة وشحنها دغيا —
 // شبكة أمان على مستوى الكود: كنفحصو واش الزبون ذكر تاريخ مستقبلي بصيغة شائعة، وإلا كان CONFIRMED_ORDER بلا deferred_date نطلبو منه يأكد التاريخ بوضوح قبل ما نكملو
@@ -2969,6 +2981,8 @@ app.post('/webhook', async (req,res) => {
               _detectedDeferredDate = await detectDeferredDateFromConversation(_customerMsgsText);
             }
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
+            // ✅ إضافة جديدة — حماية شاملة لرقم الهاتف بنفس مبدأ العنوان/المدينة/المقاس — إلا الرقم المسجل ماشي رقم واتساب ديال الزبون ولا مذكور فعلاً فكلامو، اعتبرو مختلق
+            else if (isPhoneFabricated(_cdCheck.phone, _customerMsgsText)) _missingField = 'phone';
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
@@ -3013,6 +3027,8 @@ app.post('/webhook', async (req,res) => {
           const _isFrMissing = (userLangPref[from] === 'french');
           const _askMsg = _missingField === 'city'
             ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
+            : _missingField === 'phone'
+            ? (_isFrMissing ? "Pardon, peux-tu me confirmer ton numéro de téléphone exact ? 😊" : "سمح ليا، بغيت نتأكد من رقم الهاتف الصحيح ديالك 😊")
             : _missingField === 'address'
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
             : _missingField === 'price'
