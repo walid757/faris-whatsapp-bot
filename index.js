@@ -1271,14 +1271,18 @@ const isPhoneFabricated = (phone, customerText) => {
 };
 // ✅ إضافة جديدة — حالة حقيقية: زبون قال صراحة "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما فهمهاش كطلبية مؤجلة وشحنها دغيا —
 // شبكة أمان على مستوى الكود: كنفحصو واش الزبون ذكر تاريخ مستقبلي بصيغة شائعة، وإلا كان CONFIRMED_ORDER بلا deferred_date نطلبو منه يأكد التاريخ بوضوح قبل ما نكملو
+// ✅ إصلاح — هاد الفحص أصبح "بواب" رخيص (regex بلا Claude) قبل detectDeferredDateFromConversation المكلفة — نديروه أشمل شوية باش
+// ما يفوتناش حالة حقيقية، لكن يبقى غير استدعاء نص بسيط بلا أي تكلفة API — كنزيدو أسماء الأيام/الأشهر لوحدها، و"بكري"/"دبا لا"، والصيغة الفرنسية العامة
 const looksLikeFutureDateMention = (text) => {
   const t = (text || '').toLowerCase();
   if (/\b([1-9]|[12]\d|3[01])\s*(fachhar|f\s?chhar|fi\s?chhar)\b/.test(t)) return true;
   if (/(fachhar|f\s?chhar|في الشهر|فالشهر|فشهر)\s*([1-9]|[12]\d|3[01])\b/.test(t)) return true;
-  if (/\b([1-9]|[12]\d|3[01])\b[\s\S]{0,5}(فالشهر|في الشهر|فشهر)/.test(t)) return true;
-  if (/(السبت|الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة)[\s\S]{0,10}(الجاي|القادم|الجايه|الجايا)/.test(t)) return true;
-  if (/(samedi|dimanche|lundi|mardi|mercredi|jeudi|vendredi)\s*(prochain|qui vient)/i.test(t)) return true;
+  if (/\b([1-9]|[12]\d|3[01])\b[\s\S]{0,15}(الشهر|fachhar|f\s?chhar)/.test(t)) return true;
+  if (/(السبت|الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|samedi|dimanche|lundi|mardi|mercredi|jeudi|vendredi)[\s\S]{0,10}(الجاي|القادم|الجايه|الجايا|prochain|qui vient)/.test(t)) return true;
   if (/بعد\s*\d+\s*(يوم|أيام|اسبوع|أسبوع|شهر)/.test(t)) return true;
+  if (/dans\s+\d+\s*(jours?|semaines?|mois)/.test(t)) return true;
+  if (/(الشهر|الأسبوع)\s*(الجاي|القادم|الجايه)/.test(t)) return true;
+  if (/\b\d{1,2}[\/\-]\d{1,2}\b/.test(t)) return true; // صيغة تاريخ رقمية (25/09، 3-10...)
   return false;
 };
 
@@ -2977,9 +2981,9 @@ app.post('/webhook', async (req,res) => {
             const _parsedCheck = JSON.parse(_previewJsonCheck);
             const _cdCheck = _parsedCheck.customer_data || {};
             const _pdCheck = _parsedCheck.product_data || {};
-            // ✅ إضافة جديدة — كشف شامل (Claude، ماشي regex محدود بأمثلة) لأي تاريخ توصيل مستقبلي بعيد ذكره الزبون بأي صيغة — نديرو الفحص غير إلا CONFIRMED_ORDER ما فيهوش deferred_date أصلاً
+            // ✅ إصلاح — استهلاك زايد بلا داعي: كان detectDeferredDateFromConversation (استدعاء Claude كامل) كيخدم فكل طلبية تقريباً — دبا زدنا فحص أولي رخيص (looksLikeFutureDateMention، regex بلا Claude) قبل، وما نستدعيوش الفحص المكلف إلا كان فيه إشارة أولية حقيقية لتاريخ
             let _detectedDeferredDate = null;
-            if (!(_cdCheck.deferred_date||'').trim()) {
+            if (!(_cdCheck.deferred_date||'').trim() && looksLikeFutureDateMention(_customerMsgsText)) {
               _detectedDeferredDate = await detectDeferredDateFromConversation(_customerMsgsText);
             }
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
