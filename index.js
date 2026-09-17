@@ -545,6 +545,7 @@ ORDER_CONFIRM_MSG_START
 ORDER_CONFIRM_MSG_END
 
 ## DEFERRED ORDER (طلبية مؤجلة)
+⚠️⚠️ انتبه بزاف للصيغ بالحروف اللاتينية (Darija-Latin) — حالة حقيقية وقعت: زبون كتب "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) وما تفهمتش كطلبية مؤجلة، فتشحنت الطلبية دغيا بدل ما تتسجل مؤجلة، والزبون بقي معطل. أمثلة أخرى بالحروف اللاتينية خاصك تفهمها: "f 26" / "fi 26" / "f chhar" / "fachhar" (= فالشهر)، "3andi wa9t ghi f X" (نهار X)، "nta3 samedi li jaya" (السبت الجاي). أي رقم يوم (1-31) مرفق بكلمة "fachhar"/"f chhar"/"فالشهر" يعني تاريخ محدد فهاد الشهر — احسبو بدقة مع تاريخ اليوم المعطى.
 ⚠️ إلا الزبون حدد صراحة تاريخ أو موعد توصيل مستقبلي بعيد (مثلاً "بغيت توصلني السبت الجاي"، "خصني بعد 15 يوم"، "نهار 25"، "مزال ماشي دبا، الشهر الجاي") — أي تاريخ يفوت يوم واحد (24 ساعة) من تاريخ اليوم المعطى فالسياق — تصرف بشكل طبيعي: كمّل جمع باقي المعلومات (الاسم/المدينة/العنوان/الهاتف) عادي بلا ما تفرض عليه يأكد اليوم بالضبط، ثم أخرج CONFIRMED_ORDER: بنفس الشكل والحقول المعتادة، لكن زيد بداخل customer_data حقل إضافي واحد: "deferred_date":"YYYY-MM-DD" — احسب التاريخ الدقيق اعتماداً على تاريخ اليوم (اليوم/التاريخ المعطى فالسياق) + المدة أو اليوم لي قاله الزبون. إلا التاريخ لي طلب الزبون هو غدا أو اليوم (يعني يوم واحد أو أقل) — اعتبرها طلبية عادية وما تزيدش deferred_date.
 فرسالة ORDER_CONFIRM_MSG، زيد جملة وحدة توضح: "غادي نتواصلو معاك يوم قبل التوصيل باش نأكدو معاك" (أو الفرنسية المقابلة إذا الزبون كيهضر بالفرنسية) — بلا ما تبدل الشكل العام ديال الرسالة.
 لا تسول الزبون "واش متأكد من التاريخ" بإلحاح ولا تكرر السؤال — أخذ التاريخ كيفما قاله وسجلو، وغادي نتأكدو معاه قبل التوصيل بيوم.
@@ -1171,7 +1172,43 @@ const detectAdProduct = async (referral) => {
   return null;
 };
 
-const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
+// ✅ إصلاح — زدنا "kahl"/"k7al" (كحل بالحروف اللاتينية) و"boni"/"lboni" (بني/لبني بالحروف اللاتينية) — حالة حقيقية: زبون كتب "Anbrit lboni" وتسجلت الطلبية بـnoir بدل marron حيت detectColor ماكانش كيعرف هاد الصيغة
+const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')||/\bk[7h]?al\b/.test(t)) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')||/\bl?\s?boni\b/.test(t)) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
+// ✅ إضافة جديدة — كنرجعو *كل* الألوان لي تذكرات فنص معين (ماشي غير أول وحدة بحال detectColor) — خدمة فحص التناقض بين اللون لي قالو الزبون واللون لي تسجل فالطلبية
+const detectMentionedColors = (text) => {
+  const t = (text || '').toLowerCase();
+  const out = [];
+  if (t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')||/\bk[7h]?al\b/.test(t)) out.push('noir');
+  if (t.includes('marron')||t.includes('بني')||t.includes('قهوي')||/\bl?\s?boni\b/.test(t)) out.push('marron');
+  if (t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) out.push('gris');
+  return out;
+};
+// ✅ إضافة جديدة — نص كل رسائل الزبون (role:'user') مجمعة فسطر وحد — خدمة فحص التناقض (عنوان مختلق/لون مختلف) قبل تأكيد الطلب
+const getCustomerMessagesText = (from) => (conversationHistory[from]||[]).filter(m => m.role === 'user').map(m => m.content).join(' \n ');
+// ✅ إضافة جديدة — حالة حقيقية خطيرة: الزبون ما عطاش حتى عنوان حقيقي فكامل المحادثة، وكلود اختلق عنوان بحالو ("Byt Ghlam Hada Al Bareed Bank") وتشحنت بيه الطلبية —
+// كنتحققو أن على الأقل ثلث الكلمات المهمة فالعنوان لي خرج فـCONFIRMED_ORDER كاينة فعلاً فرسائل الزبون الحقيقية، وإلا اعتبرناه مختلق/غير موثوق
+const isAddressFabricated = (address, customerText) => {
+  const addr = (address || '').trim();
+  if (!addr) return false; // كايناها isMissingOrderField خاصة
+  const normalize = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const addrWords = normalize(addr).split(' ').filter(w => w.length >= 3);
+  if (addrWords.length === 0) return false;
+  const custNorm = normalize(customerText || '');
+  const matchCount = addrWords.filter(w => custNorm.includes(w)).length;
+  return (matchCount / addrWords.length) < 0.34;
+};
+// ✅ إضافة جديدة — حالة حقيقية: زبون قال صراحة "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما فهمهاش كطلبية مؤجلة وشحنها دغيا —
+// شبكة أمان على مستوى الكود: كنفحصو واش الزبون ذكر تاريخ مستقبلي بصيغة شائعة، وإلا كان CONFIRMED_ORDER بلا deferred_date نطلبو منه يأكد التاريخ بوضوح قبل ما نكملو
+const looksLikeFutureDateMention = (text) => {
+  const t = (text || '').toLowerCase();
+  if (/\b([1-9]|[12]\d|3[01])\s*(fachhar|f\s?chhar|fi\s?chhar)\b/.test(t)) return true;
+  if (/(fachhar|f\s?chhar|في الشهر|فالشهر|فشهر)\s*([1-9]|[12]\d|3[01])\b/.test(t)) return true;
+  if (/\b([1-9]|[12]\d|3[01])\b[\s\S]{0,5}(فالشهر|في الشهر|فشهر)/.test(t)) return true;
+  if (/(السبت|الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة)[\s\S]{0,10}(الجاي|القادم|الجايه|الجايا)/.test(t)) return true;
+  if (/(samedi|dimanche|lundi|mardi|mercredi|jeudi|vendredi)\s*(prochain|qui vient)/i.test(t)) return true;
+  if (/بعد\s*\d+\s*(يوم|أيام|اسبوع|أسبوع|شهر)/.test(t)) return true;
+  return false;
+};
 
 const isInsistingOnImages = (text) => { const t=text.toLowerCase(); return (t.includes('صورة')||t.includes('صور')||t.includes('image'))&&(t.includes('مرة ثانية')||t.includes('مشافتش')||t.includes('وصلتش')||t.includes('encore')||t.includes('كلهم')); };
 // ✅ إضافة جديدة — كشف كي الزبون كيسول سؤال بدل ما يعطي وقت حقيقي (مثلاً "واش أي وقت مناسب؟") باش ما نسجلوش السؤال كأنو هو الوقت
@@ -2450,6 +2487,14 @@ app.post('/webhook', async (req,res) => {
           await sendText(from, _dtIsFr ? "🕐 Indique l'horaire idéal pour te joindre\nLivraison dès 14h — Ex: après 16h, après 18h, avant 20h le soir" : '🕐 حدد الوقت المناسب للاتصال بك\nالتوصيل يبدأ من 14h — مثلاً: المساء بعد 16h، بعد 18h، قبل 20h مساءاً');
           // ✅ إصلاح — كان التذكير التلقائي (pendingConfirmTimers) ماكيتبرمجش هنا — زبون سكت فهاد المرحلة كان يبقى بلا أي متابعة للأبد
           pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
+        } else if (text === 'إلغاء' || text === 'Annuler') {
+          // ✅ إصلاح — bug حقيقي: مرحلة awaiting_button ما كانتش فيها معالجة لـ"إلغاء" أصلاً (غير awaiting_final_confirm كانت فيها) —
+          // الزبون كيضغط إلغاء وما يوقعش والو (كيتبلع فالـelse العام لي غير كيعاود يوري الأزرار)، والطلبية تبقى معلقة وتقدر تتشحن بالغلط بعدها
+          const _cancelAbIsFr = (pending.lang === 'french');
+          await sendText(from, _cancelAbIsFr ? 'Commande annulée 😊 Tu peux recommencer quand tu veux.' : 'تم إلغاء الطلب 😊 يمكنك البدء من جديد في أي وقت.');
+          try { await saveOrderToSheet(pending.reply, from); await markWebsiteOrderStatus(from, '', 'pas de réponse'); } catch(ce) { console.error('❌ cancel sheet (awaiting_button):', ce.message); }
+          delete pendingConfirmations[from];
+          orderConfirmed.delete(from);
         } else {
           // ✅ إضافة جديدة — الزبون كتب نص حر (سؤال مثلاً) بدل ما يضغط زر — بدل الصمت التام، نعاودو نوريو ليه الأزرار بوضوح
           const _abIsFr = (pending.lang === 'french');
@@ -2843,6 +2888,8 @@ app.post('/webhook', async (req,res) => {
         // هذا لتفادي حالة كي الزبون يعطي المدينة/العنوان فمحادثة طويلة وClaude ينسى ويأكد الطلب بمعلومات ناقصة
         const _previewJsonCheck = extractOrderJSON(reply);
         let _missingField = null;
+        // ✅ إضافة جديدة — نص رسائل الزبون الحقيقية (خدمة فحوصات العنوان المختلق/اللون المتناقض/التاريخ المؤجل تحت)
+        const _customerMsgsText = getCustomerMessagesText(from);
         try {
           if (_previewJsonCheck) {
             const _parsedCheck = JSON.parse(_previewJsonCheck);
@@ -2852,6 +2899,9 @@ app.post('/webhook', async (req,res) => {
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
+            // ✅ إضافة جديدة — حالة حقيقية خطيرة: الزبون ما عطاش حتى عنوان فكامل المحادثة، وكلود اختلق عنوان بحالو وتشحنت بيه الطلبية عند أوزون —
+            // كنرفضو أي عنوان ماشي متتبع (بأغلبيته) لكلام الزبون الحقيقي
+            else if (isAddressFabricated(_cdCheck.shipping_address, _customerMsgsText)) _missingField = 'address';
             // ✅ إضافة جديدة — الدار البيضاء خاصها تحتوي على المقاطعة (بحال "Casablanca – Maarif") حيت مدينة كبيرة والتوصيل بلا مقاطعة صعيب — حالة حقيقية: طلب اتسجل بـ"Casablanca" فقط بلا مقاطعة
             else if (/casablanca|الدار البيضاء/i.test(_cdCheck.city || '') && !/[–\-]/.test(_cdCheck.city || '')) _missingField = 'district';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
@@ -2871,6 +2921,12 @@ app.post('/webhook', async (req,res) => {
             })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
+            // ✅ إضافة جديدة — حالة حقيقية: زبون قال "lboni"/"بني" بوضوح مرتين (قبل وبعد التأكيد)، والطلبية تسجلت وتشحنت بـnoir —
+            // كنقارنو اللون لي تسجل مع الألوان لي ذكرهم الزبون فعلاً فرسائلو؛ نرفضو غير إلا الزبون ذكر لون واحد بالضبط (باش نتفاداو التناقض عند طلب الجوج بلونين) وهو مختلف على اللي تسجل — ومستثنى طلب الجوج (600) حيت فيه لونين معاً بطبيعتو
+            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && _pdCheck.color_fr && (() => { const _mc = detectMentionedColors(_customerMsgsText); return _mc.length === 1 && _mc[0] !== _pdCheck.color_fr; })()) _missingField = 'color';
+            // ✅ إضافة جديدة — حالة حقيقية: زبون قال "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما سجلش deferred_date وشحن الطلبية دغيا —
+            // شبكة أمان: إلا كلام الزبون فيه إشارة واضحة لتاريخ مستقبلي وCONFIRMED_ORDER ما فيهوش deferred_date، نطلبو تأكيد صريح للتاريخ قبل ما نكملو (بدل ما نشحن دغيا بلا وعي)
+            else if (looksLikeFutureDateMention(_customerMsgsText) && !(_cdCheck.deferred_date||'').trim()) _missingField = 'date_confirm';
             // ✅ إضافة جديدة — إلا كان الزبون معروف أنو مهتم بمنتج معين (من إعلان ولا من المحادثة)، لكن CONFIRMED_ORDER خرج بمنتج آخر (غالباً كلود كيرجع لـStéphano بالغلط كـfallback افتراضي)، ما نأكدوش — حالة حقيقية: زبون شاف صورة GS081 وأكد المقاس، لكن ملخص التأكيد خرج بـStéphano/370
             // ✅ تعديل — عام لأي منتج فـPRODUCT_INFO (ماشي غير GS081) — Stéphano مستثنى حيت هو الـfallback الافتراضي فالكود، فخانة فارغة ليه سلوك صحيح أصلاً
             else if (String(_pdCheck.unit_price_mad).trim() !== '600' && customerAdProduct[from] && customerAdProduct[from] !== 'stephano' && PRODUCT_INFO[customerAdProduct[from]] && !new RegExp(PRODUCT_INFO[customerAdProduct[from]].nameAr, 'i').test(_pdCheck.product_name||'')) _missingField = 'product';
@@ -2890,6 +2946,10 @@ app.post('/webhook', async (req,res) => {
             ? (_isFrMissing ? "Désolé, les pointures disponibles sont uniquement de 39 à 44 😊 Est-ce que la pointure la plus proche (43 ou 44) te convient ?" : "سمح ليا، المقاسات المتوفرة حالياً هي غير من 39 إلى 44 😊 واش يناسبك أقرب مقاس (43 أو 44)؟")
             : _missingField === 'variant'
             ? (_isFrMissing ? "Pardon, peux-tu me confirmer les 2 couleurs et les 2 pointures pour les deux bottines ? 😊" : "سمح ليا، بغيت نتأكد من اللونين والمقاسين ديال الحذاءين بجوج — قوليا مثلاً 'اسود 42 وبني 40' 😊")
+            : _missingField === 'color'
+            ? (_isFrMissing ? "Pardon, je veux juste confirmer — quelle couleur exactement souhaites-tu (noir, marron ou gris) ? 😊" : "سمح ليا، بغيت نتأكد من اللون بالضبط لي بغيتي — أسود، بني، ولا رمادي؟ 😊")
+            : _missingField === 'date_confirm'
+            ? (_isFrMissing ? "Pardon, tu as mentionné une date précise pour la livraison — peux-tu me confirmer le jour et le mois exacts pour que je l'enregistre correctement ? 😊" : "سمح ليا، فهمت أنك بغيتي التوصيل فتاريخ محدد — واش تقدر تأكد ليا اليوم والشهر بالضبط باش نسجلو صحيح؟ 😊")
             : _missingField === 'product'
             ? (() => { const _pinInfo = PRODUCT_INFO[customerAdProduct[from]] || {}; return _isFrMissing
                 ? `Pardon, je confirme bien que c'est Bottine cuir ${_pinInfo.nameAr} (${_pinInfo.price} dhs) que tu veux ? 😊`
