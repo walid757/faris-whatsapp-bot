@@ -2364,6 +2364,14 @@ app.get('/webhook', (req,res) => { if(req.query['hub.verify_token']===VERIFY_TOK
 app.post('/webhook', async (req,res) => {
   if (!verifySignature(req)) { console.warn('⚠️ Signature غير صحيح'); return res.sendStatus(401); }
   const message = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  // ✅ إضافة جديدة — تشخيص: الكود كيقرا غير messages[0] — إلا واتساب صيفط بزاف رسائل فنفس الـwebhook (batching)، الباقي كيتفوتو بصمت تامة بلا حتى أثر فاللوگ.
+  // هاد اللوگ التشخيصي كيبين لينا واش هاد الحالة كتوقع فعلاً قبل ما نديرو تعديل أكبر (loop على كل الرسائل) فالمعالج الرئيسي
+  try {
+    const _allMsgs = req.body?.entry?.[0]?.changes?.[0]?.value?.messages;
+    if (_allMsgs && _allMsgs.length > 1) {
+      console.warn(`⚠️⚠️ webhook batching مكتشف — ${_allMsgs.length} رسائل فنفس الـwebhook، غادي نعالجو غير الأولى: ${JSON.stringify(_allMsgs.map(m => ({ id: m.id, type: m.type, text: m.text?.body })))}`);
+    }
+  } catch(e) {}
   // ✅ إضافة جديدة — تسجيل تحديثات حالة التوصيل (sent/delivered/read/failed) — كانت ماكاين حتى تسجيل، فما كناش نقدرو نعرفو واش رسالة (خصوصاً القوالب) وصلت فعلياً أو فشلت بصمت
   const statusUpdate = req.body?.entry?.[0]?.changes?.[0]?.value?.statuses?.[0];
   if (statusUpdate) {
