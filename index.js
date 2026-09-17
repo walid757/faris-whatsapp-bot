@@ -73,6 +73,8 @@ const CITY_FR = {
   "khouribga":"Khouribga","خريبكة":"Khouribga",
   "mohammedia":"Mohammedia","المحمدية":"Mohammedia",
   "tetouan":"Tétouan","tétouan":"Tétouan","تطوان":"Tétouan",
+  // ✅ إضافة جديدة — حالة حقيقية: زبون قال "من المضيق" (مدينة حقيقية قريبة من تطوان بصح مختلفة)، وما كانتش فاللائحة، فكلود بدلها بـTétouan بالغلط — دبا معروفة بحالها
+  "mdiq":"M'diq","m diq":"M'diq","m'diq":"M'diq","المضيق":"M'diq",
   "kenitra":"Kénitra","kénitra":"Kénitra","knitra":"Kénitra","kentr":"Kénitra","القنيطرة":"Kénitra",
   "oujda":"Oujda","oujd":"Oujda","وجدة":"Oujda",
   "nador":"Nador","الناظور":"Nador",
@@ -139,6 +141,7 @@ const CITY_ID_MAP = {
   "Rabat":1984,"Salé":1982,"Fès":127,"Marrakech":199,"Tanger":289,"Meknès":211,
   "Agadir":37,"Béni Mellal":73,"Témara":1993,"Larache":187,"Safi":61,"Khouribga":169,
   "Mohammedia":345,"Tétouan":313,"Kénitra":1089,"Oujda":229,"Nador":217,"Tinghir":1475,
+  "M'diq":193,
   "Essaouira":1728,"Taroudant":382,"Tiznit":376,"Ouarzazate":223,"El Jadida":109,
   "Settat":1651,"Berrechid":1558,"Benslimane":511,"Ksar El Kébir":1908,"Taza":1872,
   "Al Hoceïma":55,"Guelmim":1824,"Dakhla":103,"Laâyoune":1830,"Errachidia":607,
@@ -1224,6 +1227,31 @@ const isAddressFabricated = (address, customerText) => {
   const custNorm = normalize(customerText || '');
   const matchCount = addrWords.filter(w => custNorm.includes(w)).length;
   return (matchCount / addrWords.length) < 0.34;
+};
+// ✅ إضافة جديدة — عكس CITY_FR (المدينة النهائية → لائحة الأسماء/الصيغ لي كيتقبلو بيها) — خدمة isCityFabricated تحت
+const _cityFrReverse = {};
+for (const _alias in CITY_FR) {
+  const _canon = CITY_FR[_alias].toLowerCase();
+  if (!_cityFrReverse[_canon]) _cityFrReverse[_canon] = [];
+  _cityFrReverse[_canon].push(_alias);
+}
+// ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون قال "من المضيق" (مدينة حقيقية) وكلود بدلها بـ"Tétouan" (مدينة قريبة لكن مختلفة) —
+// كنتحققو أن المدينة المسجلة فعلاً مذكورة بشكل من أشكالها (أي alias معروف) فكلام الزبون الحقيقي، وإلا اعتبرناها مشكوك فيها (مبدلة أو مختلقة)
+const isCityFabricated = (finalCity, customerText) => {
+  const fc = (finalCity || '').trim();
+  if (!fc) return false; // كايناها isMissingOrderField خاصة
+  const custNorm = (customerText || '').toLowerCase();
+  const fcBase = fc.split(/[–-]/)[0].trim().toLowerCase(); // نتجاهلو المقاطعة (Casablanca – X)، غير المدينة الرئيسية
+  const aliases = _cityFrReverse[fcBase] || [fcBase];
+  return !aliases.some(a => custNorm.includes(a));
+};
+// ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون ما ذكرش أي مقاس إطلاقاً فكامل المحادثة (ولا أي رقم منو فطلب الجوج)، وكلود اختلق مقاس وسجل بيه الطلبية —
+// كنتحققو أن كل رقم مقاس مسجل مذكور فعلاً بالحرف فكلام الزبون
+const isSizeFabricated = (size, customerText) => {
+  const nums = String(size || '').match(/\d{2}/g) || [];
+  if (nums.length === 0) return false; // الفحوصات الأخرى (isInvalidSize، فحص الأرقام) كتتكلف بهاد الحالة
+  const custText = customerText || '';
+  return !nums.every(n => custText.includes(n));
 };
 // ✅ إضافة جديدة — حالة حقيقية: زبون قال صراحة "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما فهمهاش كطلبية مؤجلة وشحنها دغيا —
 // شبكة أمان على مستوى الكود: كنفحصو واش الزبون ذكر تاريخ مستقبلي بصيغة شائعة، وإلا كان CONFIRMED_ORDER بلا deferred_date نطلبو منه يأكد التاريخ بوضوح قبل ما نكملو
@@ -2937,6 +2965,9 @@ app.post('/webhook', async (req,res) => {
             else if (isAddressFabricated(_cdCheck.shipping_address, _customerMsgsText)) _missingField = 'address';
             // ✅ إضافة جديدة — الدار البيضاء خاصها تحتوي على المقاطعة (بحال "Casablanca – Maarif") حيت مدينة كبيرة والتوصيل بلا مقاطعة صعيب — حالة حقيقية: طلب اتسجل بـ"Casablanca" فقط بلا مقاطعة
             else if (/casablanca|الدار البيضاء/i.test(_cdCheck.city || '') && !/[–\-]/.test(_cdCheck.city || '')) _missingField = 'district';
+            // ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون قال "من المضيق" وكلود بدلها بـ"Tétouan" (مدينة قريبة لكن مختلفة)، وحالة أخطر: زبون ما ذكر حتى مدينة والطلبية تأكدت بمدينة مختلقة بالكامل —
+            // كنرفضو أي مدينة ماشي مذكورة بشكل من أشكالها فكلام الزبون الحقيقي
+            else if (isCityFabricated(_cdCheck.city, _customerMsgsText)) _missingField = 'city';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إصلاح — حالة حقيقية خطيرة: كلود خرج طلب مؤكد وحط فخانة المقاس كلمة "PENDING" (بلا أي رقم) بدل مقاس حقيقي —
@@ -2944,6 +2975,9 @@ app.post('/webhook', async (req,res) => {
             // ماكاين حتى فحص آخر كيمسك هاد الحالة) — فالطلبية تأكدت وتشحنت بمقاس وهمي. دبا أي قيمة فخانة المقاس بلا رقمين
             // متتاليين كتعتبر ناقصة، بغض النظر شنو كتبت
             else if (_pdCheck.size && !/\d{2}/.test(String(_pdCheck.size))) _missingField = 'size';
+            // ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون ما ذكرش أي مقاس فكامل المحادثة (سلام، طلب صورة، الاسم، تأكيد الطلب — لاشيء آخر)، وكلود اختلق مقاس ("42") وشحنت بيه الطلبية —
+            // كنرفضو أي مقاس ماشي متتبع بالحرف لكلام الزبون
+            else if (_pdCheck.size && isSizeFabricated(_pdCheck.size, _customerMsgsText)) _missingField = 'size';
             // ✅ إضافة جديدة — الثمن خاصو يكون بالضبط 370 (Stéphano وحدة) أو 350 (GS081 وحدة) أو 600 (عرض الجوج بأي تركيبة) — أي رقم آخر (مثلاً كي يرجع Claude لرقم فاوض بيه الزبون بدل الثمن المتفق عليه فالأخير) يتم رفضه وما يتأكدش الطلب — حالة حقيقية: زبون فاوض بـ300 ووافق فالأخير على 600، لكن Claude خرج الطلب بـ300
             // ✅ إصلاح — فحص حسب المنتج بدل قائمة موحدة، حيت 350 دبا ثمن GS081 الحقيقي لكن يبقى رقم تفاوض محتمل لزبون Stéphano — ما نقبلوش 350 لطلب Stéphano
             else if (_pdCheck.unit_price_mad && (() => {
