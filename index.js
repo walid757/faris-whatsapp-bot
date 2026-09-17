@@ -1190,7 +1190,8 @@ const detectAdProduct = async (referral) => {
 };
 
 // ✅ إصلاح — زدنا "kahl"/"k7al" (كحل بالحروف اللاتينية) و"boni"/"lboni" (بني/لبني بالحروف اللاتينية) — حالة حقيقية: زبون كتب "Anbrit lboni" وتسجلت الطلبية بـnoir بدل marron حيت detectColor ماكانش كيعرف هاد الصيغة
-const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')||/\bk[7h]?al\b/.test(t)) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')||/\bl?\s?boni\b/.test(t)) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
+// ✅ إصلاح — زدنا "مارو"/"مارون" (كتابة عربية لكلمة marron الفرنسية) — حالة حقيقية: زبون كتب "المارو"/"مارون" عدة مرات وما تعرفش عليها detectColor (كانت كتفحص غير "marron" بالحروف اللاتينية أو "بني"/"قهوي")، والطلبية تسجلت بـnoir
+const detectColor = (text) => { const t=text.toLowerCase(); if(t.includes('noir')||t.includes('أسود')||t.includes('اسود')||t.includes('كحل')||/\bk[7h]?al\b/.test(t)) return 'noir'; if(t.includes('marron')||t.includes('بني')||t.includes('قهوي')||/\bl?\s?boni\b/.test(t)||t.includes('مارو')) return 'marron'; if(t.includes('gris')||t.includes('رمادي')||t.includes('rmadi')) return 'gris'; return null; };
 // ✅ إضافة جديدة — كنرجعو *كل* الألوان لي تذكرات فنص معين (ماشي غير أول وحدة بحال detectColor) — خدمة فحص التناقض بين اللون لي قالو الزبون واللون لي تسجل فالطلبية
 const detectMentionedColors = (text) => {
   const t = (text || '').toLowerCase();
