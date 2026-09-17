@@ -1315,6 +1315,8 @@ const isInvalidSize = (sizeStr) => {
 const hasActiveTracking = (phone) => {
   if (!customerTracking[phone]) return false;
   if (customerDeliveredAt[phone] && (Date.now() - customerDeliveredAt[phone] > 48 * 60 * 60 * 1000)) return false;
+  // ✅ إضافة جديدة — حد أقصى 4 أيام للطلبية "مازال فالطريق" بلا توصيل مؤكد بعد — بطلب صريح، بدل ما تبقى الذاكرة بلا حدود لطلبية عالقة لأسابيع
+  if (!customerDeliveredAt[phone] && orderConfirmTimes[phone] && (Date.now() - orderConfirmTimes[phone] > 4 * 24 * 60 * 60 * 1000)) return false;
   return true;
 };
 // ✅ إضافة جديدة — رسالة شكر/تأكيد بسيطة (بلا سؤال حقيقي) — كنستعملوها باش ما نبعثوش هاد النوع ديال الرسائل للفريق الإداري (0644151359)، حيت ماكتحتاجش تدخل بشري
