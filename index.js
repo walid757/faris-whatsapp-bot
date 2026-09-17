@@ -3152,6 +3152,25 @@ app.post('/get-lang', (req, res) => {
   res.json({ lang: userLangPref[waPhone] || 'darija' });
 });
 
+// ✅ إضافة جديدة — endpoint تشخيصي للقراءة فقط: كنرجعو الحالة المحفوظة لرقم معين (تاريخ المحادثة، refuse/PDR، آخر حالة معروفة) — خدمة تدقيق حالات Refuse/PDR القديمة لي ماكاينش فاللوگ ديال Railway
+app.post('/debug-customer-state', (req, res) => {
+  const { phone, secret } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  if (!phone) return res.status(400).json({ error: 'phone ضروري' });
+  const waPhone = formatPhone(phone);
+  res.json({
+    phone: waPhone,
+    conversationHistory: conversationHistory[waPhone] || [],
+    refuseActive: refuseActive[waPhone] || null,
+    pasDeReponseActive: pasDeReponseActive[waPhone] || null,
+    customerLastStatus: customerLastStatus[waPhone] || null,
+    customerTracking: customerTracking[waPhone] || null,
+    customerOrderInfo: customerOrderInfo[waPhone] || null,
+    orderConfirmed: orderConfirmed.has(waPhone),
+    orderConfirmTime: orderConfirmTimes[waPhone] || null,
+  });
+});
+
 // ✅ إضافة جديدة — endpoint إداري لإرسال رسالة يدوية مباشرة لزبون (مثلاً متابعة تنبيه Ozon "لم نتمكن من الاتصال") — كتسجل فـconversationHistory باش أي رد ديال الزبون يدخل للسياق العادي ديال البوت
 app.post('/admin-send', async (req, res) => {
   try {
