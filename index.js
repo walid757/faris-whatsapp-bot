@@ -544,6 +544,11 @@ ORDER_CONFIRM_MSG_START
 فريق GreatShoes 🤎
 ORDER_CONFIRM_MSG_END
 
+## COLOR & ADDRESS INTEGRITY (قاعدة صارمة إجبارية)
+⚠️⚠️⚠️ اللون: ممنوع نهائياً تنسى أو تبدل اللون لي حدده الزبون فأي لحظة فالمحادثة. إلا ماكانش واضح ليك شنو اللون بالضبط (الزبون ما حددش، ولا فهمتيه بشكل غامض) — ممنوع تخمن أو تختار لون بحالك (noir كـfallback افتراضي) — خاصك تسول الزبون صراحة "شنو اللون بالضبط لي بغيتي — أسود، بني، ولا رمادي؟". وملي يتحدد اللون مرة واحدة بوضوح، يبقى هو نفسو من أول المحادثة حتى ملخص التأكيد و CONFIRMED_ORDER — ممنوع تبدلو لحال آخر عند التأكيد النهائي بأي شكل من الأشكال.
+⚠️⚠️⚠️ العنوان: نفس القاعدة بالضبط — ممنوع تخترع أو تختلق عنوان ماشي مذكور فكلام الزبون، وممنوع تبدل أو تنسى العنوان لي عطاه بمجرد ما يعطيه. استعمل بالضبط الكلام لي كتب الزبون (الحي/الشارع/رقم الدار)، بلا زيادة ولا اختراع.
+⚠️⚠️⚠️ التاريخ: ممنوع نهائياً تأكد طلبية (CONFIRMED_ORDER) وتخليها تتشحن وتتكتب "conf/مرسل" عند Ozon إلا كان الزبون حدد أي تاريخ أو موعد توصيل مازال بعيد (أكثر من يوم من تاريخ اليوم المعطى) — فهاد الحالة خاصك تزيد deferred_date فـCONFIRMED_ORDER (شوف ## DEFERRED ORDER تحت) بدل ما تخليها تشحن كطلبية عادية فورية. هذا ينطبق على أي صيغة تاريخ قالها الزبون (بالعربية، الفرنسية، أو الحروف اللاتينية) — ماشي غير الأمثلة المذكورة تحت، أي إشارة واضحة لتاريخ/يوم مستقبلي بعيد.
+
 ## DEFERRED ORDER (طلبية مؤجلة)
 ⚠️⚠️ انتبه بزاف للصيغ بالحروف اللاتينية (Darija-Latin) — حالة حقيقية وقعت: زبون كتب "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) وما تفهمتش كطلبية مؤجلة، فتشحنت الطلبية دغيا بدل ما تتسجل مؤجلة، والزبون بقي معطل. أمثلة أخرى بالحروف اللاتينية خاصك تفهمها: "f 26" / "fi 26" / "f chhar" / "fachhar" (= فالشهر)، "3andi wa9t ghi f X" (نهار X)، "nta3 samedi li jaya" (السبت الجاي). أي رقم يوم (1-31) مرفق بكلمة "fachhar"/"f chhar"/"فالشهر" يعني تاريخ محدد فهاد الشهر — احسبو بدقة مع تاريخ اليوم المعطى.
 ⚠️ إلا الزبون حدد صراحة تاريخ أو موعد توصيل مستقبلي بعيد (مثلاً "بغيت توصلني السبت الجاي"، "خصني بعد 15 يوم"، "نهار 25"، "مزال ماشي دبا، الشهر الجاي") — أي تاريخ يفوت يوم واحد (24 ساعة) من تاريخ اليوم المعطى فالسياق — تصرف بشكل طبيعي: كمّل جمع باقي المعلومات (الاسم/المدينة/العنوان/الهاتف) عادي بلا ما تفرض عليه يأكد اليوم بالضبط، ثم أخرج CONFIRMED_ORDER: بنفس الشكل والحقول المعتادة، لكن زيد بداخل customer_data حقل إضافي واحد: "deferred_date":"YYYY-MM-DD" — احسب التاريخ الدقيق اعتماداً على تاريخ اليوم (اليوم/التاريخ المعطى فالسياق) + المدة أو اليوم لي قاله الزبون. إلا التاريخ لي طلب الزبون هو غدا أو اليوم (يعني يوم واحد أو أقل) — اعتبرها طلبية عادية وما تزيدش deferred_date.
@@ -1138,6 +1143,18 @@ const extractDateFromText = async (text) => {
     return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null;
   } catch(e) { console.error('❌ extractDateFromText:', e.message); return null; }
 };
+// ✅ إضافة جديدة — كشف شامل (ماشي مبني غير على أمثلة regex محدودة) لأي طلب تاريخ توصيل مستقبلي بعيد فكامل رسائل الزبون —
+// حالة حقيقية: زبون كتب "Ana Brit nakhdo 26 fachhar" بصيغة دارجة-لاتينية ما كانتش الأمثلة تغطيها. استدعاء Claude خفيف كيفهم أي صيغة (عربية/فرنسية/لاتينية) بدل الاعتماد غير على أنماط محددة سلفاً
+const detectDeferredDateFromConversation = async (customerMsgsText) => {
+  try {
+    if (!customerMsgsText || !customerMsgsText.trim()) return null;
+    const iso = new Date().toISOString().slice(0,10);
+    const prompt = `اليوم هو ${iso}. هادي رسائل زبون فمحادثة مع بوت بيع أحذية (بالدارجة/الفرنسية/حروف لاتينية):\n"""${customerMsgsText}"""\nواش الزبون طلب صراحة تاريخ أو موعد توصيل محدد يفوق يوم واحد (24 ساعة) من اليوم؟ (مثلاً: يوم معين فالشهر، اسم يوم فالأسبوع الجاي، بعد عدد أيام/أسابيع، أي صيغة أخرى تدل على تاريخ مستقبلي بعيد). إذا نعم، رد فقط بالتاريخ المحسوب بصيغة YYYY-MM-DD بلا أي نص إضافي. إذا لا (ماكاين حتى تاريخ مستقبلي بعيد مذكور، أو التاريخ اليوم/غدا فقط)، رد فقط بكلمة NONE.`;
+    const res = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:20, messages:[{role:'user',content:prompt}] }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','content-type':'application/json'}, timeout: 12000 });
+    const out = (res.data.content[0].text || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null;
+  } catch(e) { console.error('❌ detectDeferredDateFromConversation:', e.message); return null; }
+};
 // ✅ إضافة جديدة — معلومات كل منتج (الاسم، الثمن، الألوان) — مركزية باش كي نزيدو منتج جديد فالمستقبل نزيدو غير سطر هنا وتخدم معاه كل قاعدة تركيز الإعلان أوتوماتيكياً
 const PRODUCT_INFO = {
   stephano: { nameAr: 'Stéphano', price: '370', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
@@ -1185,6 +1202,15 @@ const detectMentionedColors = (text) => {
 };
 // ✅ إضافة جديدة — نص كل رسائل الزبون (role:'user') مجمعة فسطر وحد — خدمة فحص التناقض (عنوان مختلق/لون مختلف) قبل تأكيد الطلب
 const getCustomerMessagesText = (from) => (conversationHistory[from]||[]).filter(m => m.role === 'user').map(m => m.content).join(' \n ');
+// ✅ إضافة جديدة — آخر لون ذكره الزبون بوضوح فترتيب المحادثة (ماشي أول واحد) — كيمثل النية الأخيرة الحقيقية ديالو، حتى إلا بدل رايو بين لونين فالمحادثة
+const detectLastMentionedColor = (from) => {
+  const msgs = (conversationHistory[from]||[]).filter(m => m.role === 'user');
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const c = detectColor(msgs[i].content || '');
+    if (c) return c;
+  }
+  return null;
+};
 // ✅ إضافة جديدة — حالة حقيقية خطيرة: الزبون ما عطاش حتى عنوان حقيقي فكامل المحادثة، وكلود اختلق عنوان بحالو ("Byt Ghlam Hada Al Bareed Bank") وتشحنت بيه الطلبية —
 // كنتحققو أن على الأقل ثلث الكلمات المهمة فالعنوان لي خرج فـCONFIRMED_ORDER كاينة فعلاً فرسائل الزبون الحقيقية، وإلا اعتبرناه مختلق/غير موثوق
 const isAddressFabricated = (address, customerText) => {
@@ -2895,6 +2921,11 @@ app.post('/webhook', async (req,res) => {
             const _parsedCheck = JSON.parse(_previewJsonCheck);
             const _cdCheck = _parsedCheck.customer_data || {};
             const _pdCheck = _parsedCheck.product_data || {};
+            // ✅ إضافة جديدة — كشف شامل (Claude، ماشي regex محدود بأمثلة) لأي تاريخ توصيل مستقبلي بعيد ذكره الزبون بأي صيغة — نديرو الفحص غير إلا CONFIRMED_ORDER ما فيهوش deferred_date أصلاً
+            let _detectedDeferredDate = null;
+            if (!(_cdCheck.deferred_date||'').trim()) {
+              _detectedDeferredDate = await detectDeferredDateFromConversation(_customerMsgsText);
+            }
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
@@ -2921,12 +2952,10 @@ app.post('/webhook', async (req,res) => {
             })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (String(_pdCheck.unit_price_mad).trim() === '600' && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
-            // ✅ إضافة جديدة — حالة حقيقية: زبون قال "lboni"/"بني" بوضوح مرتين (قبل وبعد التأكيد)، والطلبية تسجلت وتشحنت بـnoir —
-            // كنقارنو اللون لي تسجل مع الألوان لي ذكرهم الزبون فعلاً فرسائلو؛ نرفضو غير إلا الزبون ذكر لون واحد بالضبط (باش نتفاداو التناقض عند طلب الجوج بلونين) وهو مختلف على اللي تسجل — ومستثنى طلب الجوج (600) حيت فيه لونين معاً بطبيعتو
-            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && _pdCheck.color_fr && (() => { const _mc = detectMentionedColors(_customerMsgsText); return _mc.length === 1 && _mc[0] !== _pdCheck.color_fr; })()) _missingField = 'color';
-            // ✅ إضافة جديدة — حالة حقيقية: زبون قال "Ana Brit nakhdo 26 fachhar" (بغيت ناخدو يوم 26 فالشهر) قبل التأكيد، وكلود ما سجلش deferred_date وشحن الطلبية دغيا —
-            // شبكة أمان: إلا كلام الزبون فيه إشارة واضحة لتاريخ مستقبلي وCONFIRMED_ORDER ما فيهوش deferred_date، نطلبو تأكيد صريح للتاريخ قبل ما نكملو (بدل ما نشحن دغيا بلا وعي)
-            else if (looksLikeFutureDateMention(_customerMsgsText) && !(_cdCheck.deferred_date||'').trim()) _missingField = 'date_confirm';
+            // ✅ إصلاح — بدّلنا "عد الألوان المذكورة" بـ"آخر لون ذكره الزبون فترتيب المحادثة" — أدق: كيحترم إلا بدل الزبون رايو بين لونين، وكيمنع نهائياً تبديل اللون عند التأكيد النهائي عن آخر شي قاله الزبون فعلاً — حالة حقيقية: زبون قال "lboni"/"بني" بوضوح مرتين، والطلبية تسجلت وتشحنت بـnoir
+            else if (String(_pdCheck.unit_price_mad).trim() !== '600' && _pdCheck.color_fr && (() => { const _lc = detectLastMentionedColor(from); return _lc && _lc !== _pdCheck.color_fr; })()) _missingField = 'color';
+            // ✅ إصلاح — بدّلنا الفحص المبني على أمثلة regex محدودة بكشف شامل عبر Claude (detectDeferredDateFromConversation أعلاه) يفهم أي صيغة تاريخ (عربية/فرنسية/لاتينية) — حالة حقيقية: زبون قال "Ana Brit nakhdo 26 fachhar" وما تفهمتش، وكلود ما سجلش deferred_date وشحن الطلبية دغيا
+            else if (_detectedDeferredDate && isDeferredDateFarEnough(_detectedDeferredDate) && !(_cdCheck.deferred_date||'').trim()) _missingField = 'date_confirm';
             // ✅ إضافة جديدة — إلا كان الزبون معروف أنو مهتم بمنتج معين (من إعلان ولا من المحادثة)، لكن CONFIRMED_ORDER خرج بمنتج آخر (غالباً كلود كيرجع لـStéphano بالغلط كـfallback افتراضي)، ما نأكدوش — حالة حقيقية: زبون شاف صورة GS081 وأكد المقاس، لكن ملخص التأكيد خرج بـStéphano/370
             // ✅ تعديل — عام لأي منتج فـPRODUCT_INFO (ماشي غير GS081) — Stéphano مستثنى حيت هو الـfallback الافتراضي فالكود، فخانة فارغة ليه سلوك صحيح أصلاً
             else if (String(_pdCheck.unit_price_mad).trim() !== '600' && customerAdProduct[from] && customerAdProduct[from] !== 'stephano' && PRODUCT_INFO[customerAdProduct[from]] && !new RegExp(PRODUCT_INFO[customerAdProduct[from]].nameAr, 'i').test(_pdCheck.product_name||'')) _missingField = 'product';
