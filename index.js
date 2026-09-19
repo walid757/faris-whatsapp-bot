@@ -550,6 +550,8 @@ ORDER_CONFIRM_MSG_START
 فريق GreatShoes 🤎
 ORDER_CONFIRM_MSG_END
 
+⚠️⚠️⚠️ قاعدة صارمة إجبارية — ممنوع نهائياً تقول أو توحي للزبون بأي شكل (فأي رسالة، فأي مرحلة من المحادثة) أن الطلب "تأكد"/"تسجل"/"غادي توصلك" أو أي عبارة توحي بنجاح التأكيد — إلا كنت فنفس الرسالة بالضبط خارج CONFIRMED_ORDER: بالشكل الصحيح الكامل أعلاه. حالة حقيقية خطيرة وقعات: زبون عطى عنوان تاني بعد ملخص ناقص، وكلود رد "الطلب تم تأكيده — غادي توصلك" بلا ما يخرج CONFIRMED_ORDER أصلاً — الزبون بقى معتقد أن طلبو تأكد وهو ماتسجلش فحتى مكان. إلا سبق وعرضت الملخص وما خرجتيش CONFIRMED_ORDER بشكل صحيح (خطأ تقني، رسالة ناقصة...)، وعاود الزبون كتب ليك (عنوان، معلومة إضافية...)، خاصك تعاود تعرض الملخص كامل وتخرج CONFIRMED_ORDER من جديد بشكل صحيح — ماشي تكتفي برد عام يوحي بالتأكيد بلا ما يكون فعلاً موجود.
+
 ## COLOR & ADDRESS INTEGRITY (قاعدة صارمة إجبارية)
 ⚠️⚠️⚠️ اللون: ممنوع نهائياً تنسى أو تبدل اللون لي حدده الزبون فأي لحظة فالمحادثة. إلا ماكانش واضح ليك شنو اللون بالضبط (الزبون ما حددش، ولا فهمتيه بشكل غامض) — ممنوع تخمن أو تختار لون بحالك (noir كـfallback افتراضي) — خاصك تسول الزبون صراحة "شنو اللون بالضبط لي بغيتي — أسود، بني، ولا رمادي؟". وملي يتحدد اللون مرة واحدة بوضوح، يبقى هو نفسو من أول المحادثة حتى ملخص التأكيد و CONFIRMED_ORDER — ممنوع تبدلو لحال آخر عند التأكيد النهائي بأي شكل من الأشكال.
 ⚠️⚠️⚠️ العنوان: نفس القاعدة بالضبط — ممنوع تخترع أو تختلق عنوان ماشي مذكور فكلام الزبون، وممنوع تبدل أو تنسى العنوان لي عطاه بمجرد ما يعطيه. استعمل بالضبط الكلام لي كتب الزبون (الحي/الشارع/رقم الدار)، بلا زيادة ولا اختراع.
@@ -1755,6 +1757,23 @@ const handlePostDeliveryIssueReply = async (from, text) => {
 };
 
 const extractOrderJSON = (reply) => { const marker='CONFIRMED_ORDER:'; const idx=reply.indexOf(marker); if(idx===-1) return null; const after=reply.substring(idx+marker.length).trimStart(); let depth=0,start=-1; for(let i=0;i<after.length;i++) { if(after[i]==='{'){if(depth===0)start=i;depth++;} else if(after[i]==='}'){depth--;if(depth===0&&start!==-1)return after.substring(start,i+1);} } return null; };
+// ✅ إصلاح — bug حقيقي خطير: الـregex القديم (CONFIRMED_ORDER:\s*\{[\s\S]*?\}) غير-جشع (non-greedy)، فكان كيوقف عند *أول* } لقاها —
+// لكن الـJSON فيه أقواس متداخلة (customer_data{...}, product_data{...}, payment{...})، فكان كيمسح غير جزء بسيط ويخلي الباقي (بحال ,"product_data":{...}}) عالق فتاريخ المحادثة —
+// حالة حقيقية: زبون (حمزة) شاف جزء من الـJSON خام فالرد لي توصلو، وكلود تربك فالردود الجايين بسبب هاد البقايا فالسياق. دبا كنتتبعو عمق الأقواس بالضبط بحال extractOrderJSON
+const stripConfirmedOrderJSON = (reply) => {
+  const marker = 'CONFIRMED_ORDER:';
+  const idx = reply.indexOf(marker);
+  if (idx === -1) return reply;
+  let i = idx + marker.length;
+  while (i < reply.length && /\s/.test(reply[i])) i++;
+  if (reply[i] !== '{') return reply;
+  let depth = 0;
+  for (; i < reply.length; i++) {
+    if (reply[i] === '{') depth++;
+    else if (reply[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+  }
+  return reply.slice(0, idx) + reply.slice(i);
+};
 
 const saveOrderToSheet = async (reply, fromPhone) => {
   try {
@@ -2952,7 +2971,7 @@ app.post('/webhook', async (req,res) => {
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = claudeRes.data.content[0].text;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
-      const replyForHistory = reply.replace(/CONFIRMED_ORDER:\s*\{[\s\S]*?\}/, '').replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
+      const replyForHistory = stripConfirmedOrderJSON(reply).replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
       trimHistory(from); persistState();
 
