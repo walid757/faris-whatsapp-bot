@@ -301,7 +301,7 @@ const userQueues = {}, userLocks = {};
 const enqueue = (from, fn) => { if (!userQueues[from]) userQueues[from] = []; userQueues[from].push(fn); if (!userLocks[from]) processQueue(from); };
 const processQueue = async (from) => { if (userLocks[from]) return; userLocks[from] = true; while (userQueues[from]?.length > 0) { const fn = userQueues[from].shift(); try { await fn(); } catch (e) { console.error('❌ Queue:', e.message); } } userLocks[from] = false; };
 
-const MAX_HISTORY = 16;
+const MAX_HISTORY = 24;
 const trimHistory = (from) => {
   const h = conversationHistory[from];
   if (!h || h.length <= MAX_HISTORY) return;
@@ -532,6 +532,10 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ⚠️ إجباري — أي رد ديال الزبون كيربط الموافقة بشرط ثمن مختلف (مثلاً "نعطيك المعلومات ولكن بـ450") ماشي موافقة — يبقى اعتراض على الثمن، عالجو بنفس القاعدة أعلاه، ما تكملش لجمع المعلومات.
 
 ⚠️ قاعدة الثمن القديم (370): الثمن الحالي لـStéphano هو 399 درهم فقط. أي زبون جديد كيعرف 399 من الأول بلا اعتذار وبلا ما تذكر ثمن قديم. ولكن إلا الزبون هو لي ذكر ثمن قديم (مثلاً "370" أو "كان 350") أو قال بلي سبق قالو ليه البوت ثمن آخر — اعتذر منو مرة وحدة بلطف بلي الثمن تبدل ودابا هو 399 درهم، وكمل عادي. ممنوع تكتب الرقم 370 فأي جواب، وممنوع تعتذر لزبون ما ذكرش ثمن قديم.
+
+⚠️⚠️ قاعدة صارمة — ثمن جوج Stéphano هو 650 درهم دائماً (ماشي 600 أبداً ولا 980). 600 كيبقى غير لجوج فيه GS081 (جوج GS081 أو واحد من كل موديل). قبل ما تذكر أي ثمن لجوج، شوف الموديلات لي بغا الزبون.
+⚠️⚠️ قاعدة صارمة — اللون: إلا قال الزبون لون معين (مثلاً "البني") ممنوع تسجل ولا تكرر لون آخر (مثلاً "الأسود") فرد ديالك. كرر اللون بالضبط كيف قالو الزبون. إلا ما كنتش متأكد من اللون سولو.
+⚠️⚠️ قاعدة صارمة — ممنوع تقول "الطلب ديالك متسجل" ولا "تأكد" ولا "غادي نتصلو بيك يوم كذا" ولا تعد الزبون بأي اتصال أو حجز قبل ما تجمع الاسم + المدينة + العنوان + الهاتف وتعرض الملخص ويضغط الزبون على "تأكيد الطلب". الطلبية المؤجلة (زبون بغا التوصيل من بعد بأيام) كتتسجل بنفس الطريقة: جمع المعلومات كاملة أولاً مع deferred_date، ما تعدش بمكالمة قبل هادشي.
 
 ## CONFIRMATION
 ⚠️⚠️ قبل ما تعرض الملخص، تأكد أن الزبون فاهم وموافق بوضوح على **الثمن النهائي الصحيح** (399 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — حالة حقيقية: زبون فاوض على رقم غلط (400 مثلاً) وما تصححلوش الثمن بوضوح قبل التأكيد، فبقى معتقد أن الثمن هو الرقم الغلط. إلا كان أي غموض على الثمن، وضحو فرسالة مخصصة أولاً قبل الملخص، بلا ضغط ولا إلحاح
@@ -1021,11 +1025,15 @@ const lastMessageTime = {};
 const PDR_FOLLOWUP_1 =  2 * 60 * 60 * 1000;
 const PDR_FOLLOWUP_2 = 24 * 60 * 60 * 1000;
 
-const formatPhone = (p) => { p = String(p).trim().replace(/\s/g,'').replace(/\+/g,''); if (p.startsWith('212')) return p; if (p.startsWith('0')) return '212'+p.slice(1); if (p.length===9) return '212'+p; return '212'+p; };
+const formatPhone = (p) => { p = String(p).trim().replace(/\s/g,'').replace(/\+/g,''); if (/^[A-Za-z]{2}\./.test(p)) return p; /* ✅ إضافة جديدة — BSUID (زبون username بلا رقم) كنخليوه كما هو */ if (p.startsWith('212')) return p; if (p.startsWith('0')) return '212'+p.slice(1); if (p.length===9) return '212'+p; return '212'+p; };
 
 const markAsRead = async (messageId) => { try { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', status:'read', message_id:messageId }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); } catch(e) { console.error('markAsRead:',e.message); } };
 
-const sendText = async (to, text) => { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+// ✅ إضافة جديدة — كنتذكرو آخر الرسائل النصية المرسلة (بالـwamid) باش إلا فشلات بخطأ 131047 (برا نافذة 24 ساعة) نعاودو نصيفطوها عبر قالب message_equipe
+const _recentOutgoing = {};
+const sendText = async (to, text) => { const _r = await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, text:{body:text} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} });
+  try { const _id = _r && _r.data && _r.data.messages && _r.data.messages[0] && _r.data.messages[0].id; if (_id) { _recentOutgoing[_id] = { to, text, ts: Date.now() }; const _ks = Object.keys(_recentOutgoing); if (_ks.length > 300) for (const k of _ks) { if (Date.now() - _recentOutgoing[k].ts > 3600000) delete _recentOutgoing[k]; } } } catch (e) {}
+  return _r; };
 
 // ✅ إضافة جديدة — WhatsApp Message Templates (معتمدين من Meta): كيقدرو يوصلو لأي رقم فأي وقت، حتى برا نافذة الـ24 ساعة
 // (بخلاف sendText العادية لي كتفشل بصمت — success ظاهرياً بلا توصيل حقيقي — إلا الرقم ماكتبش للبوت من كثر من 24 ساعة)
@@ -1092,6 +1100,100 @@ const needsPriceChangeApology = (from) => {
 const priceChangeApologyText = (lang) => lang === 'french'
   ? "Désolé pour la confusion 🙏 le prix a changé et il est maintenant de 399 dirhams (livraison gratuite). [PAUSE] "
   : "كنعتذر منك خويا 🙏 الثمن تبدل ودابا ولى 399 درهم (التوصيل مجاني). [PAUSE] ";
+// ✅ إضافة جديدة — لائحة مدن Ozon الكاملة (endpoint عمومي بلا مفتاح: https://api.ozonexpress.ma/cities — 800+ مدينة). CITY_ID_MAP فيه غير ~190 مدينة، فطلبيات (Sidi Yahya El Gharb، Aknoul...) كانت كتوقف بـ"مدينة غير معروفة" ولا كتشحن — دبا كنجيبو اللائحة الكاملة ونستعملوها كاحتياط بعد CITY_ID_MAP
+let _ozonCities = [];
+let _ozonCitiesLoadedAt = 0;
+const _normCityLoose = (s) => stripAccents(String(s || '')).toLowerCase().replace(/yahya|yahia|yhya/g, 'yahia').replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+const ensureOzonCities = async () => {
+  if (_ozonCities.length && Date.now() - _ozonCitiesLoadedAt < 6 * 3600 * 1000) return;
+  try {
+    const r = await axios.get('https://api.ozonexpress.ma/cities', { timeout: 15000 });
+    const list = Object.values((r.data && r.data.CITIES) || {});
+    if (list.length) {
+      _ozonCities = list.map(c => { const name = String(c.NAME || '').trim(); const base = name.split(/\s*[-–]\s*/)[0]; return { id: c.ID, name, norm: _normCityLoose(name), base: _normCityLoose(base) }; });
+      _ozonCitiesLoadedAt = Date.now();
+      console.log(`✅ لائحة مدن Ozon: ${_ozonCities.length} مدينة`);
+    }
+  } catch (e) { console.error('⚠️ ما قدرناش نجيبو لائحة مدن Ozon:', e.message); }
+};
+const findOzonCityId = (rawCity) => {
+  const q = _normCityLoose(rawCity);
+  if (!q || q.length < 3 || !_ozonCities.length) return null;
+  const exact = _ozonCities.find(c => c.norm === q);
+  if (exact) return exact.id;
+  const baseHits = _ozonCities.filter(c => c.base === q);
+  if (baseHits.length === 1) return baseHits[0].id;
+  let best = null, bestD = Infinity, tie = false;
+  const maxD = Math.max(1, Math.round(q.length * 0.12));
+  for (const c of _ozonCities) {
+    for (const t of [c.norm, c.base]) {
+      if (!t || Math.abs(t.length - q.length) > maxD) continue;
+      const d = levenshtein(q, t);
+      if (d <= maxD) { if (d < bestD) { bestD = d; best = c; tie = false; } else if (d === bestD && best && best.id !== c.id) tie = true; }
+    }
+  }
+  return (best && !tie) ? best.id : null;
+};
+ensureOzonCities();
+// ✅ إضافة جديدة — الإرسال لزبون BSUID (بلا رقم): Meta كتطلب الحقل "recipient" بدل "to" — كنبدلوه أوتوماتيكياً فكل الإرسالات (نص/صور/أزرار/قوالب) بلا ما نلمسو كل دالة
+axios.interceptors.request.use((cfg) => { try { if (cfg.method === 'post' && /graph\.facebook\.com\/[^/]+\/[^/]+\/messages$/.test(cfg.url || '') && cfg.data && typeof cfg.data === 'object' && typeof cfg.data.to === 'string' && /^[A-Za-z]{2}\./.test(cfg.data.to)) { const { to: _bsuid, ...restData } = cfg.data; cfg.data = { ...restData, recipient: _bsuid }; } } catch (e) {} return cfg; });
+// ✅ إضافة جديدة — المدينة لي كتبها كلود (بالكتابة الصحيحة) ممكن تكون مختلفة بحرف عن كتابة الزبون (Aknoul/Aknol) — كنقبلوها إلا كاين فكلام الزبون كلمة قريبة منها بحرف ولا حرفين (لا نقبلو مدينة مختلفة كلياً)
+const _cityMentionedLoosely = (city, text) => {
+  const q = _normCityLoose(city);
+  if (q.length < 4) return false;
+  const c = _normCityLoose(String(text || '').slice(-4000));
+  if (c.includes(q)) return true;
+  const maxD = Math.max(1, Math.round(q.length * 0.2));
+  for (let len = q.length - maxD; len <= q.length + maxD; len++) {
+    for (let i = 0; i + len <= c.length; i++) { if (levenshtein(q, c.substr(i, len)) <= maxD) return true; }
+  }
+  return false;
+};
+// ✅ إضافة جديدة — "Oui/Non/Ok/Merci" وحدها من زبون كيهضر دارجة ماشي انتقال للفرنسية (حالة حقيقية: الزبون كتب "Oui" جواب على سؤال الهاتف فجات بطاقة ملخص الطلب كاملة بالفرنسية)
+const isShortFrenchTokenInNonFrenchChat = (from, text) => {
+  if (!/^\s*(oui|non|ok|okay|d'?accord|merci|si|bien s[uû]r)\s*[.!?]*\s*$/i.test(text || '')) return false;
+  const prev = (conversationHistory[from] || []).filter(m => m.role === 'user').slice(0, -1);
+  return prev.length > 0 && prev.some(m => typeof m.content === 'string' && !isFrenchText(m.content));
+};
+// ✅ إضافة جديدة — حارس على رد كلود قبل الإرسال (أخطاء حقيقية شفناها): (1) ثمن 600 لجوج Stéphano (الصحيح 650)، (2) لون بدّلو كلود ("البني" ← "نسجلو ليك الأسود")، (3) تأكيد/وعد كاذب قبل ما الطلب يتأكد فعلاً ("الطلب ديالك متسجل"، "غادي نتصلو بيك يوم 27") بلا ما تتجمع المعلومات
+const _colorForms = { noir: ['الأسود', 'أسود', 'noir'], marron: ['البني', 'بني', 'marron'], gris: ['الرمادي', 'رمادي', 'gris'] };
+const guardReply = (from, reply, customerText, lang) => {
+  if (typeof reply !== 'string' || !reply || reply.includes('CONFIRMED_ORDER:')) return reply;
+  const tags = [];
+  let r = reply.replace(/\[[A-Z_]+(?::[^\]]*)?\]/g, (m) => { tags.push(m); return '\uE000' + (tags.length - 1) + '\uE001'; });
+  try {
+    // (1) جوج Stéphano = 650 ماشي 600 (600 كيبقى صالح غير إلا كان GS081 فالجوج)
+    if (/(جوج|زوج|deux|paire|2\s*(?:bottines|حذاء|أحذية))/i.test(r) && /(stéphano|stephano|ستيفانو)/i.test(r) && !/gs\s?-?081/i.test(r)) {
+      r = r.replace(/(?<![\d\-–])600(?![\d\-–])/g, '650');
+    }
+    // (2) اللون: الزبون ذكر لون واحد فرسالتو، والرد كيسجل لون آخر بلا ما يذكر لونو
+    const custColors = detectMentionedColors(customerText || '');
+    if (custColors.length === 1 && /(نسجل|سجلت|صافي|je note|noté|je te r[ée]serve|r[ée]serv[ée])/i.test(r) && !/(فقط|seulement|uniquement|غير متوفر|ما كاينش|pas disponible|non disponible|gs\s?-?081)/i.test(r)) {
+      const want = custColors[0];
+      const inReply = detectMentionedColors(r);
+      if (inReply.length && !inReply.includes(want)) {
+        for (const c of inReply) { for (let i = 0; i < 3; i++) r = r.split(_colorForms[c][i]).join(_colorForms[want][i]); }
+      }
+    }
+    // (3) تأكيد/وعد كاذب قبل ما الطلب يتأكد
+    const _orderKnown = orderConfirmed.has(from) || customerTracking[from] || customerOrderInfo[from] || pendingConfirmations[from] || (typeof customerLastStatus !== 'undefined' && customerLastStatus[from]);
+    if (!_orderKnown) {
+      const falseClaim = /(الطلب\s*ديالك\s*متسجل|طلبيتك\s*(?:تسجلات|تسجلت|تأكدات|تأكدت)|تم\s*(?:تسجيل|تأكيد)\s*(?:طلب|الطلب)|طلبك\s*(?:تسجل|تأكد)|طلبيتك\s*(?:مسجلة|مؤكدة)|commande\s+(?:est\s+|a été\s+)?(?:enregistr|confirm)|ta commande (?:est|a été))/i;
+      const falsePromise = /(غادي\s*نتصلو\s*(?:بيك|معاك)\s*يوم|غادي\s*نتواصلو\s*معاك\s*يوم|نتصلو\s*بيك\s*يوم\s*\d|on t'appellera le)/i;
+      if (falseClaim.test(r) || falsePromise.test(r)) {
+        const segs = r.split(/\s*\uE000\d+\uE001\s*|\n+/).map(s => s.trim()).filter(Boolean);
+        const kept = segs.filter(s => !falseClaim.test(s) && !falsePromise.test(s));
+        const ask = (lang === 'french')
+          ? "Pour enregistrer ta commande il me manque juste: nom, ville, adresse et numéro de téléphone 😊"
+          : "باش نسجلو ليك الطلب ديالك بقى لي غير الاسم، المدينة، العنوان ورقم الهاتف 😊";
+        r = kept.length ? (kept.join(' \uE000P\uE001 ') + ' \uE000P\uE001 ' + ask) : ask;
+        console.warn(`🛡️ guardReply: منعنا تأكيد/وعد كاذب قبل ما الطلب يتأكد ← ${from}`);
+      }
+    }
+  } catch (e) { return reply; }
+  r = r.replace(/\uE000P\uE001/g, '[PAUSE]');
+  return r.replace(/\uE000(\d+)\uE001/g, (m, i) => tags[+i] || '');
+};
 const sendHumanLike = async (to, fullReply) => {
   fullReply = fixStalePrice(fullReply);
   // ✅ إصلاح — حالة حقيقية مؤكدة فالإنتاج: رسائل المتابعة المؤجلة (PDR/Refuse followup) كانت كتفشل بصمت مرات عديدة
@@ -1276,7 +1378,7 @@ const isCityFabricated = (finalCity, customerText) => {
   const custNorm = (customerText || '').toLowerCase();
   const fcBase = fc.split(/[–-]/)[0].trim().toLowerCase(); // نتجاهلو المقاطعة (Casablanca – X)، غير المدينة الرئيسية
   const aliases = _cityFrReverse[fcBase] || [fcBase];
-  return !aliases.some(a => custNorm.includes(a));
+  return !aliases.some(a => custNorm.includes(a)) && !_cityMentionedLoosely(fcBase, customerText);
 };
 // ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون ما ذكرش أي مقاس إطلاقاً فكامل المحادثة (ولا أي رقم منو فطلب الجوج)، وكلود اختلق مقاس وسجل بيه الطلبية —
 // كنتحققو أن كل رقم مقاس مسجل مذكور فعلاً بالحرف فكلام الزبون
@@ -2286,7 +2388,8 @@ const sendOrderTemplate = async (to, name, product, price) => {
 };
 
 const addParcelDirect = async (order, finalAddress) => {
-  const cityId = getCityId(normalizeCityFr(order.city || ''));
+  await ensureOzonCities();
+  const cityId = getCityId(normalizeCityFr(order.city || '')) || findOzonCityId(order.city || '');
   // ✅ إضافة جديدة — إلا المدينة ماعرفناهاش، ما نشحنوش (كان كيشحن بصمت للدار البيضاء) — نرجعو فشل واضح باش يتنبه الأدمين والزبون
   if (!cityId) {
     console.error(`❌ مدينة غير معروفة — ما تشحنش: "${order.city}"`);
@@ -2443,13 +2546,23 @@ app.post('/webhook', async (req,res) => {
   if (statusUpdate) {
     if (statusUpdate.status === 'failed') {
       console.error(`❌ فشل توصيل رسالة ← ${statusUpdate.recipient_id} | ${JSON.stringify(statusUpdate.errors || [])}`);
+      // ✅ إضافة جديدة — 131047 (برا نافذة 24 ساعة): نعاودو نصيفطو نفس النص عبر قالب message_equipe (كيوصل فأي وقت) — كان الزبون/الأدمين ما كيتوصلوش بهاد الرسائل نهائياً
+      try {
+        const _errCode = ((statusUpdate.errors || [])[0] || {}).code;
+        const _orig = _recentOutgoing[statusUpdate.id];
+        if (_errCode === 131047 && _orig && !_orig.retried) {
+          _orig.retried = true;
+          sendTemplateMessage(_orig.to, 'message_equipe', [(customerOrderInfo[_orig.to] || {}).name || 'خويا', _orig.text]).then(() => console.log(`🔁 أعدنا الإرسال عبر قالب message_equipe ← ${_orig.to}`)).catch(te => console.error('❌ إعادة الإرسال عبر القالب فشلت:', te.response ? JSON.stringify(te.response.data) : te.message));
+        }
+      } catch (e) {}
     } else {
       console.log(`📬 حالة رسالة ← ${statusUpdate.recipient_id} | ${statusUpdate.status}`);
     }
   }
   if (!message) return res.sendStatus(200);
   // ✅ إصلاح — أحياناً message.from كيوصل فارغ (رسائل نادرة/متزامنة)، نرجعو للرقم من contacts[0].wa_id كـ fallback
-  const from = message.from || req.body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.wa_id;
+  // ✅ إضافة جديدة — زبناء واتساب اللي مفعلين username وما كيبانش ليهم الرقم: الويبهوك كيجي بـfrom_user_id / contacts[0].user_id (BSUID، بحال "MA.1422...") — كان كيتجاهلهم البوط وكيضيعو ليدز من الإعلانات
+  const from = message.from || req.body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.wa_id || message.from_user_id || req.body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.user_id;
   // ✅ إصلاح — إلا مازال الرقم فارغ، ما نحاولوش نرد (كان كيطيح خطأ "parameter to is required" وتضيع الرسالة بلا جواب للزبون)
   if (!from) { console.warn('⚠️ رقم الزبون فارغ (from) — تجاهل الرسالة. payload:', JSON.stringify(req.body?.entry?.[0]?.changes?.[0]?.value || {})); return res.sendStatus(200); }
   let text;
@@ -2950,7 +3063,7 @@ app.post('/webhook', async (req,res) => {
       const isMetaAdAutoText = /puis-je\s+en\s+sav\w*oir\s+plus\s+(à|a)\s+ce\s+sujet/i.test(text) || /^savoir\s+plus\s+(à|a)\s+ce\s+sujet\s*\??$/i.test(text.trim()) || text.includes('أريد الاستفسار عن منتجاتكم للأحذية الجلدية');
       // ✅ تحديد اللغة: تفضيل الجلسة أولاً، ثم الكشف التلقائي المحسّن
       const _detectedLang = detectLanguage(text);
-      const _isFr = isFrenchText(text);
+      const _isFr = isFrenchText(text) && !isShortFrenchTokenInNonFrenchChat(from, text);
       const lang = userLangPref[from] || (isMetaAdAutoText ? 'darija' : (_detectedLang !== 'darija' ? _detectedLang : (_isFr ? 'french' : 'darija')));
       // ✅ إضافة جديدة — أول رسالة من الزبون (STATE_0/1): نصيفطو مباشرة رسالة الترحيب الثابتة (تقنية الساندويتش) بدل ما نخلي Claude يولدها
       if (conversationHistory[from].length === 1) {
@@ -2991,12 +3104,16 @@ app.post('/webhook', async (req,res) => {
         : lang === 'fusha'
         ? '\n\n[الزبون يتكلم بالعربية الفصحى — رد بالفصحى بالحروف العربية — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote
         : '\n\n[رد بالدارجة المغربية بالحروف العربية دائماً — حتى لو كتب الزبون بالحروف اللاتينية — لا فرنسية خالصة — جملتان فقط — [PAUSE] واحد فقط]' + greetingHint + _postConfirmNote + _adProductNote;
-      const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote}]);
+      // ✅ إضافة جديدة — زبون username بلا رقم هاتف: خاص الرقم صراحة (ما نسولوش واش يخلي رقم واتساب حيت ما كاينش)
+      const _bsuidNote = /^[A-Za-z]{2}\./.test(String(from)) ? '\n[هاد الزبون مستعمل username فواتساب وما عندناش رقم هاتفو — خاصك تسولو صراحة على رقم الهاتف ديالو (10 أرقام)، وممنوع تستعمل PHONE_FROM_WHATSAPP ولا تسولو واش يخلي هاد الرقم]' : '';
+      const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote+_bsuidNote}]);
       // ✅ إصلاح — زدنا timeout (كان بلا حدود، فحالة تعلق الاتصال بـClaude API كان الزبون كيبقى بلا رد نهائياً بلا حتى خطأ مسجل — حالة حقيقية: زبون عطى العنوان الكامل وبقي بلا جواب)
       // ✅ إضافة جديدة — كنحقنو تاريخ اليوم فـ block منفصل (بلا cache_control) باش كلود يقدر يفهم التواريخ النسبية (الطلبيات المؤجلة) بلا ما يخسر التخزين المؤقت ديال SYSTEM_PROMPT الكبير
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = fixStalePrice(claudeRes.data.content[0].text);
       if (needsPriceChangeApology(from) && !/(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(reply)) reply = priceChangeApologyText(lang) + reply;
+      // ✅ إضافة جديدة — حارس على الرد (ثمن جوج Stéphano، لون مبدل، تأكيد/وعد كاذب) قبل الإرسال والتخزين فالتاريخ
+      reply = guardReply(from, reply, text, lang);
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = stripConfirmedOrderJSON(reply).replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
@@ -3035,6 +3152,8 @@ app.post('/webhook', async (req,res) => {
             if (isMissingOrderField(_cdCheck.city)) _missingField = 'city';
             // ✅ إضافة جديدة — حماية شاملة لرقم الهاتف بنفس مبدأ العنوان/المدينة/المقاس — إلا الرقم المسجل ماشي رقم واتساب ديال الزبون ولا مذكور فعلاً فكلامو، اعتبرو مختلق
             else if (isPhoneFabricated(_cdCheck.phone, _customerMsgsText)) _missingField = 'phone';
+            // ✅ إضافة جديدة — زبون BSUID (بلا رقم): ما نقبلوش PHONE_FROM_WHATSAPP/فارغ، خاص رقم هاتف حقيقي
+            else if (/^[A-Za-z]{2}\./.test(String(from)) && (!(_cdCheck.phone || '').trim() || (_cdCheck.phone || '').trim() === 'PHONE_FROM_WHATSAPP' || !/\d{9,}/.test(String(_cdCheck.phone).replace(/\D/g, '')))) _missingField = 'phone';
             else if (isMissingOrderField(_cdCheck.shipping_address)) _missingField = 'address';
             // ✅ إضافة جديدة — العنوان ما يمكنش يكون غير تكرار لاسم المدينة (بلا حي/شارع حقيقي) — حالة حقيقية: زبون من فاس قال "Fes" وتسجلت كعنوان بحالها
             else if (isAddressJustCityName(_cdCheck.shipping_address, _cdCheck.city)) _missingField = 'address';
