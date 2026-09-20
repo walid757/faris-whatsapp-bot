@@ -1,0 +1,1 @@
+- 2026-09-20 — Added: one-time polite price-change apology for customers who were quoted the old 370 price (detected from their own messages); new customers just see 399 with no apology; prompt rule forbids writing 370.

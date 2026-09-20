@@ -531,6 +531,8 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 ⚠️ إذا الزبون عاود يفاوض بعد الرفض الأول (رقم ثاني أو نفس الرقم مرة أخرى)، استعمل هاد الرد (بالضبط أو بمعناه، حسب سياق المحادثة) لتبرير الثمن بدل التكرار الجاف: "خويا العزيز تستاهل كل خير، ولكن الثمن لي قلتي ما يمشيش، حيت كتعرف الصباط الجلد من برا ومن لداخل وسوميلة إيفا صعيب تلقاه بقل من 500 درهم، وحنا دايرين ثمن مناسب" — ثم اسأل مرة أخرى واش يوافق على الثمن الصحيح، أو اقترح البديل (واحد بدل جوج) إذا كان طلب جوج.
 ⚠️ إجباري — أي رد ديال الزبون كيربط الموافقة بشرط ثمن مختلف (مثلاً "نعطيك المعلومات ولكن بـ450") ماشي موافقة — يبقى اعتراض على الثمن، عالجو بنفس القاعدة أعلاه، ما تكملش لجمع المعلومات.
 
+⚠️ قاعدة الثمن القديم (370): الثمن الحالي لـStéphano هو 399 درهم فقط. أي زبون جديد كيعرف 399 من الأول بلا اعتذار وبلا ما تذكر ثمن قديم. ولكن إلا الزبون هو لي ذكر ثمن قديم (مثلاً "370" أو "كان 350") أو قال بلي سبق قالو ليه البوت ثمن آخر — اعتذر منو مرة وحدة بلطف بلي الثمن تبدل ودابا هو 399 درهم، وكمل عادي. ممنوع تكتب الرقم 370 فأي جواب، وممنوع تعتذر لزبون ما ذكرش ثمن قديم.
+
 ## CONFIRMATION
 ⚠️⚠️ قبل ما تعرض الملخص، تأكد أن الزبون فاهم وموافق بوضوح على **الثمن النهائي الصحيح** (399 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — حالة حقيقية: زبون فاوض على رقم غلط (400 مثلاً) وما تصححلوش الثمن بوضوح قبل التأكيد، فبقى معتقد أن الثمن هو الرقم الغلط. إلا كان أي غموض على الثمن، وضحو فرسالة مخصصة أولاً قبل الملخص، بلا ضغط ولا إلحاح
 ⚠️ ملي تسول على المعلومات الناقصة (الاسم/العنوان/الهاتف)، سول بلطف ولباقة بلا ضغط — واقبل المعلومات كيفما جات: دفعة وحدة (كلها فرسالة وحدة) أو بالتدريج (رسالة برسالة) — بلا ما تفرض ترتيب معين
@@ -1079,6 +1081,17 @@ const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370
 for (const _ph of Object.keys(conversationHistory)) {
   for (const _m of (conversationHistory[_ph] || [])) { if (_m && _m.role === 'assistant') _m.content = fixStalePrice(_m.content); }
 }
+// ✅ إضافة جديدة — زبون سبق ليه ثمن 370 قبل التغيير لـ399 (كيبان من رسائلو هو: كيذكر 370 مع كلمة ثمن/عرض) وما تعتذرش ليه بعد: كنعتذرو ليه مرة وحدة بلطف بلي الثمن تبدل
+// (زبون جديد ما كيذكرش 370 فما كيتعتذرش ليه — كيعرف 399 من الأول). بلا ما نكتبو الرقم القديم، حيت fixStalePrice كيبدلو
+const needsPriceChangeApology = (from) => {
+  const h = conversationHistory[from] || [];
+  const _saidOld = h.some(m => m && m.role === 'user' && typeof m.content === 'string' && /(^|\D)370(\D|$)/.test(m.content) && /(تمن|ثمن|تمان|سعر|عرض|درهم|prix|price|taman|offre|dh|mad)/i.test(m.content));
+  if (!_saidOld) return false;
+  return !h.some(m => m && m.role === 'assistant' && typeof m.content === 'string' && /(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(m.content) && /399/.test(m.content));
+};
+const priceChangeApologyText = (lang) => lang === 'french'
+  ? "Désolé pour la confusion 🙏 le prix a changé et il est maintenant de 399 dirhams (livraison gratuite). [PAUSE] "
+  : "كنعتذر منك خويا 🙏 الثمن تبدل ودابا ولى 399 درهم (التوصيل مجاني). [PAUSE] ";
 const sendHumanLike = async (to, fullReply) => {
   fullReply = fixStalePrice(fullReply);
   // ✅ إصلاح — حالة حقيقية مؤكدة فالإنتاج: رسائل المتابعة المؤجلة (PDR/Refuse followup) كانت كتفشل بصمت مرات عديدة
@@ -2983,6 +2996,7 @@ app.post('/webhook', async (req,res) => {
       // ✅ إضافة جديدة — كنحقنو تاريخ اليوم فـ block منفصل (بلا cache_control) باش كلود يقدر يفهم التواريخ النسبية (الطلبيات المؤجلة) بلا ما يخسر التخزين المؤقت ديال SYSTEM_PROMPT الكبير
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = fixStalePrice(claudeRes.data.content[0].text);
+      if (needsPriceChangeApology(from) && !/(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(reply)) reply = priceChangeApologyText(lang) + reply;
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = stripConfirmedOrderJSON(reply).replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
