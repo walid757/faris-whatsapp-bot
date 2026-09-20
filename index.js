@@ -1073,7 +1073,14 @@ const sendSmart = async (to, freeformText, templateName, templateParams) => {
 
 // ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
 // ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
+// ✅ إضافة جديدة — بعد تغيير ثمن Stéphano من 370 لـ399: زبناء عندهم محادثة قديمة كان فيها 370، وكلود كيقلد الثمن القديم من التاريخ (حالة حقيقية مؤكدة: رد بـ370 بعد الـdeploy) —
+// 370 ما بقا ثمن صحيح لأي منتج، فكنصححوها فأي نص خارج من البوت، ودغيا كنصححوها أيضاً فالتاريخ المحفوظ
+const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370\b/g, '399') : text;
+for (const _ph of Object.keys(conversationHistory)) {
+  for (const _m of (conversationHistory[_ph] || [])) { if (_m && _m.role === 'assistant') _m.content = fixStalePrice(_m.content); }
+}
 const sendHumanLike = async (to, fullReply) => {
+  fullReply = fixStalePrice(fullReply);
   // ✅ إصلاح — حالة حقيقية مؤكدة فالإنتاج: رسائل المتابعة المؤجلة (PDR/Refuse followup) كانت كتفشل بصمت مرات عديدة
   // (كود 131047 Re-engagement message) لأن sendHumanLike كتصيفط كل جزء [PAUSE] بـsendText عادية بلا حماية القوالب —
   // وملي الرقم برا نافذة 24 ساعة، كل الأجزاء كتفشل واحدة واحدة. دبا إلا كان الرقم برا النافذة، نصيفطو الرسالة كاملة
@@ -2975,7 +2982,7 @@ app.post('/webhook', async (req,res) => {
       // ✅ إصلاح — زدنا timeout (كان بلا حدود، فحالة تعلق الاتصال بـClaude API كان الزبون كيبقى بلا رد نهائياً بلا حتى خطأ مسجل — حالة حقيقية: زبون عطى العنوان الكامل وبقي بلا جواب)
       // ✅ إضافة جديدة — كنحقنو تاريخ اليوم فـ block منفصل (بلا cache_control) باش كلود يقدر يفهم التواريخ النسبية (الطلبيات المؤجلة) بلا ما يخسر التخزين المؤقت ديال SYSTEM_PROMPT الكبير
       const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
-      let reply = claudeRes.data.content[0].text;
+      let reply = fixStalePrice(claudeRes.data.content[0].text);
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = stripConfirmedOrderJSON(reply).replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
