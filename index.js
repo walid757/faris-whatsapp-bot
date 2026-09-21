@@ -1027,7 +1027,7 @@ const lastMessageTime = {};
 const PDR_FOLLOWUP_1 =  2 * 60 * 60 * 1000;
 const PDR_FOLLOWUP_2 = 24 * 60 * 60 * 1000;
 
-const formatPhone = (p) => { p = String(p).trim().replace(/\s/g,'').replace(/\+/g,''); if (/^[A-Za-z]{2}\./.test(p)) return p; /* ✅ إضافة جديدة — BSUID (زبون username بلا رقم) كنخليوه كما هو */ if (p.startsWith('212')) return p; if (p.startsWith('0')) return '212'+p.slice(1); if (p.length===9) return '212'+p; return '212'+p; };
+const formatPhone = (p) => { p = String(p).trim().replace(/[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g,'').replace(/\+/g,''); if (/^[A-Za-z]{2}\./.test(p)) return p; /* ✅ إضافة جديدة — BSUID (زبون username بلا رقم) كنخليوه كما هو */ if (p.startsWith('212')) return p; if (p.startsWith('0')) return '212'+p.slice(1); if (p.length===9) return '212'+p; return '212'+p; };
 
 const markAsRead = async (messageId) => { try { await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', status:'read', message_id:messageId }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); } catch(e) { console.error('markAsRead:',e.message); } };
 
@@ -1087,7 +1087,7 @@ const sendSmart = async (to, freeformText, templateName, templateParams) => {
 // ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
 // ✅ إضافة جديدة — بعد تغيير ثمن Stéphano من 370 لـ399: زبناء عندهم محادثة قديمة كان فيها 370، وكلود كيقلد الثمن القديم من التاريخ (حالة حقيقية مؤكدة: رد بـ370 بعد الـdeploy) —
 // 370 ما بقا ثمن صحيح لأي منتج، فكنصححوها فأي نص خارج من البوت، ودغيا كنصححوها أيضاً فالتاريخ المحفوظ
-const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370\b/g, '399') : text;
+const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370\b/g, '399').replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, '') : text; // ✅ زدنا حذف الحروف غير المرئية (zero-width) — كلود مرة كيدخلها فأرقام الهاتف
 for (const _ph of Object.keys(conversationHistory)) {
   for (const _m of (conversationHistory[_ph] || [])) { if (_m && _m.role === 'assistant') _m.content = fixStalePrice(_m.content); }
 }
@@ -1392,6 +1392,12 @@ const isSizeFabricated = (size, customerText) => {
 };
 // ✅ إضافة جديدة — نفس مبدأ isAddressFabricated/isCityFabricated/isSizeFabricated، لكن لرقم الهاتف — حماية شاملة لكل الحقول الحساسة (لون/مقاس/مدينة/عنوان/هاتف) —
 // إلا الحقل "phone" فـCONFIRMED_ORDER ماشي "PHONE_FROM_WHATSAPP" (يعني الزبون عطى رقم آخر غير رقم واتساب ديالو)، خاص آخر 7 أرقام منو يكونو فعلاً مذكورين فكلام الزبون، وإلا اعتبرناه رقم مختلق
+// ✅ إضافة جديدة — حالة حقيقية (عماد، "سيدي بوعثمان"): الطلب تأكد بالزر وتسجل فالشيت، ولكن Ozon ما عرفش المدينة (قرية) فما تشحنش والزبون ما عرف. دبا نتأكدو من المدينة قبل التأكيد بنفس الدوال لي كتستعملها الشحن، وإلا ما تعرفاتش كنسولو الزبون على أقرب مدينة
+const isCityUnresolvable = (city) => {
+  const c = (city || '').trim();
+  if (!c || !_ozonCities.length) return false;
+  return !(getCityId(normalizeCityFr(c)) || findOzonCityId(c));
+};
 const isPhoneFabricated = (phone, customerText) => {
   const p = (phone || '').trim();
   if (!p || p === 'PHONE_FROM_WHATSAPP') return false; // الحالة العادية: نفس رقم واتساب
@@ -2340,7 +2346,7 @@ const verifySignature = (req) => { if(!APP_SECRET) return true; const sig=req.he
 // ===== WEBSITE ORDER CONFIRMATION =====
 
 const toMoroccanPhone = (phone) => {
-  phone = String(phone).trim().replace(/\s/g,'');
+  phone = String(phone).trim().replace(/[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g,''); // ✅ إصلاح — حروف غير مرئية (zero-width) كانت كتدخل فرقم الهاتف وكيرفضو Ozon ("Invalid Phone Number")
   if (phone.startsWith('+212')) return '0'+phone.slice(4);
   if (phone.startsWith('212')) return '0'+phone.slice(3);
   if (!phone.startsWith('0')) return '0'+phone;
@@ -3173,6 +3179,7 @@ app.post('/webhook', async (req,res) => {
             // ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون قال "من المضيق" وكلود بدلها بـ"Tétouan" (مدينة قريبة لكن مختلفة)، وحالة أخطر: زبون ما ذكر حتى مدينة والطلبية تأكدت بمدينة مختلقة بالكامل —
             // كنرفضو أي مدينة ماشي مذكورة بشكل من أشكالها فكلام الزبون الحقيقي
             else if (isCityFabricated(_cdCheck.city, _customerMsgsText)) _missingField = 'city';
+            else if (isCityUnresolvable(_cdCheck.city)) _missingField = 'cityUnknown';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إصلاح — حالة حقيقية خطيرة: كلود خرج طلب مؤكد وحط فخانة المقاس كلمة "PENDING" (بلا أي رقم) بدل مقاس حقيقي —
@@ -3205,7 +3212,9 @@ app.post('/webhook', async (req,res) => {
         } catch(e){}
         if (_missingField) {
           const _isFrMissing = (userLangPref[from] === 'french');
-          const _askMsg = _missingField === 'city'
+          const _askMsg = _missingField === 'cityUnknown'
+            ? (_isFrMissing ? "Je ne trouve pas ta ville/village dans la liste de livraison 😊 Quelle est la ville la plus proche de chez toi (par exemple Marrakech) ? On mettra ton village dans l'adresse." : "سمح ليا، ما لقيتش المدينة/القرية ديالك فلائحة التوصيل 😊 شنو هي أقرب مدينة كبيرة ليك (مثلاً مراكش)؟ ونكتبو القرية فالعنوان.")
+            : _missingField === 'city'
             ? (_isFrMissing ? "Pardon, dans quelle ville habitez-vous exactement ? 😊" : "سمح ليا، فأي مدينة كتسكن بالضبط باش نكملو الطلب؟ 😊")
             : _missingField === 'phone'
             ? (_isFrMissing ? "Pardon, peux-tu me confirmer ton numéro de téléphone exact ? 😊" : "سمح ليا، بغيت نتأكد من رقم الهاتف الصحيح ديالك 😊")
