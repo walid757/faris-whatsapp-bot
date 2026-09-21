@@ -237,7 +237,8 @@ const conversationHistory = _state.conversationHistory || {};
 const pasDeReponseActive = _state.pasDeReponse  || {};
 const refuseActive       = _state.refuseActive  || {};
 const websiteOrders         = _state.websiteOrders || {};
-const pendingConfirmations  = {};
+// ✅ إصلاح — pendingConfirmations كانت فالذاكرة فقط: أي deploy/restart كيمسح الزبناء لي ملخصهم مبعوث وكيتسناو الزر (وإلا ضغطو بعد الـdeploy ما كيتسجل والو). دبا كتتحفظ فالحالة الدائمة
+const pendingConfirmations  = _state.pendingConfirmations || {};
 const deliveryTimeStates    = {};
 const deliveryTimes         = {};
 const websiteOrderTimers    = {};
@@ -292,6 +293,7 @@ const persistState = () => saveState({
   stalledOrderAlerted:[...stalledOrderAlerted],
   lastCustomerMsgAt,
   deferredReconfirmStates,
+  pendingConfirmations,
 });
 
 // ✅ إضافة جديدة — قفل تسلسلي عام لكل رقم هاتف (Promise chain) — كيضمن أن معالجة رسالة ديال زبون معين ما تبداش
@@ -2327,6 +2329,12 @@ const sendPendingConfirmReminder = async (from) => {
   } catch(e) { console.error('❌ sendPendingConfirmReminder:', e.message); }
 };
 
+// ✅ إضافة جديدة — بعد restart/deploy: نمسحو الملخصات لي فاتت 48 ساعة، ونعاودو نبرمجو التذكير (بعد 30 دقيقة) للأخرى الجديدة (تحت 6 ساعات) باش الزبون ما يتنساش
+for (const _pcPh of Object.keys(pendingConfirmations)) {
+  const _pcObj = pendingConfirmations[_pcPh];
+  if (!_pcObj || (_pcObj.createdAt && Date.now() - _pcObj.createdAt > 48 * 3600 * 1000)) { delete pendingConfirmations[_pcPh]; continue; }
+  if (_pcObj.createdAt && Date.now() - _pcObj.createdAt < 6 * 3600 * 1000) pendingConfirmTimers[_pcPh] = setTimeout(() => sendPendingConfirmReminder(_pcPh), SILENCE_TIMEOUT);
+}
 const verifySignature = (req) => { if(!APP_SECRET) return true; const sig=req.headers['x-hub-signature-256']; if(!sig) return false; const expected='sha256='+crypto.createHmac('sha256',APP_SECRET).update(JSON.stringify(req.body)).digest('hex'); return crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(expected)); };
 
 // ===== WEBSITE ORDER CONFIRMATION =====
@@ -3224,7 +3232,10 @@ app.post('/webhook', async (req,res) => {
           console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
           return;
         }
-        orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];} persistState();
+        orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];}
+        // ✅ إصلاح — حالة حقيقية (0606068306): إرسال الملخص بطيء (تأخير الكتابة)، والزبون كتب "H 24" قبل ما يتسجل pendingConfirmations — orderConfirmed كان ديجا true، فتعامل معاه البوط كطلب مؤكد ("التوصيل 24-48 ساعة، شكراً على ثقتك") وتحول للأدمين، والزبون ما ضغطش الزر وما تسجل حتى شي حاجة فالشيت. دبا كنسجلو الانتظار فالحين قبل إرسال الملخص
+        pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: (userLangPref[from] === 'french') ? 'french' : 'darija', createdAt: Date.now() };
+        persistState();
         console.log(`🎉 طلب مؤكد من ${from}`);
         // Send the summary text first (everything before CONFIRMED_ORDER:)
         const summaryText = reply.split('CONFIRMED_ORDER:')[0]
@@ -3241,7 +3252,7 @@ app.post('/webhook', async (req,res) => {
         else if (PRODUCT_IMAGES[colorFrPreview]) { try { await sendWhatsAppImage(from, colorFrPreview); await sleep(800); } catch(e){ console.error('❌ صورة التأكيد:', e.message); } }
         // Store pending and send interactive buttons
         const _btnIsFr = (userLangPref[from] === 'french');
-        pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija' };
+        pendingConfirmations[from] = { reply, step: 'awaiting_button', lang: _btnIsFr ? 'french' : 'darija', createdAt: Date.now() }; persistState();
         // ✅ إضافة جديدة — تذكير إلا الزبون وصل هنا (ملخص + أزرار) وما ضغطش على أي زر بعد نص ساعة
         clearPendingConfirmTimer(from);
         pendingConfirmTimers[from] = setTimeout(() => sendPendingConfirmReminder(from), SILENCE_TIMEOUT);
