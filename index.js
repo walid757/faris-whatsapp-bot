@@ -1105,7 +1105,7 @@ const priceChangeApologyText = (lang) => lang === 'french'
 // ✅ إضافة جديدة — لائحة مدن Ozon الكاملة (endpoint عمومي بلا مفتاح: https://api.ozonexpress.ma/cities — 800+ مدينة). CITY_ID_MAP فيه غير ~190 مدينة، فطلبيات (Sidi Yahya El Gharb، Aknoul...) كانت كتوقف بـ"مدينة غير معروفة" ولا كتشحن — دبا كنجيبو اللائحة الكاملة ونستعملوها كاحتياط بعد CITY_ID_MAP
 let _ozonCities = [];
 let _ozonCitiesLoadedAt = 0;
-const _normCityLoose = (s) => stripAccents(String(s || '')).toLowerCase().replace(/yahya|yahia|yhya/g, 'yahia').replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+const _normCityLoose = (s) => stripAccents(String(s || '')).toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/yahya|yahia|yhya/g, 'yahia').replace(/[^a-z0-9\u0600-\u06FF]/g, '');
 const ensureOzonCities = async () => {
   if (_ozonCities.length && Date.now() - _ozonCitiesLoadedAt < 6 * 3600 * 1000) return;
   try {
@@ -1114,6 +1114,7 @@ const ensureOzonCities = async () => {
     if (list.length) {
       _ozonCities = list.map(c => { const name = String(c.NAME || '').trim(); const base = name.split(/\s*[-–]\s*/)[0]; return { id: c.ID, name, norm: _normCityLoose(name), base: _normCityLoose(base) }; });
       _ozonCitiesLoadedAt = Date.now();
+      try { _rebuildCityAliasIndex(); } catch (e) {}
       console.log(`✅ لائحة مدن Ozon: ${_ozonCities.length} مدينة`);
     }
   } catch (e) { console.error('⚠️ ما قدرناش نجيبو لائحة مدن Ozon:', e.message); }
@@ -1121,6 +1122,7 @@ const ensureOzonCities = async () => {
 const findOzonCityId = (rawCity) => {
   const q = _normCityLoose(rawCity);
   if (!q || q.length < 3 || !_ozonCities.length) return null;
+  if (typeof _genericCityPrefix !== 'undefined' && _genericCityPrefix.has(q)) return null; // بادئة عامة (Sidi/Ait/Oulad...) ماشي مدينة
   const exact = _ozonCities.find(c => c.norm === q);
   if (exact) return exact.id;
   const baseHits = _ozonCities.filter(c => c.base === q);
@@ -1414,9 +1416,116 @@ const resolveOzonCityViaClaude = async (cityText, addressText) => {
     const _hit = _j && _ozonCities.find(c => c.id === Number(_j.id));
     const _out = (_hit && _j.confidence === 'high') ? _hit.id : null;
     _ozonCityCache[_key] = _out;
+    if (_out) _learnCityAlias(cityText, _out);
     console.log('🏙️ Claude حدد المدينة: "' + cityText + '" ← ' + (_hit ? _hit.name + ' (' + _hit.id + ', ' + _j.confidence + ')' : 'null'));
     return _out;
   } catch (e) { console.error('⚠️ resolveOzonCityViaClaude:', e.message); return null; }
+};
+// ✅ إضافة جديدة — جدول أسماء بديلة لكل مدن Ozon (801): عربية، فرنسية، دارجة بالحروف اللاتينية (arabizi)، أخطاء إملائية. كيتبنى مرة وحدة بـClaude (/build-city-aliases) ويتحفظ فالملف الدائم، وكيتعلم أوتوماتيكياً كل كتابة جديدة يحلها Claude
+const CITY_ALIAS_FILE = fs.existsSync('/data') ? path.join('/data', 'city_aliases.json') : path.join(__dirname, 'city_aliases.json');
+let _cityAliasRaw = {};     // id -> [aliases]
+let _cityAliasIndex = {};   // normalized alias -> id
+let _cityAliasBuild = { running: false, done: 0, total: 0, error: null };
+const _cityFillers = new Set(['centre', 'center', 'ville', 'city', 'medina', 'madina', 'douar', 'dour', 'hay', 'lhay', 'commune', 'province', 'region', 'route', 'rue', 'مدينة', 'مركز', 'دوار', 'حي', 'قرية', 'جماعة', 'اقليم', 'إقليم', 'مدينه', 'ولاية']);
+const _genericCityPrefix = new Set(['sidi', 'sid', 'ait', 'oulad', 'ouled', 'ould', 'moulay', 'beni', 'bni', 'ain', 'ayn', 'lalla', 'had', 'souk', 'dar', 'ras', 'bir', 'tleta', 'tnine', 'tlat', 'jemaa', 'ahl', 'sidibou', 'bouzid']);
+const _cityPhonetic = (s) => {
+  let t = stripAccents(String(s || '')).toLowerCase().replace(/[23]/g, 'a').replace(/7/g, 'h').replace(/[95]/g, 'k').replace(/q/g, 'k').replace(/[^a-z]/g, '');
+  if (t.length < 4) return '';
+  t = t.replace(/kh/g, 'k').replace(/gh/g, 'g').replace(/ch|sh/g, 'x').replace(/ou|w/g, 'o').replace(/ph/g, 'f');
+  const first = t[0];
+  t = first + t.slice(1).replace(/[aeiouy]/g, '');
+  t = t.replace(/(.)\1+/g, '$1');
+  return t.length >= 3 ? t : '';
+};
+const _rebuildCityAliasIndex = () => {
+  const idx = {};
+  const put = (alias, id) => {
+    const k = _normCityLoose(alias);
+    if (!k || k.length < 3) return;
+    if (idx[k] === undefined) idx[k] = id; else if (idx[k] !== id) idx[k] = -1; // -1 = مبهم (نفس الكتابة لأكثر من مدينة)
+    const noAl = k.replace(/^(al|el|l)(?=[a-z؀-ۿ]{3})/, '').replace(/^ال(?=.{3})/, '');
+    if (noAl !== k && noAl.length >= 3) { if (idx[noAl] === undefined) idx[noAl] = id; else if (idx[noAl] !== id) idx[noAl] = -1; }
+  };
+  for (const c of _ozonCities) { put(c.name, c.id); const _b = c.name.split(/\s*[-–]\s*/)[0]; if (!_genericCityPrefix.has(_normCityLoose(_b))) put(_b, c.id); }
+  for (const id of Object.keys(_cityAliasRaw)) for (const a of _cityAliasRaw[id]) put(a, Number(id));
+  _cityAliasIndex = idx;
+};
+try { if (fs.existsSync(CITY_ALIAS_FILE)) { _cityAliasRaw = JSON.parse(fs.readFileSync(CITY_ALIAS_FILE, 'utf8')) || {}; } } catch (e) { console.error('⚠️ ما قدرناش نقراو city_aliases.json:', e.message); }
+let _cityAliasSaveTimer = null;
+const _saveCityAliases = () => { if (_cityAliasSaveTimer) return; _cityAliasSaveTimer = setTimeout(() => { _cityAliasSaveTimer = null; try { fs.writeFileSync(CITY_ALIAS_FILE, JSON.stringify(_cityAliasRaw)); } catch (e) { console.error('⚠️ ما قدرناش نحفظو city_aliases.json:', e.message); } }, 2000); };
+const _learnCityAlias = (text, id) => {
+  try {
+    const t = String(text || '').trim();
+    if (!t || !id) return;
+    const list = _cityAliasRaw[id] || (_cityAliasRaw[id] = []);
+    if (!list.includes(t)) { list.push(t); _rebuildCityAliasIndex(); _saveCityAliases(); }
+  } catch (e) {}
+};
+// مرشحات من نص الزبون: النص كامل، بلا كلمات حشو (centre ville، حي، دوار...)، وأول كلمتين/ثلاث كلمات
+const _cityCandidates = (text) => {
+  const raw = String(text || '').replace(/[()،,;:.\/\\]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const out = [raw];
+  const words = raw.split(' ').filter(Boolean);
+  const kept = words.filter(w => !_cityFillers.has(w.toLowerCase()));
+  if (kept.length && kept.length !== words.length) out.push(kept.join(' '));
+  for (const n of [3, 2]) { if (kept.length > n) out.push(kept.slice(0, n).join(' ')); }
+  return [...new Set(out)].filter(x => x.length >= 3);
+};
+const resolveCityByAlias = (text) => {
+  if (!_ozonCities.length) return null;
+  const cands = _cityCandidates(text);
+  for (const c of cands) {
+    const k = _normCityLoose(c);
+    const id = _cityAliasIndex[k];
+    if (id !== undefined && id !== -1) return id;
+  }
+  // مطابقة صوتية (هيكل الحروف الساكنة) — كنقبلوها غير إلا كانت وحيدة فكل اللائحة
+  for (const c of cands) {
+    const ph = _cityPhonetic(c);
+    if (ph.length < 4) continue;
+    const hits = new Set();
+    for (const o of _ozonCities) { const _ob = o.name.split(/\s*[-–]\s*/)[0]; if (_cityPhonetic(o.name) === ph || (!_genericCityPrefix.has(_normCityLoose(_ob)) && _cityPhonetic(_ob) === ph)) hits.add(o.id); }
+    for (const id of Object.keys(_cityAliasRaw)) for (const a of _cityAliasRaw[id]) { if (_cityPhonetic(a) === ph) hits.add(Number(id)); }
+    if (hits.size === 1) return [...hits][0];
+  }
+  return null;
+};
+// بناء/تحديث جدول الأسماء البديلة بـClaude لكل مدن Ozon (مرة وحدة، كيخدم فالخلفية)
+const buildCityAliases = async () => {
+  if (_cityAliasBuild.running) return;
+  _cityAliasBuild = { running: true, done: 0, total: 0, error: null };
+  try {
+    await ensureOzonCities();
+    const cities = _ozonCities.slice();
+    _cityAliasBuild.total = cities.length;
+    const BATCH = 40;
+    const _system = 'You generate the ways Moroccan customers write place names in WhatsApp messages. For each input line ID|NAME (NAME is an official Ozon Express city/village/area; a suffix after "-" is only the parent province, do NOT include it) return up to 10 distinct variants that people actually type: the Arabic script name(s) (standard and colloquial), French spellings, Latin Darija/arabizi spellings (digits like 3 7 9 are common, e.g. l3youn, 9asr), the same with/without the article (el/al/l/ال), and common misspellings. Always include at least one Arabic script name. Answer with ONE JSON object only mapping each ID (string) to an array of strings. No explanations.';
+    for (let i = 0; i < cities.length; i += BATCH) {
+      const slice = cities.slice(i, i + BATCH);
+      let parsed = null;
+      for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+        try {
+          const r = await axios.post('https://api.anthropic.com/v1/messages', { model: 'claude-haiku-4-5-20251001', max_tokens: 8000, system: [{ type: 'text', text: _system }], messages: [{ role: 'user', content: slice.map(c => c.id + '|' + c.name).join('\n') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 });
+          const m = String(r.data.content[0].text || '').match(/\{[\s\S]*\}/);
+          parsed = m ? JSON.parse(m[0]) : null;
+        } catch (e) { console.error('⚠️ buildCityAliases batch ' + i + ':', e.message); }
+      }
+      if (parsed) {
+        for (const c of slice) {
+          const arr = parsed[String(c.id)];
+          if (Array.isArray(arr)) {
+            const cur = _cityAliasRaw[c.id] || (_cityAliasRaw[c.id] = []);
+            for (const a of arr) { const t = String(a || '').trim(); if (t && t.length <= 60 && !cur.includes(t)) cur.push(t); }
+          }
+        }
+      }
+      _cityAliasBuild.done = Math.min(cities.length, i + BATCH);
+      try { fs.writeFileSync(CITY_ALIAS_FILE, JSON.stringify(_cityAliasRaw)); } catch (e) {}
+      _rebuildCityAliasIndex();
+    }
+    console.log('✅ city aliases: ' + Object.keys(_cityAliasRaw).length + ' مدينة، ' + Object.keys(_cityAliasIndex).length + ' كتابة');
+  } catch (e) { _cityAliasBuild.error = e.message; console.error('❌ buildCityAliases:', e.message); }
+  _cityAliasBuild.running = false;
 };
 const resolveCityStrict = (c) => {
   const q = _normCityLoose(c);
@@ -1428,7 +1537,7 @@ const resolveCityStrict = (c) => {
   const alias = CITY_FR[c.toLowerCase()];
   if (alias && CITY_ID_MAP[alias]) return CITY_ID_MAP[alias];
   if (q) {
-    const base = _ozonCities.filter(o => o.base === q);
+    const base = _genericCityPrefix.has(q) ? [] : _ozonCities.filter(o => o.base === q);
     if (base.length === 1) return base[0].id;
   }
   return null;
@@ -1438,7 +1547,7 @@ const resolveCityIdFull = async (city, address) => {
   const c = (city || '').trim();
   if (!c) return null;
   await ensureOzonCities();
-  return resolveCityStrict(c) || await resolveOzonCityViaClaude(c, address) || getCityId(normalizeCityFr(c)) || findOzonCityId(c);
+  return resolveCityStrict(c) || resolveCityByAlias(c) || findOzonCityId(c) || await resolveOzonCityViaClaude(c, address) || getCityId(normalizeCityFr(c));
 };
 const isCityUnresolvableAsync = async (city, address) => {
   const c = (city || '').trim();
@@ -3399,6 +3508,18 @@ app.post('/resolve-city', async (req, res) => {
   if (!city) return res.status(400).json({ error: 'city ضروري' });
   try { const id = await resolveCityIdFull(String(city), String(address || '')); res.json({ id: id || null }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ✅ إضافة جديدة — بناء جدول الأسماء البديلة (عربية/فرنسية/دارجة لاتينية) لكل مدن Ozon بـClaude (مرة وحدة، فالخلفية)، وحالة التقدم
+app.post('/build-city-aliases', (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  if (!_cityAliasBuild.running) buildCityAliases();
+  res.json({ started: true, status: _cityAliasBuild });
+});
+app.post('/city-aliases-status', (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  res.json({ build: _cityAliasBuild, cities: Object.keys(_cityAliasRaw).length, aliases: Object.keys(_cityAliasIndex).length, ozon: _ozonCities.length });
 });
 app.post('/debug-customer-state', (req, res) => {
   const { phone, secret } = req.body || {};
