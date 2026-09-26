@@ -1410,7 +1410,7 @@ const resolveOzonCityViaClaude = async (cityText, addressText) => {
   try {
     const _list = _ozonCities.map(c => c.id + '|' + c.name).join('\n');
     const _system = 'You map a Moroccan customer place name to the correct delivery city id of Ozon Express. The customer text may be Arabic, Darija, French or misspelled Latin. Below is the COMPLETE list of Ozon cities, villages and areas as ID|NAME (a suffix like -TAZA or -berkan is the parent city/province). Pick the entry that matches the customer place; use the address as context to disambiguate. If the exact village/area is not in the list but its parent or nearest listed city clearly is, pick that. NEVER invent an id; if you are not sure, return null. Answer with ONE JSON object only: {"id": <number or null>, "confidence": "high" or "low"}.\n\n' + _list;
-    const _res = await axios.post('https://api.anthropic.com/v1/messages', { model: 'claude-haiku-4-5-20251001', max_tokens: 60, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: 'city: ' + String(cityText || '') + '\naddress: ' + String(addressText || '') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
+    const _res = await axios.post('https://api.anthropic.com/v1/messages', { model: CITY_STRONG_MODEL, max_tokens: 60, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: 'city: ' + String(cityText || '') + '\naddress: ' + String(addressText || '') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
     const _m = String(_res.data.content[0].text || '').match(/\{[\s\S]*\}/);
     const _j = _m ? JSON.parse(_m[0]) : null;
     const _hit = _j && _ozonCities.find(c => c.id === Number(_j.id));
@@ -1528,6 +1528,8 @@ const buildCityAliases = async () => {
   _cityAliasBuild.running = false;
 };
 // ✅ إضافة جديدة — تدقيق جدول الأسماء البديلة: كنعطيو لـClaude كل كتابة (بدون ما نقولو ليه أي مدينة كنتسناو) مع لائحة Ozon الكاملة، وإلا جاوب بمدينة مختلفة على لي فالجدول كنحيدو هاد الكتابة — باش ما تتشحنش طلبية لمدينة غلط بسبب كتابة بديلة مولدة بالغلط
+// ✅ إضافة جديدة — موديل أقوى (Sonnet) للتدقيق وللمدن الغامضة: Haiku كان كيغلط فأسماء متقاربة (عين اللوح ← عين السبع، سوق الأربعاء ← سوق الثلاثاء)
+const CITY_STRONG_MODEL = 'claude-sonnet-5';
 let _cityAliasVerify = { running: false, done: 0, total: 0, removed: 0, error: null, sample: [] };
 const verifyCityAliases = async () => {
   if (_cityAliasVerify.running) return;
@@ -1545,7 +1547,7 @@ const verifyCityAliases = async () => {
       let out = null;
       for (let attempt = 0; attempt < 2 && !out; attempt++) {
         try {
-          const r = await axios.post('https://api.anthropic.com/v1/messages', { model: 'claude-haiku-4-5-20251001', max_tokens: 4000, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: slice.map((p, k) => (k + 1) + '. ' + p.alias).join('\n') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 120000 });
+          const r = await axios.post('https://api.anthropic.com/v1/messages', { model: CITY_STRONG_MODEL, max_tokens: 4000, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: slice.map((p, k) => (k + 1) + '. ' + p.alias).join('\n') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 120000 });
           const m = String(r.data.content[0].text || '').match(/\[[\s\S]*\]/);
           out = m ? JSON.parse(m[0]) : null;
         } catch (e) { console.error('⚠️ verifyCityAliases batch ' + i + ':', e.message); }
