@@ -1527,6 +1527,48 @@ const buildCityAliases = async () => {
   } catch (e) { _cityAliasBuild.error = e.message; console.error('❌ buildCityAliases:', e.message); }
   _cityAliasBuild.running = false;
 };
+// ✅ إضافة جديدة — تدقيق جدول الأسماء البديلة: كنعطيو لـClaude كل كتابة (بدون ما نقولو ليه أي مدينة كنتسناو) مع لائحة Ozon الكاملة، وإلا جاوب بمدينة مختلفة على لي فالجدول كنحيدو هاد الكتابة — باش ما تتشحنش طلبية لمدينة غلط بسبب كتابة بديلة مولدة بالغلط
+let _cityAliasVerify = { running: false, done: 0, total: 0, removed: 0, error: null, sample: [] };
+const verifyCityAliases = async () => {
+  if (_cityAliasVerify.running) return;
+  _cityAliasVerify = { running: true, done: 0, total: 0, removed: 0, error: null, sample: [] };
+  try {
+    await ensureOzonCities();
+    const pairs = [];
+    for (const id of Object.keys(_cityAliasRaw)) for (const a of _cityAliasRaw[id]) pairs.push({ id: Number(id), alias: a });
+    _cityAliasVerify.total = pairs.length;
+    const _list = _ozonCities.map(c => c.id + '|' + c.name).join('\n');
+    const _system = 'You map Moroccan place names, as customers write them (Arabic, French, Darija, arabizi), to the correct Ozon Express delivery entry. Below is the COMPLETE list of Ozon entries as ID|NAME (a suffix after "-" is the parent province). For each numbered input return the ID of the entry it refers to, or null if you are not sure. Pay attention to near-identical names of different places (for example Souk Larbaa vs Souk Tlet). Answer with ONE JSON array only, like [{"i":1,"id":123},{"i":2,"id":null}].\n\n' + _list;
+    const BATCH = 80;
+    for (let i = 0; i < pairs.length; i += BATCH) {
+      const slice = pairs.slice(i, i + BATCH);
+      let out = null;
+      for (let attempt = 0; attempt < 2 && !out; attempt++) {
+        try {
+          const r = await axios.post('https://api.anthropic.com/v1/messages', { model: 'claude-haiku-4-5-20251001', max_tokens: 4000, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: slice.map((p, k) => (k + 1) + '. ' + p.alias).join('\n') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 120000 });
+          const m = String(r.data.content[0].text || '').match(/\[[\s\S]*\]/);
+          out = m ? JSON.parse(m[0]) : null;
+        } catch (e) { console.error('⚠️ verifyCityAliases batch ' + i + ':', e.message); }
+      }
+      if (out) {
+        for (const o of out) {
+          const p = slice[(Number(o.i) || 0) - 1];
+          if (!p || o.id === null || o.id === undefined) continue;
+          if (Number(o.id) !== p.id) {
+            const cur = _cityAliasRaw[p.id] || [];
+            const at = cur.indexOf(p.alias);
+            if (at >= 0) { cur.splice(at, 1); _cityAliasVerify.removed++; if (_cityAliasVerify.sample.length < 40) _cityAliasVerify.sample.push(p.alias + ' (' + p.id + ' vs ' + o.id + ')'); }
+          }
+        }
+      }
+      _cityAliasVerify.done = Math.min(pairs.length, i + BATCH);
+    }
+    try { fs.writeFileSync(CITY_ALIAS_FILE, JSON.stringify(_cityAliasRaw)); } catch (e) {}
+    _rebuildCityAliasIndex();
+    console.log('✅ verifyCityAliases: حيدنا ' + _cityAliasVerify.removed + ' كتابة مشكوك فيها من ' + pairs.length);
+  } catch (e) { _cityAliasVerify.error = e.message; console.error('❌ verifyCityAliases:', e.message); }
+  _cityAliasVerify.running = false;
+};
 const resolveCityStrict = (c) => {
   const q = _normCityLoose(c);
   if (q) {
@@ -3516,10 +3558,16 @@ app.post('/build-city-aliases', (req, res) => {
   if (!_cityAliasBuild.running) buildCityAliases();
   res.json({ started: true, status: _cityAliasBuild });
 });
+app.post('/verify-city-aliases', (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  if (!_cityAliasVerify.running) verifyCityAliases();
+  res.json({ started: true });
+});
 app.post('/city-aliases-status', (req, res) => {
   const { secret } = req.body || {};
   if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
-  res.json({ build: _cityAliasBuild, cities: Object.keys(_cityAliasRaw).length, aliases: Object.keys(_cityAliasIndex).length, ozon: _ozonCities.length });
+  res.json({ build: _cityAliasBuild, verify: _cityAliasVerify, cities: Object.keys(_cityAliasRaw).length, aliases: Object.keys(_cityAliasIndex).length, ozon: _ozonCities.length });
 });
 app.post('/debug-customer-state', (req, res) => {
   const { phone, secret } = req.body || {};
