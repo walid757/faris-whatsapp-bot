@@ -1398,6 +1398,55 @@ const isCityUnresolvable = (city) => {
   if (!c || !_ozonCities.length) return false;
   return !(getCityId(normalizeCityFr(c)) || findOzonCityId(c));
 };
+// ✅ إضافة جديدة — تحديد مدينة Ozon (من الـ801 مدينة/قرية/حي) لأي اسم يكتبو الزبون (عربية/دارجة/لاتينية/خطأ إملائي) — الخطوات: (1) CITY_ID_MAP + اللائحة الكاملة بالاسم، (2) إلا ما تلقاش: Claude كيختار من لائحة Ozon بالسياق ديال العنوان. النتيجة كتتخزن باش ما نعاودوش الاستدعاء
+const _ozonCityCache = {};
+const resolveOzonCityViaClaude = async (cityText, addressText) => {
+  await ensureOzonCities();
+  if (!_ozonCities.length || !CLAUDE_API_KEY) return null;
+  const _key = _normCityLoose(cityText);
+  if (Object.prototype.hasOwnProperty.call(_ozonCityCache, _key)) return _ozonCityCache[_key];
+  try {
+    const _list = _ozonCities.map(c => c.id + '|' + c.name).join('\n');
+    const _system = 'You map a Moroccan customer place name to the correct delivery city id of Ozon Express. The customer text may be Arabic, Darija, French or misspelled Latin. Below is the COMPLETE list of Ozon cities, villages and areas as ID|NAME (a suffix like -TAZA or -berkan is the parent city/province). Pick the entry that matches the customer place; use the address as context to disambiguate. If the exact village/area is not in the list but its parent or nearest listed city clearly is, pick that. NEVER invent an id; if you are not sure, return null. Answer with ONE JSON object only: {"id": <number or null>, "confidence": "high" or "low"}.\n\n' + _list;
+    const _res = await axios.post('https://api.anthropic.com/v1/messages', { model: 'claude-haiku-4-5-20251001', max_tokens: 60, system: [{ type: 'text', text: _system, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: 'city: ' + String(cityText || '') + '\naddress: ' + String(addressText || '') }] }, { headers: { 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31', 'content-type': 'application/json' }, timeout: 20000 });
+    const _m = String(_res.data.content[0].text || '').match(/\{[\s\S]*\}/);
+    const _j = _m ? JSON.parse(_m[0]) : null;
+    const _hit = _j && _ozonCities.find(c => c.id === Number(_j.id));
+    const _out = (_hit && _j.confidence === 'high') ? _hit.id : null;
+    _ozonCityCache[_key] = _out;
+    console.log('🏙️ Claude حدد المدينة: "' + cityText + '" ← ' + (_hit ? _hit.name + ' (' + _hit.id + ', ' + _j.confidence + ')' : 'null'));
+    return _out;
+  } catch (e) { console.error('⚠️ resolveOzonCityViaClaude:', e.message); return null; }
+};
+const resolveCityStrict = (c) => {
+  const q = _normCityLoose(c);
+  if (q) {
+    const ex = _ozonCities.filter(o => o.norm === q);
+    if (ex.length) return ex[0].id;
+  }
+  if (CITY_ID_MAP[c]) return CITY_ID_MAP[c];
+  const alias = CITY_FR[c.toLowerCase()];
+  if (alias && CITY_ID_MAP[alias]) return CITY_ID_MAP[alias];
+  if (q) {
+    const base = _ozonCities.filter(o => o.base === q);
+    if (base.length === 1) return base[0].id;
+  }
+  return null;
+};
+// ✅ إصلاح — الترتيب: (1) مطابقة صارمة (اسم Ozon بالضبط / alias معروف / اسم أساسي فريد) (2) Claude من لائحة Ozon الكاملة (3) المطابقة التقريبية القديمة كاحتياط — المطابقة القديمة (substring) كانت كتوجه 309 من 801 قرية/حي لمدينة كبرى غلط (مثلاً "sidi hajjaj-casa" ← Casablanca)
+const resolveCityIdFull = async (city, address) => {
+  const c = (city || '').trim();
+  if (!c) return null;
+  await ensureOzonCities();
+  return resolveCityStrict(c) || await resolveOzonCityViaClaude(c, address) || getCityId(normalizeCityFr(c)) || findOzonCityId(c);
+};
+const isCityUnresolvableAsync = async (city, address) => {
+  const c = (city || '').trim();
+  if (!c) return false;
+  await ensureOzonCities();
+  if (!_ozonCities.length) return false;
+  return !(await resolveCityIdFull(c, address));
+};
 const isPhoneFabricated = (phone, customerText) => {
   const p = (phone || '').trim();
   if (!p || p === 'PHONE_FROM_WHATSAPP') return false; // الحالة العادية: نفس رقم واتساب
@@ -2403,7 +2452,7 @@ const sendOrderTemplate = async (to, name, product, price) => {
 
 const addParcelDirect = async (order, finalAddress) => {
   await ensureOzonCities();
-  const cityId = getCityId(normalizeCityFr(order.city || '')) || findOzonCityId(order.city || '');
+  const cityId = await resolveCityIdFull(order.city || '', finalAddress || order.address || '');
   // ✅ إضافة جديدة — إلا المدينة ماعرفناهاش، ما نشحنوش (كان كيشحن بصمت للدار البيضاء) — نرجعو فشل واضح باش يتنبه الأدمين والزبون
   if (!cityId) {
     console.error(`❌ مدينة غير معروفة — ما تشحنش: "${order.city}"`);
@@ -3179,7 +3228,7 @@ app.post('/webhook', async (req,res) => {
             // ✅ إضافة جديدة — حالة حقيقية خطيرة: زبون قال "من المضيق" وكلود بدلها بـ"Tétouan" (مدينة قريبة لكن مختلفة)، وحالة أخطر: زبون ما ذكر حتى مدينة والطلبية تأكدت بمدينة مختلقة بالكامل —
             // كنرفضو أي مدينة ماشي مذكورة بشكل من أشكالها فكلام الزبون الحقيقي
             else if (isCityFabricated(_cdCheck.city, _customerMsgsText)) _missingField = 'city';
-            else if (isCityUnresolvable(_cdCheck.city)) _missingField = 'cityUnknown';
+            else if (await isCityUnresolvableAsync(_cdCheck.city, _cdCheck.shipping_address)) _missingField = 'cityUnknown';
             // ✅ إضافة جديدة — إلا المقاس (أو أحد المقاسين فطلب الجوج) خارج 39-44 (مثلاً 45)، ما نأكدوش الطلب — المنتج ما كايناش فيه هاد المقاس أصلاً
             else if (_pdCheck.size && isInvalidSize(_pdCheck.size)) _missingField = 'size';
             // ✅ إصلاح — حالة حقيقية خطيرة: كلود خرج طلب مؤكد وحط فخانة المقاس كلمة "PENDING" (بلا أي رقم) بدل مقاس حقيقي —
@@ -3343,6 +3392,14 @@ app.post('/get-lang', (req, res) => {
 });
 
 // ✅ إضافة جديدة — endpoint تشخيصي للقراءة فقط: كنرجعو الحالة المحفوظة لرقم معين (تاريخ المحادثة، refuse/PDR، آخر حالة معروفة) — خدمة تدقيق حالات Refuse/PDR القديمة لي ماكاينش فاللوگ ديال Railway
+// ✅ إضافة جديدة — Apps Script (الشحن من الشيت) كان عندو غير 163 مدينة من 801 عند Ozon: دبا كيسول البوط على أي مدينة ما لقاهاش، ونفس دالة البوط (اللائحة الكاملة + Claude)
+app.post('/resolve-city', async (req, res) => {
+  const { secret, city, address } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  if (!city) return res.status(400).json({ error: 'city ضروري' });
+  try { const id = await resolveCityIdFull(String(city), String(address || '')); res.json({ id: id || null }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.post('/debug-customer-state', (req, res) => {
   const { phone, secret } = req.body || {};
   if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
