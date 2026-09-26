@@ -1591,7 +1591,7 @@ const resolveCityIdFull = async (city, address) => {
   const c = (city || '').trim();
   if (!c) return null;
   await ensureOzonCities();
-  return resolveCityStrict(c) || resolveCityByAlias(c) || findOzonCityId(c) || await resolveOzonCityViaClaude(c, address) || getCityId(normalizeCityFr(c));
+  return resolveCityStrict(c) || resolveCityByAlias(c) || findOzonCityId(c) || await resolveOzonCityViaClaude(c, address) || ((_ozonCities.length && CLAUDE_API_KEY) ? null : getCityId(normalizeCityFr(c))); // ✅ المطابقة القديمة التقريبية (normalizeCityFr) كانت كتوجه أسماء غير معروفة لمدينة قريبة الكتابة غلط (عين اللوح ← عين السبع) — كنستعملوها غير إلا لائحة Ozon/Claude غير متوفرين
 };
 const isCityUnresolvableAsync = async (city, address) => {
   const c = (city || '').trim();
