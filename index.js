@@ -1155,6 +1155,10 @@ const guardReply = (from, reply, customerText, lang) => {
     if (/(جوج|زوج|deux|paire|2\s*(?:bottines|حذاء|أحذية))/i.test(r) && /(stéphano|stephano|ستيفانو)/i.test(r) && !/gs\s?-?081/i.test(r)) {
       r = r.replace(/(?<![\d\-–])600(?![\d\-–])/g, '650');
     }
+    // (1b) حالة حقيقية: كلود خلط ثمن GS081 (350) مع Stéphano فرد حر (ماشي فتأكيد طلب) — Stéphano وحدو (بلا "جوج"، بلا GS081) خاصو 399 دائماً
+    else if (/(stéphano|stephano|ستيفانو)/i.test(r) && !/gs\s?-?081/i.test(r) && !/(جوج|زوج|deux|paire|2\s*(?:bottines|حذاء|أحذية))/i.test(r)) {
+      r = r.replace(/(?<![\d\-–])350(?![\d\-–])/g, '399');
+    }
     // (2) اللون: الزبون ذكر لون واحد فرسالتو، والرد كيسجل لون آخر بلا ما يذكر لونو
     const custColors = detectMentionedColors(customerText || '');
     if (custColors.length === 1 && /(نسجل|سجلت|صافي|je note|noté|je te r[ée]serve|r[ée]serv[ée])/i.test(r) && !/(فقط|seulement|uniquement|غير متوفر|ما كاينش|pas disponible|non disponible|gs\s?-?081)/i.test(r)) {
