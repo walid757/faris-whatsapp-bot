@@ -3333,7 +3333,11 @@ app.post('/webhook', async (req,res) => {
       // ✅ إصلاح — باغ خطير حقيقي (كاش حي، 4 زبناء فـ24 ساعة): كلود كيخرج البطاقة + رسالة "تم استلام طلبك" (ORDER_CONFIRM_MSG) وكيتقطع الرد قبل ما يوصل لـCONFIRMED_ORDER: JSON (غالباً max_tokens) — بما أن الماركر "CONFIRMED_ORDER:" غايب، الكود كيتعامل مع الرد كنص عادي: ما كاين حتى حارس، حتى زر، حتى كتابة فالشيت — والزبون كيتوصل بالنص الخام (فيه أحياناً بلاصة "PHONE_FROM_WHATSAPP" خام بلا تعويض) ويصدق بلي طلبو تأكد وهو ماتسجل فحتى بلاصة
       if (reply.includes('ORDER_CONFIRM_MSG_START') && !reply.includes('CONFIRMED_ORDER:')) {
         console.error(`🚨 تسرب تأكيد كاذب (رد مقطوع بلا CONFIRMED_ORDER:) ← ${from}`);
-        reply = reply.split('ORDER_CONFIRM_MSG_START')[0].replace(/[PAUSE(?::d+)?]s*$/, '').trim();
+        // ✅ إصلاح — تنبيه فوري للأدمين (بدل ما يتكشف غير فمراقبة يدوية بعد يوم كامل، بحال الحالات الأربعة لي فاتت) — يوصل بمجرد ما يوقع
+        try { sendText(ADMIN_PHONE, `🚨 تسرب تأكيد كاذب (بلا CONFIRMED_ORDER) — الزبون ممكن يكون فكر أن طلبو تأكد بينما ماتسجلش
+📞 ${formatPhone(from)}
+💬 "${reply.slice(0, 300)}"`); } catch (ae) {}
+        reply = reply.split('ORDER_CONFIRM_MSG_START')[0].replace(/\[PAUSE(?::\d+)?\]\s*$/, '').trim();
         const _fakeAsk = (lang === 'french') ? "Peux-tu me confirmer une dernière fois que tout est bon (produit, couleur, taille, ville, adresse) pour valider ta commande ? 😊" : "واش كلشي مزيان (المنتج، اللون، المقاس، المدينة، العنوان) باش نأكدو الطلب نهائياً؟ 😊";
         reply = reply ? (reply + ' [PAUSE] ' + _fakeAsk) : _fakeAsk;
       }
