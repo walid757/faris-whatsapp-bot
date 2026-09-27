@@ -3371,6 +3371,14 @@ app.post('/webhook', async (req,res) => {
             const _parsedCheck = JSON.parse(_previewJsonCheck);
             const _cdCheck = _parsedCheck.customer_data || {};
             const _pdCheck = _parsedCheck.product_data || {};
+            // ✅ إصلاح — حالة حقيقية (تنغير، عين بني مطهر): كلود مرة كيكتب البطاقة المقروءة صحيحة (📍 المدينة - العنوان) ولكن حقل city/shipping_address فـJSON كيخرج فارغ أو ناقص (تناقض داخلي فرد كلود) — كيتبلوكا الطلب بلا داعي رغم أن المدينة مذكورة بوضوح. كنرجعو للبطاقة المقروءة كاحتياط قبل ما نعتبروها ناقصة
+            try {
+              const _cardLoc = reply.split('CONFIRMED_ORDER:')[0].match(/📍\s*([^\n|]+?)\s*[-–]\s*([^\n|⚠]+)/);
+              if (_cardLoc) {
+                if (isMissingOrderField(_cdCheck.city)) { console.warn(`⚠️ city فارغ فـJSON، رجعنا للبطاقة: "${_cardLoc[1].trim()}" ← ${from}`); _cdCheck.city = _cardLoc[1].trim(); }
+                if (isMissingOrderField(_cdCheck.shipping_address)) { _cdCheck.shipping_address = _cardLoc[2].trim(); }
+              }
+            } catch (e) {}
             // ✅ إصلاح — استهلاك زايد بلا داعي: كان detectDeferredDateFromConversation (استدعاء Claude كامل) كيخدم فكل طلبية تقريباً — دبا زدنا فحص أولي رخيص (looksLikeFutureDateMention، regex بلا Claude) قبل، وما نستدعيوش الفحص المكلف إلا كان فيه إشارة أولية حقيقية لتاريخ
             let _detectedDeferredDate = null;
             if (!(_cdCheck.deferred_date||'').trim() && looksLikeFutureDateMention(_customerMsgsText)) {
@@ -3451,7 +3459,8 @@ app.post('/webhook', async (req,res) => {
                 : `سمح ليا، بغيت نتأكد أنك بغيتي Bottine cuir ${_pinInfo.nameAr} (${_pinInfo.price} درهم)؟ 😊`; })()
             : (_isFrMissing ? "Pardon, peux-tu me confirmer les infos de ta commande ? 😊" : "سمح ليا، بغيت نتأكد من معلومات الطلبية ديالك 😊");
           await sendHumanLike(from, _askMsg);
-          console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش`);
+          // ✅ إضافة جديدة — تسجيل الـJSON الخام لي خرج بيه كلود (خدمة تشخيص حالات بحال "تنغير"/"بني مطهر" — نعرفو بالضبط شنو كتب كلود فحقل city بدل التخمين)
+          console.log(`⚠️ طلب غير مكتمل من ${from} — ناقص: ${_missingField} — ما تأكدش | JSON خام: ${(_previewJsonCheck||'').slice(0,400)}`);
           return;
         }
         orderConfirmed.add(from); orderConfirmTimes[from] = Date.now(); if(followUpTimers[from]){clearTimeout(followUpTimers[from]);delete followUpTimers[from];}
