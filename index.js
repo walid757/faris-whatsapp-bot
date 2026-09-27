@@ -3586,6 +3586,14 @@ app.post('/verify-city-aliases', (req, res) => {
   if (!_cityAliasVerify.running) verifyCityAliases();
   res.json({ started: true });
 });
+// ✅ إضافة جديدة — إضافة كتابة بديلة واحدة يدوياً لمدينة (خدمة سد الثغرات لي طلعات فالاختبار الشامل: كازا، بني مطهر بلا "عين"، إلخ) بلا ما نعاودو نبني الجدول كامل
+app.post('/add-city-alias', async (req, res) => {
+  const { secret, cityId, alias } = req.body || {};
+  if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
+  if (!cityId || !alias) return res.status(400).json({ error: 'cityId و alias ضروريين' });
+  _learnCityAlias(String(alias), Number(cityId));
+  res.json({ success: true, cityId: Number(cityId), alias: String(alias) });
+});
 app.post('/city-aliases-status', (req, res) => {
   const { secret } = req.body || {};
   if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
