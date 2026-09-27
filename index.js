@@ -1391,6 +1391,30 @@ const detectLastMentionedColor = (from) => {
 };
 // ✅ إضافة جديدة — حالة حقيقية خطيرة: الزبون ما عطاش حتى عنوان حقيقي فكامل المحادثة، وكلود اختلق عنوان بحالو ("Byt Ghlam Hada Al Bareed Bank") وتشحنت بيه الطلبية —
 // كنتحققو أن على الأقل ثلث الكلمات المهمة فالعنوان لي خرج فـCONFIRMED_ORDER كاينة فعلاً فرسائل الزبون الحقيقية، وإلا اعتبرناه مختلق/غير موثوق
+// ✅ إضافة جديدة — حالة حقيقية (حسام): الزبون كتب العنوان بالعربية "حي نور"، وكلود سجلو فـconfirm_order مترجم/مكتوب بالحروف اللاتينية "Hay Noor" —
+// نفس المعنى بالضبط، ولكن isAddressFabricated كتقارن حرف بحرف (substring) فما تلقاش "hay"/"noor" داخل النص العربي للزبون وتبلوكي الطلب بلا داعي.
+// كنبنيو "هيكل صوتي" مقارن بين عربي ولاتيني (كيف الحروف الساكنة بلا حركات) باش نقبلو الكلمة المترجمة صوتياً، ماشي غير المطابقة الحرفية
+const _wordPhonetic = (s) => {
+  let t = String(s || '').trim();
+  if (!t) return '';
+  if (/[؀-ۿ]/.test(t)) {
+    t = t
+      .replace(/[ً-ٰٟـ]/g, '') // حركات وتطويل
+      .replace(/[إأآٱا]/g, '') // الألف كحرف علة كيتحيد (بحال a/e فاللاتينية)
+      .replace(/ة/g, 'h').replace(/[ىي]/g, '').replace(/و/g, '') // ي/و كحروف علة كيتحيدو
+      .replace(/ث/g, 's').replace(/ذ/g, 'z').replace(/ص/g, 's').replace(/ض/g, 'd')
+      .replace(/ط/g, 't').replace(/ظ/g, 'z').replace(/ق/g, 'k').replace(/ك/g, 'k')
+      .replace(/خ/g, 'kh').replace(/غ/g, 'gh').replace(/ش/g, 'ch').replace(/ج/g, 'j')
+      .replace(/ح/g, 'h').replace(/ع/g, '').replace(/ء/g, '')
+      .replace(/ب/g, 'b').replace(/ت/g, 't').replace(/د/g, 'd').replace(/ر/g, 'r')
+      .replace(/ز/g, 'z').replace(/س/g, 's').replace(/ف/g, 'f').replace(/ل/g, 'l')
+      .replace(/م/g, 'm').replace(/ن/g, 'n').replace(/ه/g, 'h');
+  } else {
+    t = stripAccents(t).toLowerCase().replace(/[^a-z]/g, '').replace(/kh/g, 'k').replace(/gh/g, 'g').replace(/ch|sh/g, 'c').replace(/ou/g, 'o').replace(/[aeiouy]/g, '');
+  }
+  t = t.replace(/(.)\1+/g, '$1');
+  return t.length >= 2 ? t : '';
+};
 const isAddressFabricated = (address, customerText) => {
   const addr = (address || '').trim();
   if (!addr) return false; // كايناها isMissingOrderField خاصة
@@ -1398,7 +1422,13 @@ const isAddressFabricated = (address, customerText) => {
   const addrWords = normalize(addr).split(' ').filter(w => w.length >= 3);
   if (addrWords.length === 0) return false;
   const custNorm = normalize(customerText || '');
-  const matchCount = addrWords.filter(w => custNorm.includes(w)).length;
+  // ✅ إضافة جديدة — كنقبلو كذلك المطابقة الصوتية (كلمة عربية ↔ نفسها مكتوبة بالحروف اللاتينية) — ماشي غير التطابق الحرفي
+  const custWordsPhonetic = custNorm.split(' ').map(_wordPhonetic).filter(Boolean);
+  const matchCount = addrWords.filter(w => {
+    if (custNorm.includes(w)) return true;
+    const wp = _wordPhonetic(w);
+    return wp && custWordsPhonetic.includes(wp);
+  }).length;
   return (matchCount / addrWords.length) < 0.34;
 };
 // ✅ إضافة جديدة — عكس CITY_FR (المدينة النهائية → لائحة الأسماء/الصيغ لي كيتقبلو بيها) — خدمة isCityFabricated تحت
