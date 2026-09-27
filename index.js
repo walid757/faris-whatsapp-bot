@@ -3325,11 +3325,18 @@ app.post('/webhook', async (req,res) => {
       const msgsWithLang = conversationHistory[from].slice(0,-1).concat([{role:'user',content:text+langNote+_bsuidNote}]);
       // ✅ إصلاح — زدنا timeout (كان بلا حدود، فحالة تعلق الاتصال بـClaude API كان الزبون كيبقى بلا رد نهائياً بلا حتى خطأ مسجل — حالة حقيقية: زبون عطى العنوان الكامل وبقي بلا جواب)
       // ✅ إضافة جديدة — كنحقنو تاريخ اليوم فـ block منفصل (بلا cache_control) باش كلود يقدر يفهم التواريخ النسبية (الطلبيات المؤجلة) بلا ما يخسر التخزين المؤقت ديال SYSTEM_PROMPT الكبير
-      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:500, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
+      const claudeRes = await axios.post('https://api.anthropic.com/v1/messages', { model:'claude-haiku-4-5-20251001', max_tokens:900, system:[{type:"text",text:SYSTEM_PROMPT,cache_control:{type:"ephemeral"}}, getTodayNote()], messages:msgsWithLang }, { headers:{'x-api-key':CLAUDE_API_KEY,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','content-type':'application/json'}, timeout: 25000 });
       let reply = fixStalePrice(claudeRes.data.content[0].text);
       if (needsPriceChangeApology(from) && !/(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(reply)) reply = priceChangeApologyText(lang) + reply;
       // ✅ إضافة جديدة — حارس على الرد (ثمن جوج Stéphano، لون مبدل، تأكيد/وعد كاذب) قبل الإرسال والتخزين فالتاريخ
       reply = guardReply(from, reply, text, lang);
+      // ✅ إصلاح — باغ خطير حقيقي (كاش حي، 4 زبناء فـ24 ساعة): كلود كيخرج البطاقة + رسالة "تم استلام طلبك" (ORDER_CONFIRM_MSG) وكيتقطع الرد قبل ما يوصل لـCONFIRMED_ORDER: JSON (غالباً max_tokens) — بما أن الماركر "CONFIRMED_ORDER:" غايب، الكود كيتعامل مع الرد كنص عادي: ما كاين حتى حارس، حتى زر، حتى كتابة فالشيت — والزبون كيتوصل بالنص الخام (فيه أحياناً بلاصة "PHONE_FROM_WHATSAPP" خام بلا تعويض) ويصدق بلي طلبو تأكد وهو ماتسجل فحتى بلاصة
+      if (reply.includes('ORDER_CONFIRM_MSG_START') && !reply.includes('CONFIRMED_ORDER:')) {
+        console.error(`🚨 تسرب تأكيد كاذب (رد مقطوع بلا CONFIRMED_ORDER:) ← ${from}`);
+        reply = reply.split('ORDER_CONFIRM_MSG_START')[0].replace(/[PAUSE(?::d+)?]s*$/, '').trim();
+        const _fakeAsk = (lang === 'french') ? "Peux-tu me confirmer une dernière fois que tout est bon (produit, couleur, taille, ville, adresse) pour valider ta commande ? 😊" : "واش كلشي مزيان (المنتج، اللون، المقاس، المدينة، العنوان) باش نأكدو الطلب نهائياً؟ 😊";
+        reply = reply ? (reply + ' [PAUSE] ' + _fakeAsk) : _fakeAsk;
+      }
       // ✅ إضافة جديدة — حذف CONFIRMED_ORDER من التاريخ لتوفير الـ tokens
       const replyForHistory = stripConfirmedOrderJSON(reply).replace(/ORDER_CONFIRM_MSG_START[\s\S]*?ORDER_CONFIRM_MSG_END/, '').trim();
       conversationHistory[from].push({role:'assistant',content:replyForHistory});
