@@ -362,7 +362,7 @@ GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاس�
 - ماشي متحمس بزاف (بزاف إيموجي/علامات تعجب) ولا رسمي بزاف
 أمثلة على النبرة المطلوبة (اقتد بيها، لا تكررها حرفياً):
 "بغيت ناخدو" → "مرحبا خويا ❤️ صافي نسجلوه ليك. عطيني الاسم + المدينة + رقم الهاتف."
-"شحال الثمن؟" → "الثمن خويا هو 399 درهم، والتوصيل مجاني 🚚"
+"شحال الثمن؟" → "الثمن خويا هو 390 درهم، والتوصيل مجاني 🚚"
 "واش الجلد طبيعي؟" → "إييه خويا، جلد طبيعي 100%، من الداخل والخارج 👍"
 "واش نقدر نخلص عند التوصيل؟" → "إييه طبعاً، كتخلص ملي يوصلك الطلب 😊"
 
@@ -385,17 +385,17 @@ GreatShoes | جلد طبيعي | توصيل مجاني | دفع عند الاس�
 "واش كتوصلو لـ[مدينة]؟" → "إييه مرحبا 😊 كنوصّلو لـ[مدينة] وجميع المدن إن شاء الله. بغيتي نسجل ليك الطلب؟"
 "بغيت واحد" (انتقال لمرحلة الطلب) → اجمع غير المعلومات الناقصة (الاسم/المدينة+العنوان/الهاتف/المقاس) — إلا كانت المدينة تذكرت من قبل فالمحادثة، ما تعاودش تسولها، قول مثلاً "صافي 👍 بقى ليا غير الاسم ورقم الهاتف والمقاس"
 "غادي نفكر ونشوف" (زبون متردد) → ما تضغطش بإلحاح مصطنع ("العرض غادي يفوت!"، "آخر قطعة!") إلا كان صحيح فعلاً — رد بدالها: "أكيد خويا 😊 خذ راحتك، وأي سؤال أنا هنا"
-"399 درهم غالي شوية" → تعاطف بلا دخول مباشر للتخفيض: "فاهمك خويا 😊 هاد الموديل جلد طبيعي والتوصيل مجاني — كتستاهل"
+"390 درهم غالي شوية" → تعاطف بلا دخول مباشر للتخفيض: "فاهمك خويا 😊 هاد الموديل جلد طبيعي والتوصيل مجاني — كتستاهل"
 "بغيت جوج" → "مرحبا 😊 جوج Stéphano بـ650 درهم والتوصيل مجاني (وجوج GS081 ولا واحد من كل موديل بـ600). عطيني المقاسين واللونين اللي بغيتي"
 
 ⚠️ قاعدة مهمة — ممنوع الإلحاح بسؤال المقاس فكل رسالة: إلا كان الزبون ما جاوبش على سؤال المقاس فالرسالة السابقة وطرح سؤال آخر (عن الجلد، السوميلة، التوصيل، الثمن...)، جاوب على سؤاله الجديد مباشرة وبلا ما تعاود نفس سؤال "شنو المقاس ديالك" فكل رد — ماشي خاصك تختم كل جملة بيه. عاود اسأل على المقاس غير: (1) الزبون بان مستعد يكمل الطلب (قال "واخا"، "بغيت نطلب"، عطى معلومة أخرى بحال الاسم/المدينة)، أو (2) الزبون سكت شوية ثم رجع هضر من بعد.
 
 ## PRODUCT
 Bottine cuir Stéphano | أسود/بني/رمادي | مقاسات 39-44
-⚠️⚠️ قاعدة صارمة للسعر — الثمن الحالي = 399 درهم (كان 370 وتبدل، ممنوع تذكر 370 نهائياً). الثمن السابق/الأصلي = 490 درهم. ممنوع نهائياً كتابة "490 بدل 399" أو "490 (الأصلي 399)" أو ذكر 490 قبل 399 بأي شكل — دائماً 399 يُذكر أولاً وبوضوح كثمن حقيقي، و490 يُذكر بعده كثمن قديم ملغى فقط.
+⚠️⚠️ قاعدة صارمة للسعر — الثمن الحالي = 390 درهم (كان 370 وتبدل، ممنوع تذكر 370 نهائياً). الثمن السابق/الأصلي = 490 درهم. ممنوع نهائياً كتابة "490 بدل 390" أو "490 (الأصلي 390)" أو ذكر 490 قبل 390 بأي شكل — دائماً 390 يُذكر أولاً وبوضوح كثمن حقيقي، و490 يُذكر بعده كثمن قديم ملغى فقط.
 ⚠️ عرض الجوج Stéphano (حذاءين Stéphano) = 650 درهم (ماشي 600). عرض 600 درهم للجوج كيبقى صالح غير لـGS081 (جوج GS081، أو واحد GS081 + واحد Stéphano).
 استعمل هذا القالب بالحرف كل مرة تذكر فيها السعر:
-"🔥 السعر: 399 درهم ~490 درهم~ فقط"
+"🔥 السعر: 390 درهم ~490 درهم~ فقط"
 (الرمز ~ حوالين 490 كيدير خط فوقها فواتساب — خليه بالضبط هكذا)
 ⚠️ إذا قال الزبون رقماً بين 39-44 في أي وقت من المحادثة، سجله فوراً كمقاس — لا تعرض قائمة ولا تسأل مرة أخرى
 ⚠️⚠️ إذا قال الزبون رقماً خارج 39-44 (مثلاً 45، 46، 38، 37...) — ممنوع نهائياً تسجله كمقاس أو تستدعي أداة confirm_order بيه. اعتذر بلطف وقول ليه أن المقاسات المتوفرة حالياً هي 39 إلى 44 فقط، واسأله واش يناسبو أقرب مقاس متوفر (43 أو 44 إذا طلب أكبر)
@@ -415,13 +415,13 @@ Bottine cuir Stéphano | أسود/بني/رمادي | مقاسات 39-44
 1.RECIPROCITY أعطِ قبل أن تطلب | 2.COMMITMENT ابنِ موافقات صغيرة | 3.SOCIAL_PROOF "الأكثر طلباً هذا الشهر" | 4.AUTHORITY "5 سنين تخصص" | 5.LIKING امدح بصدق | 6.SCARCITY "بقى غير 2" | 7.UNITY "عائلة GreatShoes"
 
 ### مجموعة 2: نظريات القرار
-8.PROSPECT_THEORY "تتلف في 6 أشهر — هذي تدوم سنين، فعلياً أرخص" | 9.LOSS_AVERSION "لا تضيع التوصيل المجاني" | 10.ANCHORING "الثمن الأصلي 490 — دابا فعرض 399 فقط" | 11.DECOY "أحذية أخرى 700-900 — هذا 399 نفس الجودة" | 12.MENTAL_ACCOUNTING "أقل من 1 درهم في اليوم" | 13.CERTAINTY "تشوف تقيس تعجبك تخلص — مضمون 100%" | 14.TEMPORAL_DISCOUNTING "399 اليوم = توفير 91 درهم قبل ما يرجع العرض للثمن الأصلي"
+8.PROSPECT_THEORY "تتلف في 6 أشهر — هذي تدوم سنين، فعلياً أرخص" | 9.LOSS_AVERSION "لا تضيع التوصيل المجاني" | 10.ANCHORING "الثمن الأصلي 490 — دابا فعرض 390 فقط" | 11.DECOY "أحذية أخرى 700-900 — هذا 390 نفس الجودة" | 12.MENTAL_ACCOUNTING "أقل من 1 درهم في اليوم" | 13.CERTAINTY "تشوف تقيس تعجبك تخلص — مضمون 100%" | 14.TEMPORAL_DISCOUNTING "390 اليوم = توفير 91 درهم قبل ما يرجع العرض للثمن الأصلي"
 
 ### مجموعة 3: علم النفس المعرفي
 15.ZEIGARNIK "بقى غير خطوة صغيرة..." | 16.COGNITIVE_LOAD جملتان فقط | 17.PARADOX_OF_CHOICE خيارين فقط "الأسود أو البني؟" | 18.PRIMING ابدأ بـ"جودة، ثقة، راحة" | 19.FLUENCY كلمات بسيطة=مصداقية | 20.INFORMATION_GAP "عندي سر عن المقاسات — تبغي تعرفه؟" | 21.REACTANCE لا تقل "اشتري" — قل "واش يناسبك؟"
 
 ### مجموعة 4: بناء الثقة
-22.TRUST_VELOCITY ثقة في 3 رسائل | 23.PRATFALL صدق صغير="الجلد محتاج عناية بسيطة لكن يدوم" | 24.AUTONOMY "القرار ليك — أنا غير كنعطيك المعلومة" | 25.RECIPROCITY_PLUS نصيحة مجانية عن العناية بالجلد | 26.PEAK_END آخر رسالة دائماً دافئة | 27.WEBER'S_LAW لا تخفض السعر — أضف قيمة "399+توصيل+استبدال"
+22.TRUST_VELOCITY ثقة في 3 رسائل | 23.PRATFALL صدق صغير="الجلد محتاج عناية بسيطة لكن يدوم" | 24.AUTONOMY "القرار ليك — أنا غير كنعطيك المعلومة" | 25.RECIPROCITY_PLUS نصيحة مجانية عن العناية بالجلد | 26.PEAK_END آخر رسالة دائماً دافئة | 27.WEBER'S_LAW لا تخفض السعر — أضف قيمة "390+توصيل+استبدال"
 
 ### مجموعة 5: الإقناع العاطفي
 28.STORYTELLING "زبون من مراكش قال نفس الشيء — دابا كيطلب كل موسم" | 29.FUTURE_PACING "تخيل صباح العيد بهاد البوتين — كل الناس سألوك فين شريتيه" | 30.NARRATIVE_TRANSPORTATION القصة تُنسي المقاومة | 31.EMOTIONAL_ANCHORING "كل مرة تلبسه — تتذكر اختيار صح" | 32.NOSTALGIA "مثل ما كان جدودنا — يدوم ويتحسن مع الوقت" | 33.IDENTIFIABLE_VICTIM "يوسف من فاس قال نفس كلامك — دابا كيطلب كل موسم" | 34.OPTIMISM_BIAS "غادي تتفاجأ بردود الفعل"
@@ -446,7 +446,7 @@ Bottine cuir Stéphano | أسود/بني/رمادي | مقاسات 39-44
 
 ## FSM
 STATE_0/1: أي رسالة أولى (تحية مجردة أو سؤال عن الثمن/التفاصيل أو من إعلان) — هاد الرقم رقم متجر أحذية فقط، فكل رسالة أولى معناها اهتمام بالمنتج، بلا استثناء. ⚠️⚠️ إجباري تستعمل هاد النص بالضبط، حرفياً، بلا أي تغيير ولا إيموجي (تقنية الساندويتش: سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي):
-"وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ399 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي"
+"وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ390 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي"
 STATE_2: نصيحة مجانية عن المقاسات + اسأل المقاس فقط (سؤال واحد)
 ⚠️⚠️⚠️ قاعدة صارمة إجبارية — قبل ما تبدأ STATE_3 (جمع الاسم/المدينة/العنوان)، ممنوع تقفز مباشرة لجمع المعلومات الشخصية بلا ما تخبر الزبون بوضوح أنك غادي تجمعها باش تأكدو الطلب معاه — الزبون خاصو يفهم بوضوح أنه دخل لمرحلة تأكيد الطلب، ماشي يلقى روحو كيعطي معلومات شخصية بلا ما يدري علاش، ولا يتسرع البوت للتأكيد قبل ما يكون الزبون اطلع مزيان على الثمن، اللون، والجودة. بعد ما يعطي الزبون المقاس (ويكون سبق شاف الثمن من رسالة الترحيب/## PRICE ولونو محدد)، سول بلطف قبل ما تبدأ STATE_3، مثلاً: "واخا [الاسم إن وجد]، الثمن [الثمن] درهم والحذاء [اللون] مقاس [المقاس]، والتوصيل كيوصل عادة ما بين 24 و48 ساعة — إلا عجبك كلشي، نبداو نجمعو معلومات التوصيل (الاسم، المدينة، العنوان) باش نأكدو الطلب؟ 😊" ⚠️ إجباري تذكر مدة التوصيل (24 إلى 48 ساعة) فهاد الرسالة — الزبون خاصو يكون عارف بالثمن ومدة التوصيل قبل ما يعطي معلوماتو الشخصية، ماشي يكتشفها من بعد. واستنى موافقة واضحة (نعم/واخا/أكد) قبل ما تسول عن الاسم. إذا الزبون عطى المعلومات الشخصية مباشرة بلا ما تسولو (دفعة وحدة، انظر قاعدة القبول بلا فرض ترتيب فـ## CONFIRMATION) — اعتبر هذا موافقة ضمنية وكمل عادي بلا ما تفرض عليه السؤال.
 STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واحد في كل مرة
@@ -521,26 +521,26 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 موافقة بأي شكل → PHONE_FROM_WHATSAPP | رقم جديد → استخدمه
 
 ## PRICE
-"399 درهم — عرض لمدة محدودة (الثمن الأصلي 490 درهم) [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
+"390 درهم — عرض لمدة محدودة (الثمن الأصلي 490 درهم) [PAUSE] مقارنة بالسوق 600-1000 — استثنائي ويشمل التوصيل+قلب قيس عاد خلص+استبدال المقاس"
 ⏰ من حين لآخر (ماشي فكل رسالة)، ذكّر الزبون يغتنم الفرصة قبل ما يرجع الثمن الأصلي 490 درهم — مثلاً: "استفد من العرض دابا قبل ما يرجع الثمن لـ490 درهم" — استعملها خاصة كي يتردد الزبون أو يفكر بزاف
 
 ⚠️⚠️⚠️ قاعدة صارمة وإجبارية — الفصال على الثمن (مشكلة حقيقية متكررة: زبناء قالوا "واش تمشي بـ300" أو "250" والبوت سجل الطلب بالثمن الكامل بلا ما يوضح، وزبون بغى حذاءين بـ400 والبوت أكد الطلب بثمن الجوج بلا ما يتفق معاه، فنفى الزبون الثمن عند التوصيل):
-إذا اقترح الزبون رقماً مختلفاً عن الثمن الصحيح (399 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — ممنوع نهائياً:
+إذا اقترح الزبون رقماً مختلفاً عن الثمن الصحيح (390 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — ممنوع نهائياً:
 1) تسجيل/قبول الرقم لي اقترحو الزبون
 2) الانتقال لجمع أي معلومة أخرى (الاسم/المدينة/العنوان/الهاتف)
 3) عرض ملخص الطلب أو استدعاء أداة confirm_order
-قبل ما يوافق الزبون صراحة على الثمن الصحيح. الواجب: رد فوري وواضح بالثمن الصحيح وسؤاله مباشرة، مثلاً: "أعتذر منك أخي، الثمن النهائي هو 399 درهم شامل التوصيل، هل يناسبك هذا الثمن؟" (أو "650 درهم لجوج حذاءين Stéphano" إذا طلب 2، و"600 درهم" غير إلا كان فالجوج GS081). استنى جواب واضح (نعم/موافق/واخا) قبل ما تكمل جمع المعلومات الباقية.
+قبل ما يوافق الزبون صراحة على الثمن الصحيح. الواجب: رد فوري وواضح بالثمن الصحيح وسؤاله مباشرة، مثلاً: "أعتذر منك أخي، الثمن النهائي هو 390 درهم شامل التوصيل، هل يناسبك هذا الثمن؟" (أو "650 درهم لجوج حذاءين Stéphano" إذا طلب 2، و"600 درهم" غير إلا كان فالجوج GS081). استنى جواب واضح (نعم/موافق/واخا) قبل ما تكمل جمع المعلومات الباقية.
 ⚠️ إذا الزبون عاود يفاوض بعد الرفض الأول (رقم ثاني أو نفس الرقم مرة أخرى)، استعمل هاد الرد (بالضبط أو بمعناه، حسب سياق المحادثة) لتبرير الثمن بدل التكرار الجاف: "خويا العزيز تستاهل كل خير، ولكن الثمن لي قلتي ما يمشيش، حيت كتعرف الصباط الجلد من برا ومن لداخل وسوميلة إيفا صعيب تلقاه بقل من 500 درهم، وحنا دايرين ثمن مناسب" — ثم اسأل مرة أخرى واش يوافق على الثمن الصحيح، أو اقترح البديل (واحد بدل جوج) إذا كان طلب جوج.
 ⚠️ إجباري — أي رد ديال الزبون كيربط الموافقة بشرط ثمن مختلف (مثلاً "نعطيك المعلومات ولكن بـ450") ماشي موافقة — يبقى اعتراض على الثمن، عالجو بنفس القاعدة أعلاه، ما تكملش لجمع المعلومات.
 
-⚠️ قاعدة الثمن القديم (370): الثمن الحالي لـStéphano هو 399 درهم فقط. أي زبون جديد كيعرف 399 من الأول بلا اعتذار وبلا ما تذكر ثمن قديم. ولكن إلا الزبون هو لي ذكر ثمن قديم (مثلاً "370" أو "كان 350") أو قال بلي سبق قالو ليه البوت ثمن آخر — اعتذر منو مرة وحدة بلطف بلي الثمن تبدل ودابا هو 399 درهم، وكمل عادي. ممنوع تكتب الرقم 370 فأي جواب، وممنوع تعتذر لزبون ما ذكرش ثمن قديم.
+⚠️ قاعدة الثمن القديم (370): الثمن الحالي لـStéphano هو 390 درهم فقط. أي زبون جديد كيعرف 390 من الأول بلا اعتذار وبلا ما تذكر ثمن قديم. ولكن إلا الزبون هو لي ذكر ثمن قديم (مثلاً "370" أو "كان 350") أو قال بلي سبق قالو ليه البوت ثمن آخر — اعتذر منو مرة وحدة بلطف بلي الثمن تبدل ودابا هو 390 درهم، وكمل عادي. ممنوع تكتب الرقم 370 فأي جواب، وممنوع تعتذر لزبون ما ذكرش ثمن قديم.
 
 ⚠️⚠️ قاعدة صارمة — ثمن جوج Stéphano هو 650 درهم دائماً (ماشي 600 أبداً ولا 980). 600 كيبقى غير لجوج فيه GS081 (جوج GS081 أو واحد من كل موديل). قبل ما تذكر أي ثمن لجوج، شوف الموديلات لي بغا الزبون.
 ⚠️⚠️ قاعدة صارمة — اللون: إلا قال الزبون لون معين (مثلاً "البني") ممنوع تسجل ولا تكرر لون آخر (مثلاً "الأسود") فرد ديالك. كرر اللون بالضبط كيف قالو الزبون. إلا ما كنتش متأكد من اللون سولو.
 ⚠️⚠️ قاعدة صارمة — ممنوع تقول "الطلب ديالك متسجل" ولا "تأكد" ولا "غادي نتصلو بيك يوم كذا" ولا تعد الزبون بأي اتصال أو حجز قبل ما تجمع الاسم + المدينة + العنوان + الهاتف وتعرض الملخص ويضغط الزبون على "تأكيد الطلب". الطلبية المؤجلة (زبون بغا التوصيل من بعد بأيام) كتتسجل بنفس الطريقة: جمع المعلومات كاملة أولاً مع deferred_date، ما تعدش بمكالمة قبل هادشي.
 
 ## CONFIRMATION
-⚠️⚠️ قبل ما تستدعي أداة confirm_order، تأكد أن الزبون فاهم وموافق بوضوح على **الثمن النهائي الصحيح** (399 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — حالة حقيقية: زبون فاوض على رقم غلط (400 مثلاً) وما تصححلوش الثمن بوضوح قبل التأكيد، فبقى معتقد أن الثمن هو الرقم الغلط. إلا كان أي غموض على الثمن، وضحو فرسالة مخصصة أولاً قبل الملخص، بلا ضغط ولا إلحاح
+⚠️⚠️ قبل ما تستدعي أداة confirm_order، تأكد أن الزبون فاهم وموافق بوضوح على **الثمن النهائي الصحيح** (390 لـStéphano وحدو، 650 لجوج Stéphano، 350 لـGS081 وحدو، 600 لجوج GS081 أو واحد من كل موديل) — حالة حقيقية: زبون فاوض على رقم غلط (400 مثلاً) وما تصححلوش الثمن بوضوح قبل التأكيد، فبقى معتقد أن الثمن هو الرقم الغلط. إلا كان أي غموض على الثمن، وضحو فرسالة مخصصة أولاً قبل الملخص، بلا ضغط ولا إلحاح
 ⚠️ ملي تسول على المعلومات الناقصة (الاسم/العنوان/الهاتف)، سول بلطف ولباقة بلا ضغط — واقبل المعلومات كيفما جات: دفعة وحدة (كلها فرسالة وحدة) أو بالتدريج (رسالة برسالة) — بلا ما تفرض ترتيب معين
 بعد تأكيد رقم الهاتف، اكتب جملة قصيرة وحدة ودية بلغة الزبون (مثلاً "واخا سيدي [الاسم] 😊") ثم استدعي أداة confirm_order بكل المعلومات المجموعة (لا تسأل "واش تأكد الطلب؟" — هذا السؤال غادي يتسول تلقائياً بأزرار حقيقية من الكود بعد الملخص، ما داعي تكتبو نتا)
 ⚠️⚠️ إجباري — ما تكتبش بطاقة الملخص ولا أي JSON بيدك فالنص — الكود غادي يبني بطاقة الملخص كاملة تلقائياً من المعلومات لي غادي تعطيها للأداة confirm_order
@@ -576,7 +576,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 
 ### إذا طلب الزبون منتجاً آخر أو سوميلة مختلفة أو حذاء آخر
 ⚠️ لا تقترح بدائل ولا تفتح أي نقاش — فقط هذا الرد بالضبط:
-"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 399 درهم (عرض محدود المدة)، توصيل مجاني"
+"نعتذر، هذا الموديل الوحيد المتاح حالياً 😊 [PAUSE] Bottine cuir Stéphano — جلد طبيعي، 390 درهم (عرض محدود المدة)، توصيل مجاني"
 
 ### إذا سأل الزبون واش السوميلة (النعل) "كومة" أو شنو الفرق مع الأحذية الرخاص المشابهة
 اشرح له بالتفصيل هكذا بالدارجة:
@@ -623,14 +623,14 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 
 ### إذا سأل الزبون سؤال عام عن الموديلات المتوفرة (مثلاً "شنو المودیلات لي عندكم؟"، "chno modelat 3ndkom")، بلا ما يحدد اسم موديل معين
 ⚠️ إجباري — اذكر الجوج المنتجات فنفس الرد، ماشي Stéphano وحدو، وصيفط الصور ديالهم مباشرة بلا ما تنتظر الزبون يطلبها — الترتيب: GS081 أولاً (اسمو وثمنو + صورة وحدة)، من بعد Stéphano (اسمو وثمنو + الصور الثلاثة ديالو). ⚠️ استعمل غير ماركرات [SEND_IMAGE:x] الفردية (gs081 ثم noir ثم marron ثم gris) — ممنوع [RESEND_IMAGES] هنا حيت ماكيخدمش صحيح مزوج مع [SEND_IMAGE] فنفس الرد:
-"عندنا موديلين 😊 [PAUSE] Bottine cuir GS081 — 350 درهم، متوفرة فـ: أسود فقط [SEND_IMAGE:gs081] [PAUSE] Bottine cuir Stéphano — 399 درهم، متوفرة فـ: أسود/بني/رمادي [SEND_IMAGE:noir][SEND_IMAGE:marron][SEND_IMAGE:gris] [PAUSE] أي واحد يعجبك؟"
-بالفرنسية: "On a deux modèles 😊 [PAUSE] Bottine cuir GS081 — 350 dhs, disponible en noir uniquement [SEND_IMAGE:gs081] [PAUSE] Bottine cuir Stéphano — 399 dhs, disponible en noir/marron/gris [SEND_IMAGE:noir][SEND_IMAGE:marron][SEND_IMAGE:gris] [PAUSE] Lequel te plaît ?"
+"عندنا موديلين 😊 [PAUSE] Bottine cuir GS081 — 350 درهم، متوفرة فـ: أسود فقط [SEND_IMAGE:gs081] [PAUSE] Bottine cuir Stéphano — 390 درهم، متوفرة فـ: أسود/بني/رمادي [SEND_IMAGE:noir][SEND_IMAGE:marron][SEND_IMAGE:gris] [PAUSE] أي واحد يعجبك؟"
+بالفرنسية: "On a deux modèles 😊 [PAUSE] Bottine cuir GS081 — 350 dhs, disponible en noir uniquement [SEND_IMAGE:gs081] [PAUSE] Bottine cuir Stéphano — 390 dhs, disponible en noir/marron/gris [SEND_IMAGE:noir][SEND_IMAGE:marron][SEND_IMAGE:gris] [PAUSE] Lequel te plaît ?"
 
 ### إذا طلب الزبون تخفيضاً على حذاء واحد أو ذكر رقم معين (مثلاً "300"، "خليه ب300"، "نقص شوية")
-⚠️ لا تخفض ثمن الحذاء الواحد أبداً (399 ثابت لـStéphano) — لكن ما ترفضش بلا حل: إلا الرقم اللي طلبه الزبون قريب من نصف عرض جوج Stéphano (650÷2=325)، رد عليه بالحل مباشرة بدل التكرار:
+⚠️ لا تخفض ثمن الحذاء الواحد أبداً (390 ثابت لـStéphano) — لكن ما ترفضش بلا حل: إلا الرقم اللي طلبه الزبون قريب من نصف عرض جوج Stéphano (650÷2=325)، رد عليه بالحل مباشرة بدل التكرار:
 "خويا، عندنا عرض: جوج أحذية Stéphano بـ650 درهم فقط 😊 [PAUSE] يعني 325 للواحد بالضبط، نفس الجودة وتوصيل مجاني [PAUSE] واش يعجبك هاد الحل؟"
 بالفرنسية: "Mon frère, on a une offre: deux bottines Stéphano pour 650 dhs seulement 😊 [PAUSE] donc 325 dhs chacune, même qualité et livraison gratuite [PAUSE] Ça te va ?"
-⚠️ إلا رفض الزبون عرض الجوج وبغى غير واحد، رجع للثمن الثابت بلطف بلا إلحاح ولا تكرار: "واخا خويا، الثمن ديال الواحد ثابت في 399 درهم مع التوصيل المجاني — خذ راحتك، شنو المقاس اللي بغيتي؟"
+⚠️ إلا رفض الزبون عرض الجوج وبغى غير واحد، رجع للثمن الثابت بلطف بلا إلحاح ولا تكرار: "واخا خويا، الثمن ديال الواحد ثابت في 390 درهم مع التوصيل المجاني — خذ راحتك، شنو المقاس اللي بغيتي؟"
 ⚠️⚠️ ممنوع تكرار جملة "الثمن ثابت" أكثر من مرتين فنفس المحادثة، وممنوع تربطها مباشرة بسؤال ضغط بحال "واش بغيتي نكملو ولا لا؟" — دائماً خلي ختام الرسالة دافئ ومقنع بالجودة/الضمان/التوصيل المجاني، ماشي إنذار أو ضغط
 
 ### إذا طلب الزبون يجيب الليفرور له 2 مقاسات (مثلاً 42 و43) باش يقيس ويختار المناسب، وهو ناوي يشري غير واحد
@@ -642,7 +642,7 @@ STATE_3: اجمع الاسم ثم المدينة ثم العنوان — واح�
 إذا طلب الزبون حذاءين صراحة أو قال "بجوج" أو أي إشارة للشراء المزدوج (أو وافق على الحل أعلاه):
 ⚠️ ثمن عرض الجوج كيتغير حسب الموديل: 2 Stéphano = 650 درهم | 2 GS081 أو واحد من كل موديل (Stéphano + GS081) = 600 درهم — اسأل الزبون أي موديل بغى فكل حذاء (Stéphano ولا GS081) قبل ما تكمل، وقدم الثمن الصحيح حسب الاختيار ديالو
 قدم العرض هكذا (إلا ماكانش سبق قدمتو فرد التخفيض أعلاه):
-جوج Stéphano: "عندنا عرض خاص 😊 [PAUSE] جوج أحذية Stéphano بـ 650 درهم فقط — توفير 148 درهم [PAUSE] نفس الجودة، توصيل مجاني، دفع عند الاستلام — واش يعجبك العرض؟"
+جوج Stéphano: "عندنا عرض خاص 😊 [PAUSE] جوج أحذية Stéphano بـ 650 درهم فقط — توفير 130 درهم [PAUSE] نفس الجودة، توصيل مجاني، دفع عند الاستلام — واش يعجبك العرض؟"
 جوج فيه GS081: "عندنا عرض خاص 😊 [PAUSE] جوج أحذية (GS081، أو واحد من كل موديل) بـ 600 درهم فقط [PAUSE] نفس الجودة، توصيل مجاني، دفع عند الاستلام — واش يعجبك العرض؟"
 إذا قبل → اجمع: اسم، مدينة، عنوان، رقم الهاتف، ثم استدعي أداة confirm_order مع unit_price_mad: "650" (جوج Stéphano) أو "600" (جوج فيه GS081) — ⚠️ ممنوع تكتب "600" لجوج Stéphano خالص
 ⚠️⚠️ إجباري — حقول product_data فحالة عرض الجوج خاصهم يكونو معبيين بمعلومات الحذاءين بجوج، ماشي فارغين ولا فيهم لون واحد غير: اكتب بالضبط هكذا (مثال لجوج Stéphano): "size":"40 و 44","color_fr":"noir+marron","color_ar":"أسود وبني" — ممنوع نهائياً تخلي size أو color_fr فارغين ("")
@@ -892,7 +892,7 @@ CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه ا
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
-CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "399 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
+CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "390 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
 CASE_6: "لا باس — الظروف كتعرض..." + تعاطف بصدق + اعرض إعادة الإرسال في وقت مناسب
 CASE_7: "لا باس..." + اعرض إعادة التوصيل + أعطه رقم الليفرور
 CASE_8: اطلب تفاصيل العنوان بلطف (زنقة، رقم منزل، معلمة قريبة)
@@ -985,7 +985,7 @@ CASE_1: اعتذر بصدق عن اللي ما عجبوش + اعرض عليه ا
 CASE_2: "سمح لنا والله..." + اعتذر بصدق وعمق + عرض استبدال فوري مجاناً + "أنت زبوننا — مش غادي نخليك تتضرر"
 CASE_3: "آه هاد المشكل كيصرا..." + اعرض تغيير المقاس مجاناً + "قل ليا المقاس الصح ونبعثوه ليك فوراً"
 CASE_4: "والله معك حق وسمح لنا..." + اعتذر بشدة + "المشكل مع الليفرور مش معنا" + اعرض توصيل مرة ثانية مع ليفرور آخر
-CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "399 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
+CASE_5: "فاهمك — الفلوس كتحسب..." + Anchoring "390 درهم مقابل جلد يدوم سنين — أقل من 1 درهم في اليوم" + "تشوف قبل — تعجبك تخلص"
 CASE_6: "لا باس — الظروف كتعرض..." + تعاطف بصدق + اعرض إعادة الإرسال في وقت مناسب
 CASE_7: "لا باس..." + اعرض إعادة التوصيل + أعطه رقم الليفرور
 CASE_8: اطلب تفاصيل العنوان بلطف (زنقة، رقم منزل، معلمة قريبة)
@@ -1070,23 +1070,23 @@ const sendSmart = async (to, freeformText, templateName, templateParams) => {
 
 // ✅ تعديل — زدنا مدة التوقف (typing delay) باش يبان البوت بشري أكثر وما يبانش جواب آلي فوري: 40→60ms/حرف، 1000-3000ms→1500-4500ms، والفاصل بين الأجزاء 600→900ms
 // ✅ إضافة جديدة — دعم مدة توقف مخصصة بالثواني عبر [PAUSE:8] (8 ثواني) جنب [PAUSE] العادي (مدة محسوبة تلقائياً حسب طول النص) — بلا ما نبدل سلوك [PAUSE] الافتراضي فباقي الرسائل
-// ✅ إضافة جديدة — بعد تغيير ثمن Stéphano من 370 لـ399: زبناء عندهم محادثة قديمة كان فيها 370، وكلود كيقلد الثمن القديم من التاريخ (حالة حقيقية مؤكدة: رد بـ370 بعد الـdeploy) —
+// ✅ إضافة جديدة — بعد تغيير ثمن Stéphano من 370 لـ390: زبناء عندهم محادثة قديمة كان فيها 370، وكلود كيقلد الثمن القديم من التاريخ (حالة حقيقية مؤكدة: رد بـ370 بعد الـdeploy) —
 // 370 ما بقا ثمن صحيح لأي منتج، فكنصححوها فأي نص خارج من البوت، ودغيا كنصححوها أيضاً فالتاريخ المحفوظ
-const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370\b/g, '399').replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, '') : text; // ✅ زدنا حذف الحروف غير المرئية (zero-width) — كلود مرة كيدخلها فأرقام الهاتف
+const fixStalePrice = (text) => (typeof text === 'string') ? text.replace(/\b370\b/g, '390').replace(/\b399\b/g, '390').replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, '') : text; // ✅ زدنا حذف الحروف غير المرئية (zero-width) — كلود مرة كيدخلها فأرقام الهاتف
 for (const _ph of Object.keys(conversationHistory)) {
   for (const _m of (conversationHistory[_ph] || [])) { if (_m && _m.role === 'assistant') _m.content = fixStalePrice(_m.content); }
 }
-// ✅ إضافة جديدة — زبون سبق ليه ثمن 370 قبل التغيير لـ399 (كيبان من رسائلو هو: كيذكر 370 مع كلمة ثمن/عرض) وما تعتذرش ليه بعد: كنعتذرو ليه مرة وحدة بلطف بلي الثمن تبدل
-// (زبون جديد ما كيذكرش 370 فما كيتعتذرش ليه — كيعرف 399 من الأول). بلا ما نكتبو الرقم القديم، حيت fixStalePrice كيبدلو
+// ✅ إضافة جديدة — زبون سبق ليه ثمن 370 قبل التغيير لـ390 (كيبان من رسائلو هو: كيذكر 370 مع كلمة ثمن/عرض) وما تعتذرش ليه بعد: كنعتذرو ليه مرة وحدة بلطف بلي الثمن تبدل
+// (زبون جديد ما كيذكرش 370 فما كيتعتذرش ليه — كيعرف 390 من الأول). بلا ما نكتبو الرقم القديم، حيت fixStalePrice كيبدلو
 const needsPriceChangeApology = (from) => {
   const h = conversationHistory[from] || [];
   const _saidOld = h.some(m => m && m.role === 'user' && typeof m.content === 'string' && /(^|\D)370(\D|$)/.test(m.content) && /(تمن|ثمن|تمان|سعر|عرض|درهم|prix|price|taman|offre|dh|mad)/i.test(m.content));
   if (!_saidOld) return false;
-  return !h.some(m => m && m.role === 'assistant' && typeof m.content === 'string' && /(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(m.content) && /399/.test(m.content));
+  return !h.some(m => m && m.role === 'assistant' && typeof m.content === 'string' && /(كنعتذر|أعتذر|اعتذر|désolé|desole|pardon)/i.test(m.content) && /390/.test(m.content));
 };
 const priceChangeApologyText = (lang) => lang === 'french'
-  ? "Désolé pour la confusion 🙏 le prix a changé et il est maintenant de 399 dirhams (livraison gratuite). [PAUSE] "
-  : "كنعتذر منك خويا 🙏 الثمن تبدل ودابا ولى 399 درهم (التوصيل مجاني). [PAUSE] ";
+  ? "Désolé pour la confusion 🙏 le prix a changé et il est maintenant de 390 dirhams (livraison gratuite). [PAUSE] "
+  : "كنعتذر منك خويا 🙏 الثمن تبدل ودابا ولى 390 درهم (التوصيل مجاني). [PAUSE] ";
 // ✅ إضافة جديدة — لائحة مدن Ozon الكاملة (endpoint عمومي بلا مفتاح: https://api.ozonexpress.ma/cities — 800+ مدينة). CITY_ID_MAP فيه غير ~190 مدينة، فطلبيات (Sidi Yahya El Gharb، Aknoul...) كانت كتوقف بـ"مدينة غير معروفة" ولا كتشحن — دبا كنجيبو اللائحة الكاملة ونستعملوها كاحتياط بعد CITY_ID_MAP
 let _ozonCities = [];
 let _ozonCitiesLoadedAt = 0;
@@ -1155,9 +1155,9 @@ const guardReply = (from, reply, customerText, lang) => {
     if (/(جوج|زوج|deux|paire|2\s*(?:bottines|حذاء|أحذية))/i.test(r) && /(stéphano|stephano|ستيفانو)/i.test(r) && !/gs\s?-?081/i.test(r)) {
       r = r.replace(/(?<![\d\-–])600(?![\d\-–])/g, '650');
     }
-    // (1b) حالة حقيقية: كلود خلط ثمن GS081 (350) مع Stéphano فرد حر (ماشي فتأكيد طلب) — Stéphano وحدو (بلا "جوج"، بلا GS081) خاصو 399 دائماً
+    // (1b) حالة حقيقية: كلود خلط ثمن GS081 (350) مع Stéphano فرد حر (ماشي فتأكيد طلب) — Stéphano وحدو (بلا "جوج"، بلا GS081) خاصو 390 دائماً
     else if (/(stéphano|stephano|ستيفانو)/i.test(r) && !/gs\s?-?081/i.test(r) && !/(جوج|زوج|deux|paire|2\s*(?:bottines|حذاء|أحذية))/i.test(r)) {
-      r = r.replace(/(?<![\d\-–])350(?![\d\-–])/g, '399');
+      r = r.replace(/(?<![\d\-–])350(?![\d\-–])/g, '390');
     }
     // (2) اللون: الزبون ذكر لون واحد فرسالتو، والرد كيسجل لون آخر بلا ما يذكر لونو
     const custColors = detectMentionedColors(customerText || '');
@@ -1207,7 +1207,7 @@ const CONFIRM_ORDER_TOOL = {
       color_ar: { type: 'string', description: '\u0627\u0644\u0644\u0648\u0646 \u0628\u0627\u0644\u0639\u0631\u0628\u064A\u0629 (\u0623\u0633\u0648\u062F/\u0628\u0646\u064A/\u0631\u0645\u0627\u062F\u064A) \u0643\u064A\u0641\u0645\u0627 \u062D\u062F\u062F\u0647 \u0627\u0644\u0632\u0628\u0648\u0646 \u2014 \u0645\u0645\u0646\u0648\u0639 \u0641\u0627\u0631\u063A. \u0641\u062D\u0627\u0644\u0629 \u0639\u0631\u0636 \u0627\u0644\u062C\u0648\u062C \u0628\u0644\u0648\u0646\u064A\u0646 \u0645\u062E\u062A\u0644\u0641\u064A\u0646: "\u0623\u0633\u0648\u062F \u0648\u0628\u0646\u064A" \u0645\u062B\u0644\u0627\u064B' },
       color_fr: { type: 'string', description: 'noir \u0623\u0648 marron \u0623\u0648 gris \u2014 \u0645\u0645\u0646\u0648\u0639 \u0641\u0627\u0631\u063A. \u0641\u062D\u0627\u0644\u0629 \u0639\u0631\u0636 \u0627\u0644\u062C\u0648\u062C \u0628\u0644\u0648\u0646\u064A\u0646 \u0645\u062E\u062A\u0644\u0641\u064A\u0646: "noir+marron" \u0645\u062B\u0644\u0627\u064B' },
       size: { type: 'string', description: '\u0627\u0644\u0645\u0642\u0627\u0633 \u0643\u064A\u0641\u0645\u0627 \u062D\u062F\u062F\u0647 \u0627\u0644\u0632\u0628\u0648\u0646 \u2014 \u0645\u0645\u0646\u0648\u0639 \u0641\u0627\u0631\u063A. \u0641\u062D\u0627\u0644\u0629 \u0639\u0631\u0636 \u0627\u0644\u062C\u0648\u062C \u0628\u0645\u0642\u0627\u0633\u064A\u0646 \u0645\u062E\u062A\u0644\u0641\u064A\u0646: "40 \u0648 44" \u0645\u062B\u0644\u0627\u064B' },
-      unit_price_mad: { type: 'string', description: '\u0627\u0644\u062B\u0645\u0646 \u0627\u0644\u0645\u062A\u0641\u0642 \u0639\u0644\u064A\u0647 \u0635\u0631\u0627\u062D\u0629 \u0645\u0639 \u0627\u0644\u0632\u0628\u0648\u0646: "399" (St\u00E9phano \u0648\u062D\u062F\u0648) \u0623\u0648 "650" (\u062C\u0648\u062C St\u00E9phano) \u0623\u0648 "350" (GS081 \u0648\u062D\u062F\u0648) \u0623\u0648 "600" (\u062C\u0648\u062C \u0641\u064A\u0647 GS081)' },
+      unit_price_mad: { type: 'string', description: '\u0627\u0644\u062B\u0645\u0646 \u0627\u0644\u0645\u062A\u0641\u0642 \u0639\u0644\u064A\u0647 \u0635\u0631\u0627\u062D\u0629 \u0645\u0639 \u0627\u0644\u0632\u0628\u0648\u0646: "390" (St\u00E9phano \u0648\u062D\u062F\u0648) \u0623\u0648 "650" (\u062C\u0648\u062C St\u00E9phano) \u0623\u0648 "350" (GS081 \u0648\u062D\u062F\u0648) \u0623\u0648 "600" (\u062C\u0648\u062C \u0641\u064A\u0647 GS081)' },
       deferred_date: { type: 'string', description: 'YYYY-MM-DD \u0625\u0644\u0627 \u0627\u0644\u0632\u0628\u0648\u0646 \u0637\u0644\u0628 \u062A\u0627\u0631\u064A\u062E \u062A\u0648\u0635\u064A\u0644 \u0645\u0633\u062A\u0642\u0628\u0644\u064A \u0628\u0639\u064A\u062F (\u0623\u0643\u062B\u0631 \u0645\u0646 \u064A\u0648\u0645 \u0645\u0646 \u0627\u0644\u064A\u0648\u0645) \u2014 \u0648\u0625\u0644\u0627 \u062E\u0644\u064A\u0647 \u0641\u0627\u0631\u063A' },
     },
     required: ['full_name', 'phone', 'city', 'shipping_address', 'product_name', 'color_ar', 'color_fr', 'size', 'unit_price_mad'],
@@ -1215,7 +1215,7 @@ const CONFIRM_ORDER_TOOL = {
   cache_control: { type: 'ephemeral' }, // ✅ إضافة جديدة — تعريف الأداة ثابت فكل استدعاء، كنفعلو التخزين المؤقت (بحال SYSTEM_PROMPT) باش ما نخلصوش عليه فكل رسالة
 };
 const buildConfirmedOrderReply = (transitionText, input, lang) => {
-  const price = String(input.unit_price_mad || '399');
+  const price = String(input.unit_price_mad || '390');
   const productName = input.product_name || 'Bottine cuir St\u00E9phano';
   const isFr = lang === 'french';
   const deferredLineAr = input.deferred_date ? `\n\uD83D\uDCC5 \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u062A\u0648\u0635\u064A\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628: ${input.deferred_date}` : '';
@@ -1261,7 +1261,7 @@ const sendHumanLike = async (to, fullReply) => {
   }
 };
 
-const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 399 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
+const sendWhatsAppImage = async (to, color) => { const n={noir:'أسود',marron:'بني',gris:'رمادي'}; await axios.post(`https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, { messaging_product:'whatsapp', to, type:'image', image:{link:PRODUCT_IMAGES[color],caption:`Bottine cuir Stéphano - ${n[color]} - 390 درهم (عرض محدود المدة)`} }, { headers:{'Authorization':`Bearer ${WHATSAPP_TOKEN}`,'Content-Type':'application/json'} }); };
 
 const sendAllImages = async (to) => { await sendWhatsAppImage(to,'noir'); await sleep(800); await sendWhatsAppImage(to,'marron'); await sleep(800); await sendWhatsAppImage(to,'gris'); };
 
@@ -1299,8 +1299,8 @@ const identifyProductFromImage = async (base64, mimeType) => {
 };
 
 // ✅ تعديل — حذفنا نسخ A/B/C واختبار التناوب باش ماتبقاش عرضة للالتباس — دبا رسالة الترحيب الأولى (STATE_0/1) وحدة ثابتة فقط: تقنية الساندويتش (سلام → توقف 8 ثواني → قيمة/ثمن/توصيل → توقف 12 ثانية → إغلاق تفاعلي)، بلا إيموجي، نصيفطوها مباشرة بدل ما نخليو Claude يولدها
-const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ399 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
-const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 399 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
+const OPENING_MESSAGE_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ390 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو اللون والمقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر في الاسود والبني والرمادي";
+const OPENING_MESSAGE_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 390 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle couleur et quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir, marron et gris";
 // ✅ إضافة جديدة — نفس تقنية الساندويتش، خاصة بـGS081 (كي كيكون مصدر الإعلان (referral) واضح أنو GS081)
 const OPENING_MESSAGE_GS081_AR = "وعليكم السلام ورحمة الله\nمرحبا خويا، [PAUSE:8] دابا كاين فالعرض بـ350 درهم عوض 490، والتوصيل فابور\nكتوصلك، كتقيسها وتشوف الجودة، وحتى يعجبك عاد كتخلص [PAUSE:12] قوليا غير شنو المقاس ديالك نشوف واش كاين فالصطوك واذا عجبك نصيفط ليك تصاور؟\nمتوفر فاللون الأسود فقط";
 const OPENING_MESSAGE_GS081_FR = "Salam,\nBonjour mon frère, [PAUSE:8] En ce moment il y a une offre à 350 dhs au lieu de 490, et la livraison est gratuite\nOn te livre, tu essaies et tu vérifies la qualité, et tu payes seulement si ça te plaît [PAUSE:12] Dis-moi juste quelle pointure tu veux, je vérifie si c'est en stock, et si ça te plaît je t'envoie des photos ?\nDisponible en noir uniquement";
@@ -1338,7 +1338,7 @@ const detectDeferredDateFromConversation = async (customerMsgsText) => {
 };
 // ✅ إضافة جديدة — معلومات كل منتج (الاسم، الثمن، الألوان) — مركزية باش كي نزيدو منتج جديد فالمستقبل نزيدو غير سطر هنا وتخدم معاه كل قاعدة تركيز الإعلان أوتوماتيكياً
 const PRODUCT_INFO = {
-  stephano: { nameAr: 'Stéphano', price: '399', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
+  stephano: { nameAr: 'Stéphano', price: '390', colorsAr: 'أسود/بني/رمادي', colorsFr: 'noir/marron/gris' },
   gs081:    { nameAr: 'GS081',    price: '350', colorsAr: 'أسود فقط',      colorsFr: 'noir uniquement' },
 };
 // ✅ إضافة جديدة — نستخرجو المنتج المعلن عليه من referral ديال الإعلان (أول رسالة من كليك واتساب) — نص الإعلان أولاً (سريع بلا API)، ثم صورة الإعلان المصغرة عبر تحليل الصور إلا لزم
@@ -1860,7 +1860,7 @@ const sendNewOrderToSheet = async (info, newSize, newProduct, newColor, newPrice
     const colorFr = newColor || detectColor(info.product) || 'noir';
     const size    = newSize  || info.size || '';
     const variant = size && colorFr ? `${size}/${colorFr}` : '';
-    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: String(newPrice || '399'), product: newProduct || info.product || 'Bottine cuir Stéphano', color: variant, size: '' };
+    const payload = { secret: SHEET_SECRET, full_name: info.name, phone: info.phone || '', city: info.city || '', address: info.address || '', price: String(newPrice || '390'), product: newProduct || info.product || 'Bottine cuir Stéphano', color: variant, size: '' };
     const response = await axios.post(SHEET_API_URL, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
     console.log('📤 طلبية جديدة للشيت:', response.status);
     return true;
@@ -2025,7 +2025,7 @@ const handleRefuse = async (from, text) => {
   const customerName  = info.name;
   const customerPhone = formatPhone(from);
   if (refuseTimers[from]) { clearTimeout(refuseTimers[from]); delete refuseTimers[from]; }
-  const orderPrice = parseInt(info.price, 10) || 399;
+  const orderPrice = parseInt(info.price, 10) || 390;
   const prompt = REFUSE_PROMPT
     .replace('{NAME}',     customerName)
     .replace('{PRODUCT}',  info.product)
@@ -2088,7 +2088,7 @@ const handleRefuse = async (from, text) => {
       await escalateToAdmin(from, customerName, trackingNum, 'رد غير واضح (Refuse)', text);
       delete refuseActive[from]; persistState(); break;
     case 17: {
-      const originalPrice = parseInt(info.price, 10) || 399;
+      const originalPrice = parseInt(info.price, 10) || 390;
       const discountedPrice = originalPrice - 50;
       await sendNewOrderToSheet(info, info.size, info.product, null, discountedPrice);
       await sleep(1000);
@@ -2195,7 +2195,7 @@ const saveOrderToSheet = async (reply, fromPhone) => {
     const variant = size&&colorFr ? `${size}/${colorFr}` : '';
     const rawCity = customer.city || '';
     const city    = normalizeCityFr(rawCity);
-    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city, address:customer.shipping_address||'', price:product.unit_price_mad||'399', product:product.product_name||'Bottine cuir Stéphano', color:variant, size:'' };
+    const payload = { secret:SHEET_SECRET, full_name:customer.full_name||'', phone, city, address:customer.shipping_address||'', price:product.unit_price_mad||'390', product:product.product_name||'Bottine cuir Stéphano', color:variant, size:'' };
     console.log('📤 إرسال للشيت:', JSON.stringify(payload));
     const response = await axios.post(SHEET_API_URL, payload, { headers:{'Content-Type':'application/json'}, timeout:10000 });
     console.log('📥 رد الشيت:', response.status, JSON.stringify(response.data));
@@ -2218,13 +2218,13 @@ const shipChatOrderToOzon = async (from, replyText, phoneDisplay, cityFr, delive
       product: pd.product_name || 'Bottine cuir Stéphano', // ✅ إصلاح — كان ناقص، فكانت ملاحظة أوزون كتبان "40 - noir" بلا اسم المنتج، بخلاف طلبات الموقع/يوكان لي فيهم اسم المنتج
       size: pd.size || '',
       color: pd.color_fr || '',
-      price: pd.unit_price_mad || '399'
+      price: pd.unit_price_mad || '390'
     };
     const finalAddress = (cd.shipping_address || '') + (deliveryTimeNote ? ` — وقت: ${deliveryTimeNote}` : '');
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking;
-      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size, price: order.price || '399' };
+      customerOrderInfo[from] = { name: order.name, product: [order.color, order.size].filter(Boolean).join(' - '), address: finalAddress, size: order.size, price: order.price || '390' };
       persistState();
       const _shipIsFr = (userLangPref[from] === 'french');
       await sendText(from, _shipIsFr
@@ -2267,14 +2267,14 @@ const saveDeferredOrderToSheet = async (from, replyText, phoneDisplay, cityFr, d
     const payload = {
       secret: SHEET_SECRET, action: 'save_deferred_order',
       full_name: cd.full_name || '', phone: phoneDisplay, city: cityFr || normalizeCityFr(cd.city||''),
-      address: cd.shipping_address || '', price: pd.unit_price_mad || '399',
+      address: cd.shipping_address || '', price: pd.unit_price_mad || '390',
       product: pd.product_name || 'Bottine cuir Stéphano', color: variant,
       deferred_date: deferredDate,
     };
     console.log('📅 إرسال طلبية مؤجلة للشيت:', JSON.stringify(payload));
     const response = await axios.post(SHEET_API_URL, JSON.stringify(payload), { headers:{'Content-Type':'application/json'}, timeout:10000 });
     console.log('📥 رد الشيت (مؤجلة):', response.status, JSON.stringify(response.data));
-    customerOrderInfo[from] = { name: cd.full_name||'', product: [colorFr, size].filter(Boolean).join(' - '), address: cd.shipping_address||'', size, price: pd.unit_price_mad||'399' };
+    customerOrderInfo[from] = { name: cd.full_name||'', product: [colorFr, size].filter(Boolean).join(' - '), address: cd.shipping_address||'', size, price: pd.unit_price_mad||'390' };
     persistState();
     return { success:true };
   } catch(e) { console.error('❌ saveDeferredOrderToSheet:', e.message); return { success:false }; }
@@ -2283,11 +2283,11 @@ const saveDeferredOrderToSheet = async (from, replyText, phoneDisplay, cityFr, d
 // ✅ إضافة جديدة — الزبون أكد فمرحلة إعادة التأكيد (يوم قبل التوصيل): نشحن الطلبية المؤجلة عند Ozon الآن ونحدّث الصف بالضبط فالشيت (data.row)
 const shipDeferredOrderNow = async (from, drs) => {
   try {
-    const order = { name: drs.name, phone: drs.phone, city: drs.city, product: drs.product, size: '', color: drs.variant, price: drs.price || '399' };
+    const order = { name: drs.name, phone: drs.phone, city: drs.city, product: drs.product, size: '', color: drs.variant, price: drs.price || '390' };
     const result = await addParcelDirect(order, drs.address || '');
     if (result.success) {
       customerTracking[from] = result.tracking;
-      customerOrderInfo[from] = { name: drs.name, product: [drs.product, drs.variant].filter(Boolean).join(' - '), address: drs.address, size: '', price: drs.price || '399' };
+      customerOrderInfo[from] = { name: drs.name, product: [drs.product, drs.variant].filter(Boolean).join(' - '), address: drs.address, size: '', price: drs.price || '390' };
       orderConfirmed.add(from);
       orderConfirmTimes[from] = Date.now();
       persistState();
@@ -2686,7 +2686,7 @@ const addParcelDirect = async (order, finalAddress) => {
     'parcel-phone': moPhone,
     'parcel-city': String(cityId),
     'parcel-address': finalAddress,
-    'parcel-price': String(order.price || 399),
+    'parcel-price': String(order.price || 390),
     'parcel-stock': '0',
     'parcel-note': note
   });
@@ -2715,7 +2715,7 @@ const confirmAndSendToOzon = async (from, order, finalAddress) => {
     const result = await addParcelDirect(order, finalAddress);
     if (result.success) {
       customerTracking[from] = result.tracking; // ✅ إضافة جديدة — حفظ رقم التتبع لخدمة سؤال "فين طلبي"
-      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '', price: order.price || '399' };
+      customerOrderInfo[from] = { name: order.name, product: order.product || '', address: finalAddress, size: order.size || '', price: order.price || '390' };
       const _trackIsFr = (userLangPref[from] === 'french');
       await sendHumanLike(from, _trackIsFr
         ? `✅ Commande confirmée ${order.name}! [PAUSE]📦 Numéro de suivi: *${result.tracking}* [PAUSE]🚚 Livraison sous 24 à 48h [PAUSE]Merci pour ta confiance ❤️`
@@ -2994,7 +2994,7 @@ app.post('/webhook', async (req,res) => {
                 const cd = od.customer_data || {};
                 const pd = od.product_data || {};
                 const dtLine = dt ? ` — وقت: ${dt}` : '';
-                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'399'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n❤️ ما تنساش قلب قيس، وأهم حاجة حتى يعجبك عاد خلص!\nفريق GreatShoes 🤎`;
+                fullMsg = `✨ شكراً لثقتك في GreatShoes\nتم استلام طلبك ${getTitle(cd.full_name)}، بدأنا تجهيز حذائك.\n📦 ${pd.product_name||'Bottine cuir Stéphano'} | 🎨 ${pd.color_ar||''} | 📏 ${pd.size||''} | 💰 ${pd.unit_price_mad||'390'} درهم | 🚚 مجاني\n👤 ${cd.full_name||''} | 📞 ${phoneDisplay} | 📍 ${cityFr||cd.city||''} — ${cd.shipping_address||''}${dtLine}\n❤️ ما تنساش قلب قيس، وأهم حاجة حتى يعجبك عاد خلص!\nفريق GreatShoes 🤎`;
               } catch(e) {}
             }
             await sendText(from, fullMsg || `✅ تم تأكيد طلبك!\n📞 ${phoneDisplay}\n🚚 سيتواصل معك فريقنا قريباً\nشكراً لثقتك ❤️`);
@@ -3028,8 +3028,8 @@ app.post('/webhook', async (req,res) => {
           const _abIsFr = (pending.lang === 'french');
           // ✅ إضافة جديدة — حالة حقيقية: زبناء كتبو اعتراض/رقم مختلف على الثمن ("300"، "قلت ليك 250") فهاد المرحلة، والبوت كان كيتجاهلها وكيعاود يوري الأزرار بلا ما يوضح — دبا نوضحو الثمن الصحيح مباشرة قبل ما نعاودو نوريو الأزرار
           if (isPriceObjection(text)) {
-            let _pcPrice = '399';
-            try { const _pj = extractOrderJSON(pending.reply); if (_pj) _pcPrice = (JSON.parse(_pj).product_data||{}).unit_price_mad || '399'; } catch(e) {}
+            let _pcPrice = '390';
+            try { const _pj = extractOrderJSON(pending.reply); if (_pj) _pcPrice = (JSON.parse(_pj).product_data||{}).unit_price_mad || '390'; } catch(e) {}
             await sendText(from, _abIsFr
               ? `Désolé, le prix final est bien *${_pcPrice} dhs* (livraison incluse) — c'est le prix confirmé, il n'est pas modifiable 😊 Est-ce que ça te convient? Si oui, clique sur "Confirmer" ci-dessous.`
               : `سمح ليا، الثمن النهائي هو *${_pcPrice} درهم* شامل التوصيل — هذا هو الثمن المعتمد 😊 واش يناسبك؟ إلا موافق، ضغط "تأكيد الطلب" تحت.`);
@@ -3103,8 +3103,8 @@ app.post('/webhook', async (req,res) => {
           const _fcIsFr = (pending.lang === 'french');
           // ✅ إضافة جديدة — نفس إصلاح اعتراض الثمن (انظر فرع awaiting_button أعلاه)
           if (isPriceObjection(text)) {
-            let _pcPrice2 = '399';
-            try { const _pj2 = extractOrderJSON(pending.reply); if (_pj2) _pcPrice2 = (JSON.parse(_pj2).product_data||{}).unit_price_mad || '399'; } catch(e) {}
+            let _pcPrice2 = '390';
+            try { const _pj2 = extractOrderJSON(pending.reply); if (_pj2) _pcPrice2 = (JSON.parse(_pj2).product_data||{}).unit_price_mad || '390'; } catch(e) {}
             await sendText(from, _fcIsFr
               ? `Désolé, le prix final est bien *${_pcPrice2} dhs* (livraison incluse) — c'est le prix confirmé, il n'est pas modifiable 😊 Est-ce que ça te convient? Si oui, clique sur "Confirmer" ci-dessous.`
               : `سمح ليا، الثمن النهائي هو *${_pcPrice2} درهم* شامل التوصيل — هذا هو الثمن المعتمد 😊 واش يناسبك؟ إلا موافق، ضغط "تأكيد الطلب" تحت.`);
@@ -3502,10 +3502,10 @@ app.post('/webhook', async (req,res) => {
             // ✅ إصلاح — فحص حسب المنتج بدل قائمة موحدة، حيت 350 دبا ثمن GS081 الحقيقي لكن يبقى رقم تفاوض محتمل لزبون Stéphano — ما نقبلوش 350 لطلب Stéphano
             else if (_pdCheck.unit_price_mad && (() => {
               const _priceVal = String(_pdCheck.unit_price_mad).trim();
-              // ✅ تعديل — الأثمنة الصالحة دبا: Stéphano وحدو 399 | جوج Stéphano 650 | GS081 وحدو 350 | جوج فيه GS081 (2 GS081 أو مختلط) 600 —
+              // ✅ تعديل — الأثمنة الصالحة دبا: Stéphano وحدو 390 | جوج Stéphano 650 | GS081 وحدو 350 | جوج فيه GS081 (2 GS081 أو مختلط) 600 —
               // ممنوع 600 لجوج Stéphano صافي (الثمن القديم) وممنوع 370 (الثمن القديم لـStéphano)
               const _isGS081Check = /gs\s?081/i.test(_pdCheck.product_name||'');
-              return _isGS081Check ? (_priceVal !== '350' && _priceVal !== '600') : (_priceVal !== '399' && _priceVal !== '650');
+              return _isGS081Check ? (_priceVal !== '350' && _priceVal !== '600') : (_priceVal !== '390' && _priceVal !== '650');
             })()) _missingField = 'price';
             // ✅ إضافة جديدة — طلب الجوج (600 درهم) لازم يحتوي على معلومات المقاسين واللونين — حالة حقيقية: Claude خرج الطلب بـsize و color_fr فارغين بالكامل فتسجل السطر فالشيت بلا حتى معلومة على الحذاءين
             else if (['600','650'].includes(String(_pdCheck.unit_price_mad).trim()) && !(_pdCheck.size||'').trim() && !(_pdCheck.color_fr||'').trim() && !(_pdCheck.color_ar||'').trim()) _missingField = 'variant';
@@ -3529,7 +3529,7 @@ app.post('/webhook', async (req,res) => {
             : _missingField === 'address'
             ? (_isFrMissing ? "Merci ! Il me manque juste votre adresse exacte (quartier et rue) pour finaliser la commande 📍" : "بغيت غير العنوان الكامل ديالك (الحي والشارع) باش نكملو الطلب 📍")
             : _missingField === 'price'
-            ? (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 399 dhs (Stéphano), 350 dhs (GS081), 650 dhs pour deux Stéphano, ou 600 dhs pour deux paires avec GS081 ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 399 درهم (Stéphano)، 350 درهم (GS081)، 650 درهم لجوج Stéphano، ولا 600 درهم لجوج فيه GS081؟ 😊")
+            ? (_isFrMissing ? "Pardon, je dois confirmer le prix exact — 390 dhs (Stéphano), 350 dhs (GS081), 650 dhs pour deux Stéphano, ou 600 dhs pour deux paires avec GS081 ? 😊" : "سمح ليا، بغيت نتأكد من الثمن الصحيح — 390 درهم (Stéphano)، 350 درهم (GS081)، 650 درهم لجوج Stéphano، ولا 600 درهم لجوج فيه GS081؟ 😊")
             : _missingField === 'district'
             ? (_isFrMissing ? "Pardon, peux-tu me préciser ton arrondissement à Casablanca (Maarif, Sbata, Hay Hassani...) pour finaliser la commande 📍" : "سمح ليا، بغيت نتأكد من المقاطعة ديالك فالدار البيضاء (مثلاً المعاريف، سباتة، الحي الحسني...) باش نكملو الطلب 📍")
             : _missingField === 'size'
@@ -3634,7 +3634,7 @@ app.post('/set-refuse', async (req, res) => {
     const { secret, phone, trackingNum, name, product, address, size, price } = req.body;
     if (secret !== SHEET_SECRET) return res.status(401).json({ error: 'unauthorized' });
     const waPhone = formatPhone(phone);
-    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', price: price || '399', phone: waPhone };
+    refuseActive[waPhone] = { trackingNum, name, product, address: address||'', size: size||'', price: price || '390', phone: waPhone };
     persistState();
     scheduleRefuseFollowup(waPhone);
     console.log(`📝 Refuse مسجل للزبون ${waPhone}`);
@@ -3737,7 +3737,7 @@ app.post('/new-website-order', async (req, res) => {
     websiteOrders[waPhone] = {
       orderId: orderId || '', name: name || '', phone: phone || '', waPhone,
       city: city || '', address: address || '',
-      product: product || '', price: price || '399',
+      product: product || '', price: price || '390',
       color: color || '', size: size || '',
       step: 'awaiting_reply', createdAt: Date.now()
     };
@@ -3750,7 +3750,7 @@ app.post('/new-website-order', async (req, res) => {
     const productDisplay = [product, size, color].filter(Boolean).join(' - ');
     // ✅ إصلاح — إلا الاسم أو المنتج جايين فارغين من الشيت (مثلاً خانة الاسم مانساتش)، واتساب كيرفض القالب بخطأ "text is missing text value" والزبون ما يتوصلش بأي رسالة؛ هنا نعطيو قيمة افتراضية باش الرسالة ديما تتصيفط
     try {
-      await sendOrderTemplate(waPhone, name || 'زبون', productDisplay || 'Bottine cuir Stéphano', price || '399');
+      await sendOrderTemplate(waPhone, name || 'زبون', productDisplay || 'Bottine cuir Stéphano', price || '390');
       console.log(`📤 Template طلب موقع → ${waPhone} (${name})`);
       if (websiteOrderTimers[waPhone]) clearTimeout(websiteOrderTimers[waPhone]);
       websiteOrderTimers[waPhone] = setTimeout(async () => {
@@ -3785,7 +3785,7 @@ app.post('/register-order-tracking', async (req, res) => {
     if (!phone || !trackingNum) return res.status(400).json({ error: 'phone و trackingNum ضروريين' });
     const waPhone = formatPhone(phone);
     customerTracking[waPhone] = trackingNum;
-    customerOrderInfo[waPhone] = { name: name || '', product: product || '', address: address || '', size: size || '', price: price || '399' };
+    customerOrderInfo[waPhone] = { name: name || '', product: product || '', address: address || '', size: size || '', price: price || '390' };
     // ✅ إصلاح — إلا الطلبية تأكدت يدوياً فالشيت (بلا ما يرد الزبون على البوت)، نلغيو مؤقت الـ45 دقيقة باش ما يبقاش يكتب "pas de réponse" فوق الحالة "مرسل" بعد ما تكون الطلبية شحنات فعلاً
     if (websiteOrderTimers[waPhone]) { clearTimeout(websiteOrderTimers[waPhone]); delete websiteOrderTimers[waPhone]; }
     delete websiteOrders[waPhone];
@@ -3814,7 +3814,7 @@ app.post('/deferred-reminder', async (req, res) => {
       : `سلام خويا/اختي ${name}، نتمنى تكون بخير! 🌿 تنسولك بخصوص الطلبية ديالك من GreatShoes (${productDisplay}). كنتِ حددتي معاها تخرج قريب. واش نرسلوها ليك توكّلو على الله؟\n1️⃣ نعم، أكد الطلب\n2️⃣ أجّلها ليوم آخر\n3️⃣ إلغاء الطلب`;
     await sendSmart(waPhone, msg, 'message_equipe', [name, msg]);
     deferredReconfirmStates[waPhone] = {
-      row: Number(row), name, phone: waPhone, address: address || '', price: price || '399',
+      row: Number(row), name, phone: waPhone, address: address || '', price: price || '390',
       city: city || '', product: product || 'Bottine cuir Stéphano', variant: variant || '',
       deferred_date: deferred_date || '', lang, step: 'awaiting_choice'
     };
@@ -3928,7 +3928,7 @@ const checkOzonStatusChanges = async () => {
         const refuseMsg = await generateRefuseInitialMsg(oi.name || '', oi.product || '', trackingNum, isFr);
         // ✅ إصلاح — sendSmart بدل sendText: قالب "message_equipe" كحل احتياطي إلا الزبون برا نافذة 24 ساعة
         await sendSmart(phone, refuseMsg, 'message_equipe', [oi.name || 'خويا', refuseMsg]);
-        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '399', phone };
+        refuseActive[phone] = { trackingNum, name: oi.name || '', product: oi.product || '', address: oi.address || '', size: oi.size || '', price: oi.price || '390', phone };
         persistState();
         scheduleRefuseFollowup(phone);
         console.log(`📝 Refuse مفعّل أوتوماتيكياً ← ${phone} | ${trackingNum}`);
