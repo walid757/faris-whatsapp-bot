@@ -1168,6 +1168,22 @@ const guardReply = (from, reply, customerText, lang) => {
         for (const c of inReply) { for (let i = 0; i < 3; i++) r = r.split(_colorForms[c][i]).join(_colorForms[want][i]); }
       }
     }
+    // (4) وعد بموعد ماكانش فالمحادثة (حالة حقيقية: "حاضرين ننتظرك يوم الخميس 8 أكتوبر") — نحيدو الجملة ونسولو الزبون بدل ما نوعدو
+    const _apptRe = /(حاضرين\s*ننتظرك|ننتظرك\s*يوم|نتكلمو\s*يوم|نتشوفو\s*يوم|نكملو\s*(?:الطلب\s*)?يوم|نلاقاو\s*يوم|نتصلو\s*بيك\s*يوم)[^\n.!؟?]*/i;
+    if (_apptRe.test(r)) {
+      r = r.replace(_apptRe, '');
+      console.warn(`🛡️ guardReply: منعنا وعد بموعد ماكانش ← ${from}`);
+      r = r.replace(/(\uE000\d+\uE001\s*)+$/, '').trim();
+      if (!/[؟?]/.test(r)) r = (r ? r + ' [PAUSE] ' : '') + (lang === 'french' ? 'Quelle est ta pointure ?' : 'شنو المقاس ديالك باش نكملو الطلب؟');
+    }
+    // (5) مقاس ما قالوش الزبون (حالة حقيقية: "39 يناسبك ولا تبغي نمرة أخرى؟") — ماشي البوط يقترح مقاس من عندو
+    const _custAll = getCustomerMessagesText(from) + ' ' + (customerText || '');
+    const _sizeSug = /(\d{2})\s*يناسبك[^؟?]*[؟?]/;
+    const _mm = r.match(_sizeSug);
+    if (_mm && !_custAll.includes(_mm[1])) {
+      r = r.replace(_sizeSug, 'شنو المقاس ديالك؟');
+      console.warn(`🛡️ guardReply: منعنا اقتراح مقاس ماقالوش الزبون (${_mm[1]}) ← ${from}`);
+    }
     // (3) تأكيد/وعد كاذب قبل ما الطلب يتأكد
     const _orderKnown = orderConfirmed.has(from) || customerTracking[from] || customerOrderInfo[from] || pendingConfirmations[from] || (typeof customerLastStatus !== 'undefined' && customerLastStatus[from]);
     if (!_orderKnown) {
