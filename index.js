@@ -3911,9 +3911,11 @@ const checkOzonStatusChanges = async () => {
       persistState();
       const isFr = (userLangPref[phone] === 'french');
       const statusLowerForLivreur = status.statut.toLowerCase();
-      // ✅ إضافة جديدة — "Nouveau Colis" ما نخبروش بيها الزبون (مكررة مع رسالة تأكيد الطلب لي فيها رقم التتبع من قبل) — الإخبار غير للحالات: Attente de ramassage، Ramassé، Mise en distribution، Pas de réponse، Refusé
-      if (statusLowerForLivreur.includes('nouveau') && !statusLowerForLivreur.includes('ramass')) {
-        console.log(`⏭️ تخطي إشعار "Nouveau Colis" ← ${phone} | ${trackingNum}`);
+      // ✅ تعديل — بطلب صريح: نخبرو الزبون غير بالحالات المهمة (Mise en distribution وما فوقها: Pas de réponse، Refusé، Livré، رقم خطأ...) —
+      // الحالات المبكرة/الداخلية (Nouveau Colis، Attente de ramassage، Ramassé، Reçu) ما كتفيدوش الزبون وكتزيد رسائل بلا داعي، حيدناها كاملين
+      const _isEarlyStageStatus = /nouveau|attente.?de.?ramassage|ramass|re[çc]u\b/.test(statusLowerForLivreur) && !/distribution|transit|expédi|expedi/.test(statusLowerForLivreur);
+      if (_isEarlyStageStatus) {
+        console.log(`⏭️ تخطي إشعار حالة مبكرة (${status.statut}) ← ${phone} | ${trackingNum}`);
         continue;
       }
       // ✅ إضافة جديدة — "Reçu" (وصل لوكالة المدينة، مرحلة داخلية) ما نخبروش بيها الزبون — غير مرحلة وسيطة بلا فائدة له، والرسالة كانت كتبين "Reçu" خام بلا ترجمة حيت ماعندهاش رد مخصص
