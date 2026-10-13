@@ -2795,6 +2795,12 @@ const handleWebsiteOrder = async (from, text) => {
       await markWebsiteOrderStatus(from, order.orderId, 'pas de réponse');
       await sendText(from, 'تم إلغاء طلبك 😊 يمكنك إعادة الطلب في أي وقت.');
       delete websiteOrders[from]; persistState();
+    } else {
+      // ✅ إضافة جديدة — بطلب صريح: بعد ما حيدنا زر "تحديد وقت التوصيل"، الزبون اللي بغى يحدد وقت كيكتبو مباشرة كنص حر
+      // (بدل ما يضغط زر خاص) — كنسجلو الوقت فالعنوان ونشحنو عادي، بحال كان مسار "تحديد وقت التوصيل" القديم بالضبط
+      const _noPreference = /أي وقت|اي وقت|الآن|الان|now|لا أريد|لا اريد/.test(text.toLowerCase());
+      const _finalAddress = _noPreference ? (order.address || order.city || 'عنوان التوصيل') : `${order.address || order.city || 'عنوان التوصيل'} — وقت: ${text.trim()}`;
+      await confirmAndSendToOzon(from, order, _finalAddress);
     }
     return true;
   }
